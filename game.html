@@ -7,7 +7,7 @@
   /* Layout: one narrow column on phones (scoreboard → field → snap stage → hand → play-by-play → rules).
      On wide screens a whole snap fits on one screen: the field runs across the top, the stage and its history sit left, your cards right.
      Look: night game on turf. Chalk playbook diagrams on slate cards, penalty-flag yellow for specials.
-     The one loud moment is the stage: both cards flip and a referee-style medal says whether the guess was right. */
+     The one loud moment is the stage: both cards flip and a referee-style medal says whether the play was stopped. */
   :root {
     --turf: #0f3d29;
     --turf-2: #13492f;
@@ -328,12 +328,18 @@
   .box { background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 14px 14px 12px; display: grid; gap: 10px; min-width: 0; }
   .box h2 { margin: 0; font: 400 17px/1 var(--display); }
   .log { list-style: none; margin: 0; padding: 0 4px 0 0; display: grid; gap: 9px; position: relative; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--chalk-faint) transparent; }
-  .log li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; align-items: baseline; color: var(--chalk-dim); font-size: 13.5px; line-height: 1.35; }
+  /* Sized so every play-by-play line fits in two lines, on phones too. */
+  .log li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; align-items: baseline; color: var(--chalk-dim); font-size: 13px; line-height: 1.3; }
   .log li .n { font: 600 13px/1 var(--ui); color: var(--chalk-faint); font-variant-numeric: tabular-nums; }
   .log li b { font: 700 15px/1 var(--ui); color: var(--tone); margin-right: 4px; }
   .log li.t-you { --tone: var(--you); }
   .log li.t-cpu { --tone: var(--cpu); }
   .log li.t-you .n, .log li.t-cpu .n { color: var(--tone); }
+  /* Phones: scrollbars float over the text, so no gutter, and the text shrinks a little on narrow phones so the longest line still takes two lines. */
+  @media (max-width: 899px) {
+    .log { padding-right: 0; container-type: inline-size; }
+    .log li { font-size: clamp(12px, (100cqi - 28px) * 0.0473, 13px); }
+  }
   .more { margin: 0; font-size: 12.5px; color: var(--chalk-faint); }
 
   /* How to play: folded by default */
@@ -397,7 +403,6 @@
     .stage { grid-area: stage; }
     .slot .face { min-height: 140px; }
     .log { gap: 7px; }
-    .log li { font-size: 13px; line-height: 1.3; }
     .play { grid-area: play; }
     .actions { grid-area: act; position: static; padding: 0; background: none; }
     .log-box { grid-area: log; margin-top: 0; }
@@ -668,11 +673,12 @@
 
   function callText(offWho, o, d) {
     const oc = o.sp === 'hail' ? 'threw a Hail Mary' : 'called ' + PLAYS[o.play].name;
-    const dc = 'guessed ' + PLAYS[PLAYS[d.play].stops].name;
+    const dc = 'called ' + PLAYS[d.play].name;
     return `${NAME[offWho]} ${oc}. ${NAME[other(offWho)]} ${dc}.`;
   }
 
   const zoneName = (pos, who) => (pos === 0 ? (who === 'you' ? 'your own 25' : 'their own 25') : ZONES[pos]);
+  const cap = (s) => s[0].toUpperCase() + s.slice(1);
 
   function kickoff(receiver) { S.poss = receiver; S.pos = 0; draw(receiver); }
   function won(who) { if (S.score[who] >= TARGET) { S.phase = 'over'; return true; } return false; }
@@ -682,38 +688,41 @@
     const def = other(off);
     switch (r.kind) {
       case 'replay':
-        return { head: 'Flag! Replay', detail: `${NAME[r.by]} ${verb(r.by, 'throw')} the challenge flag. Same spot, snap again.`, tone: r.by };
+        return { head: 'Flag! Replay', detail: `${NAME[r.by]} threw the flag: snap again.`, tone: r.by };
       case 'gain': {
         S.pos += r.zones;
-        const lead = r.how === 'juke' ? 'Guessed, but the juke breaks free. ' : r.how === 'grab' ? 'Guessed, but what a catch! ' : '';
-        if (S.pos >= 3) { score(off, 7); return { head: 'Touchdown!', detail: `${lead}${NAME[off]} ${verb(off, 'score')} 7.`, tone: off }; }
-        const head = r.how === 'juke' ? 'Juke!' : r.how === 'grab' ? 'What a catch!' : `+${r.zones} zone${r.zones > 1 ? 's' : ''}`;
-        return { head, detail: `${lead}Ball at ${zoneName(S.pos, off)}.`, tone: off };
+        const td = S.pos >= 3;
+        if (td) score(off, 7);
+        const rest = td ? `${NAME[off]} ${verb(off, 'score')} 7.` : r.how ? '+1 zone.' : `Ball at ${zoneName(S.pos, off)}.`;
+        const head = td ? 'Touchdown!' : r.how === 'juke' ? 'Juke!' : r.how === 'grab' ? 'What a catch!' : `+${r.zones} zone${r.zones > 1 ? 's' : ''}`;
+        if (!r.how) return { head, detail: rest, tone: off };
+        // A Save turns a stop into a gain, so the log joins it to the picks with "but".
+        const save = r.how === 'juke' ? 'the juke breaks free.' : 'what a catch!';
+        return { head, detail: `${cap(save)} ${rest}`, but: `${save} ${rest}`, tone: off };
       }
       case 'td': {
-        const lead = r.how === 'hail' ? 'Hail Mary! Caught in the end zone. '
-          : r.how === 'breakaway' ? 'Breakaway! Nobody catches the runner. ' : '';
+        const lead = r.how === 'hail' ? 'Caught! ' : r.how === 'breakaway' ? 'Breakaway! ' : '';
         score(off, 7);
         return { head: 'Touchdown!', detail: `${lead}${NAME[off]} ${verb(off, 'score')} 7.`, tone: off };
       }
       case 'stop':
         S.poss = def; S.pos = 0;
-        return { head: 'Stopped', detail: `Right guess. ${NAME[def]} ${verb(def, 'take')} over at ${zoneName(0, def)}.`, tone: def };
+        return { head: 'Stopped', detail: `${NAME[def]} ${verb(def, 'take')} over at ${def === 'you' ? 'your' : 'their'} 25.`, tone: def };
       case 'int':
         S.poss = def; S.pos = 1;
         return { head: 'Intercepted!', detail: `${NAME[def]} ${verb(def, 'start')} at midfield.`, tone: def };
       case 'sack': {
         const was = S.pos;
         S.pos = Math.max(0, S.pos - 1);
-        const tfl = r.how === 'tfl';
-        return { head: tfl ? 'Tackle for loss!' : 'Sacked!', detail: `Wrong guess, but the defense breaks through. ${was === 0 ? 'No gain, still at' : 'Back to'} ${zoneName(S.pos, off)}.`, tone: def };
+        const rest = was === 0 ? 'No gain.' : 'Back 1 zone.';
+        return { head: r.how === 'tfl' ? 'Tackle for loss!' : 'Sacked!', detail: `The defense got through. ${rest}`, but: `got through. ${rest}`, tone: def };
       }
       case 'fumble':
         S.poss = def; S.pos = 1;
-        return { head: 'Fumble!', detail: `Ball knocked loose. ${NAME[def]} ${verb(def, 'recover')} it at midfield.`, tone: def };
+        return { head: 'Fumble!', detail: `${NAME[def]} ${verb(def, 'recover')} at midfield.`, tone: def };
       case 'pick6':
         score(def, 7);
-        return { head: 'Pick Six!', detail: `Picked off and run back. ${NAME[def]} ${verb(def, 'score')} 7.`, tone: def };
+        return { head: 'Pick Six!', detail: `Picked off! ${NAME[def]} ${verb(def, 'score')} 7.`, tone: def };
     }
   }
 
@@ -749,7 +758,7 @@
     S.move = S.phase !== 'over' && S.poss === off && S.pos !== pos0 ? { from: pos0, to: S.pos } : null;
     S.snaps++;
     S.last = { you, cpu, ...out, n: S.snaps, off, guessed: PLAYS[d.play].stops === o.play };
-    addLog({ n: S.snaps, head: out.head, text: `${text} ${out.detail}`, tone: out.tone });
+    addLog({ n: S.snaps, head: out.head, text: out.but ? `${text.slice(0, -1)}, but ${out.but}` : `${text} ${out.detail}`, tone: out.tone });
     S.sel = { play: null, special: null };
     S.showLast = true; S.flip = true;
     render();
@@ -864,7 +873,7 @@
       $('#slotCpu').innerHTML = faceBlock(L.cpu, 'cpu', S.flip);
       medal.className = 'medal hit' + (S.flip ? ' pop' : '');
       medal.style.setProperty('--tone', `var(--${L.guessed ? other(L.off) : L.off})`);
-      medal.innerHTML = L.guessed ? 'Right<br>guess' : 'Wrong<br>guess';
+      medal.innerHTML = L.guessed ? 'Stopped' : 'Not<br>stopped';
     } else {
       $('#slotYou').innerHTML = S.sel.play
         ? faceBlock({ play: S.sel.play, card: S.sel.special }, 'you', false)
