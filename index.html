@@ -910,8 +910,9 @@
       const on = S.sel.special && S.sel.special.id === c.id;
       const ok = S.phase === 'pick' && fits(c.key, S.sel.play, sd);
       return `<button type="button" class="sp${on ? ' on' : ''}" data-sp="${c.id}" aria-pressed="${!!on}"${ok || on ? '' : ' disabled'}>`
+        + `<b>${s.name}</b>`
         + `<span class="kind"><i class="badge ${s.kind}">${s.kind === 'save' ? 'Save' : 'Bonus'}</i><span class="side">${SIDE_ICON[s.side]}${SIDE_LABEL[s.side]}</span></span>`
-        + `<b>${s.name}</b><span class="rule"><span class="when">${s.when}</span> <span class="then">→ ${s.then}</span></span>`
+        + `<span class="rule"><span class="when">${s.when}</span> <span class="then">→ ${s.then}</span></span>`
         + '</button>';
     });
     while (sp.length < 3) sp.push('<div class="sp empty">Empty slot. You draw one when you get scored on.</div>');
