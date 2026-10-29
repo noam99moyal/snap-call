@@ -267,6 +267,7 @@
     display: flex; flex-direction: column; gap: 5px; padding: 8px 8px 9px; border-radius: 10px; text-align: left;
     background: var(--flag); color: var(--ink); border: 0; cursor: pointer; font: inherit; min-width: 0;
     transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s;
+    container-type: inline-size;
   }
   .sp .kind { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 5px 4px; }
   .sp .side { display: inline-flex; align-items: center; gap: 4px; font: 700 12.5px/1 var(--ui); letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
@@ -275,8 +276,10 @@
   .ico-shield { width: 11px; height: 13px; fill: var(--ink); }
   .sp b { font: 700 16px/1 var(--ui); letter-spacing: 0.01em; }
   .sp .rule { display: flex; flex-direction: column; gap: 5px; }
-  .sp .when { font: 500 12px/1.2 var(--body); }
+  /* Every line of every special fits on one line, so the three cards line up. The condition shrinks a little on narrow cards. */
+  .sp .when { font: 500 13px/1.2 var(--ui); font-size: min(13px, 9.2cqi); }
   .sp .then { font: 700 13.5px/1.15 var(--ui); }
+  @container (max-width: 136px) { .sp .side svg { display: none; } }
   .sp.on { transform: translateY(-4px); box-shadow: 0 0 0 3px var(--chalk); }
   .sp:disabled { opacity: 0.5; cursor: default; }
   .sp.empty {
@@ -294,9 +297,9 @@
     .sp .badge { grid-area: badge; }
     .sp b { grid-area: name; font-size: 17px; }
     .sp .side { grid-area: side; }
-    .sp .rule { grid-area: rule; display: block; font: 500 13.5px/1.35 var(--body); }
+    .sp .rule { grid-area: rule; display: block; font: 500 13.5px/1.35 var(--body); font-size: min(13.5px, 4.85cqi); }
     .sp .when { font: inherit; }
-    .sp .then { display: inline-block; font: 700 15px/1.35 var(--ui); }
+    .sp .then { display: inline-block; font: 700 15px/1.35 var(--ui); font-size: min(15px, 5.4cqi); }
     .sp.empty { display: flex; min-height: 44px; }
   }
 
