@@ -301,6 +301,9 @@
     .sp .when { font: inherit; }
     .sp .then { display: inline-block; font: 700 15px/1.35 var(--ui); font-size: min(15px, 5.4cqi); }
     .sp.empty { display: flex; min-height: 44px; }
+    /* The Save / Bonus legend stays on one line on most phones: its text shrinks a little before it wraps. */
+    .legend { container-type: inline-size; column-gap: 10px; }
+    .legend span { font-size: clamp(11px, (100cqi - 94px) * 0.0535, 13px); }
   }
 
   .actions {
