@@ -1,0 +1,924 @@
+<title>Snap Call</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Graduate&display=swap">
+<style>
+  /* Layout: one narrow column on phones (scoreboard → field → snap stage → hand → play-by-play → rules).
+     On wide screens a whole snap fits on one screen: the field runs across the top, the stage and its history sit left, your cards right.
+     Look: night game on turf. Chalk playbook diagrams on slate cards, penalty-flag yellow for specials.
+     The one loud moment is the stage: both cards flip and a referee-style medal says whether the guess was right. */
+  :root {
+    --turf: #0f3d29;
+    --turf-2: #13492f;
+    --turf-deep: #0a2c1d;
+    --turf-deep-2: #0c3121;
+    --board: #08150f;
+    --slate: #0b241a;
+    --line: rgba(236, 243, 232, 0.2);
+    --chalk: #ecf3e8;
+    --chalk-dim: rgba(236, 243, 232, 0.7);
+    --chalk-faint: rgba(236, 243, 232, 0.34);
+    --you: #ff8a3d;
+    --cpu: #79abff;
+    --flag: #ffd447;
+    --ink: #15201a;
+    --leather: #8b4a29;
+
+    --display: 'Graduate', 'Rockwell', 'Courier New', serif;
+    --ui: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+    --body: 'Barlow', system-ui, -apple-system, sans-serif;
+    color-scheme: dark;
+  }
+
+  [hidden] { display: none !important; }
+
+  body {
+    background: repeating-linear-gradient(180deg, var(--turf-deep) 0 72px, var(--turf-deep-2) 72px 144px);
+    color: var(--chalk);
+    font-family: var(--body);
+    font-size: 15px;
+  }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding-block: 14px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid;
+    grid-template-columns: minmax(0, 480px);
+    justify-content: center;
+    gap: 12px;
+  }
+  .wrap > * { min-width: 0; }
+  .play { display: flex; flex-direction: column; gap: 10px; }
+  .log-box { margin-top: 10px; }
+
+  /* Header */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; min-width: 0; }
+  .brand h1 { margin: 0; font: 400 24px/1 var(--display); letter-spacing: 0.02em; white-space: nowrap; }
+  .chip { font: 600 13px/1 var(--ui); letter-spacing: 0.04em; color: var(--chalk-dim); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; white-space: nowrap; }
+  .ghost {
+    font: 600 15px/1 var(--ui); letter-spacing: 0.03em;
+    color: var(--chalk); background: transparent; border: 1px solid var(--chalk-faint);
+    border-radius: 6px; padding: 8px 12px; cursor: pointer;
+  }
+  .ghost:hover { border-color: var(--chalk); }
+
+  /* Scoreboard */
+  .board {
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
+    background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px;
+  }
+  .team { display: flex; align-items: center; gap: 10px; }
+  .team.cpu { justify-content: flex-end; text-align: right; }
+  .team .who { display: grid; gap: 4px; }
+  .team .label { font: 700 15px/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; }
+  .team.you .label { color: var(--you); }
+  .team.cpu .label { color: var(--cpu); }
+  .team .score { font: 400 40px/1 var(--display); font-variant-numeric: tabular-nums; min-width: 1.4em; }
+  .team.you .score { text-align: left; }
+  .poss { font: 600 12px/1 var(--ui); letter-spacing: 0.06em; color: var(--chalk); display: flex; align-items: center; gap: 4px; visibility: hidden; }
+  .team.cpu .poss { justify-content: flex-end; }
+  .poss svg { width: 18px; height: 11px; }
+  .has-ball .poss { visibility: visible; }
+  .target { text-align: center; font: 600 12px/1.2 var(--ui); color: var(--chalk-dim); }
+  .target b { display: block; font: 400 18px/1 var(--display); color: var(--chalk); }
+  .pips { display: flex; gap: 3px; }
+  .team.cpu .pips { justify-content: flex-end; }
+  .pips i { width: 9px; height: 12px; border-radius: 2px; background: var(--flag); opacity: 0.9; }
+
+  /* Status */
+  .status { display: grid; gap: 2px; }
+  .status strong { font: 700 21px/1.1 var(--ui); letter-spacing: 0.02em; }
+  .status span { color: var(--chalk-dim); }
+
+  /* Field: always drawn from the offense's side, attacking to the right. */
+  .field {
+    position: relative; height: 84px; border-radius: 8px; overflow: hidden;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: repeating-linear-gradient(90deg, var(--turf) 0 12.5%, var(--turf-2) 12.5% 25%);
+    box-shadow: inset 0 0 0 2px var(--chalk-faint), 0 10px 26px rgba(0, 0, 0, 0.35);
+  }
+  .field[data-off="you"] { --offc: var(--you); --defc: var(--cpu); }
+  .field[data-off="cpu"] { --offc: var(--cpu); --defc: var(--you); }
+  .zone {
+    position: relative; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 9px;
+    font: 600 12px/1 var(--ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--chalk-faint);
+    border-left: 2px solid var(--chalk-dim);
+    transition: background-color 0.3s;
+  }
+  .zone::before, .zone::after {
+    content: ''; position: absolute; left: 0; right: 0; height: 6px;
+    background: repeating-linear-gradient(90deg, transparent 0 calc(20% - 1px), var(--line) calc(20% - 1px) 20%);
+  }
+  .zone::before { top: 2px; }
+  .zone::after { top: calc(42% - 3px); }
+  .zone:first-child { border-left: 0; }
+  .zone.here { color: var(--chalk); background-color: color-mix(in srgb, var(--offc) 14%, transparent); }
+  .zone.ez {
+    flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 0;
+    background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--defc) 46%, var(--turf)) 0 10px, color-mix(in srgb, var(--defc) 36%, var(--turf)) 10px 20px);
+    color: var(--chalk); font: 400 12px/1 var(--display); letter-spacing: 0.04em; text-transform: none;
+  }
+  .zone.ez::before, .zone.ez::after { display: none; }
+  .zone.ez small { font: 700 12px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; }
+  .ball {
+    position: absolute; top: 42%; left: 12.5%; transform: translate(-50%, -50%); z-index: 2;
+    width: 40px; height: 24px; transition: left 0.55s cubic-bezier(0.3, 0.7, 0.3, 1);
+    filter: drop-shadow(0 0 6px var(--offc));
+  }
+  .ball svg { width: 100%; height: 100%; display: block; }
+  #trail { position: absolute; }
+  .trail {
+    top: 42%; height: 8px; transform: translateY(-50%); border-radius: 4px;
+    background: color-mix(in srgb, var(--offc) 70%, transparent);
+    animation: grow 0.55s cubic-bezier(0.3, 0.7, 0.3, 1) both; transform-origin: left center;
+  }
+  .trail.loss { background: repeating-linear-gradient(90deg, var(--defc) 0 6px, transparent 6px 11px); transform-origin: right center; }
+  .trail b {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    font: 700 16px/1 var(--ui); color: var(--offc); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  }
+  .trail.loss b { color: var(--defc); }
+  @keyframes grow { from { scale: 0 1; } to { scale: 1 1; } }
+
+  /* Stage: the snap, revealed */
+  .stage {
+    background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(236, 243, 232, 0.08), transparent 70%), var(--board);
+    border: 1px solid var(--line); border-radius: 14px; padding: 12px 12px 14px;
+    display: grid; gap: 12px;
+  }
+  .table { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: 8px; }
+  .slot { display: flex; flex-direction: column; align-items: center; gap: 6px; perspective: 700px; min-width: 0; }
+  .slot-label { font: 700 13px/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; }
+  .slot-label.you { color: var(--you); }
+  .slot-label.cpu { color: var(--cpu); }
+  .slot-body { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .slot .face { width: min(118px, 100%); min-height: 150px; }
+  .medal {
+    --tone: var(--chalk-faint);
+    align-self: center; margin-top: 18px; width: 66px; height: 66px; border-radius: 50%;
+    display: grid; place-items: center; text-align: center;
+    border: 2px solid var(--tone); color: var(--chalk-faint);
+    font: 400 12px/1.1 var(--display);
+  }
+  .medal.hit { background: var(--tone); color: var(--ink); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tone) 30%, transparent), 0 0 24px color-mix(in srgb, var(--tone) 45%, transparent); }
+  .medal.pop { animation: stamp 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+  @keyframes stamp { from { transform: scale(1.8) rotate(-12deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+
+  .tag {
+    display: grid; gap: 2px; justify-items: center; text-align: center; max-width: 100%;
+    background: var(--flag); color: var(--ink); font: 700 13px/1.05 var(--ui);
+    border-radius: 5px; padding: 5px 8px;
+  }
+  .tag small { font: 600 11px/1 var(--ui); letter-spacing: 0.04em; }
+  .tag[data-st="worked"] { box-shadow: 0 0 0 2px var(--chalk), 0 0 18px rgba(255, 212, 71, 0.55); }
+  .tag[data-st="wasted"] { background: transparent; color: var(--chalk-faint); box-shadow: inset 0 0 0 1px var(--chalk-faint); }
+  .tag[data-st="wasted"] span { text-decoration: line-through; }
+  .tag[data-st="back"] { background: transparent; color: var(--flag); box-shadow: inset 0 0 0 1px var(--flag); }
+
+  .result { display: grid; gap: 4px; text-align: center; min-height: 54px; align-content: center; }
+  .result .head { font: 400 27px/1 var(--display); color: var(--tone, var(--chalk)); text-wrap: balance; }
+  .result .detail { color: var(--chalk-dim); text-wrap: balance; line-height: 1.35; }
+  .result.pop .head { animation: pop 0.4s ease-out; }
+  @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+
+  /* Play cards: the name, a chalk diagram, and what happens either way. */
+  .face {
+    --team: var(--you);
+    width: 100%; display: flex; flex-direction: column; gap: 6px;
+    padding: 9px 9px 10px; border-radius: 12px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--team) 12%, var(--slate)), var(--slate) 60%);
+    border: 2px solid color-mix(in srgb, var(--team) 55%, transparent);
+    color: var(--chalk); text-align: left; font: inherit;
+  }
+  .face.cpu { --team: var(--cpu); }
+  .face .name { font: 700 17px/1 var(--ui); letter-spacing: 0.01em; }
+  .face .dia { width: 100%; height: 46px; }
+  .face .outs { display: grid; gap: 5px; margin-top: auto; }
+  .out { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 4px; align-items: start; font: 600 13px/1.1 var(--ui); }
+  .out i { font-style: normal; font-weight: 700; text-align: center; }
+  .out.good { color: var(--chalk); }
+  .out.good i { color: var(--team); }
+  .out.bad { color: var(--chalk-dim); }
+  .out.bad i { color: var(--chalk-faint); }
+  .face.flip { animation: flip 0.38s ease-out; }
+  @keyframes flip { from { transform: rotateY(90deg); } to { transform: rotateY(0deg); } }
+  .face.back {
+    align-items: center; justify-content: center;
+    background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--cpu) 26%, var(--slate)) 0 8px, var(--slate) 8px 16px);
+  }
+  .face.back span { font: 400 34px/1 var(--display); color: var(--cpu); }
+  .face.empty {
+    align-items: center; justify-content: center; text-align: center;
+    border: 2px dashed var(--chalk-faint); background: transparent; color: var(--chalk-dim);
+    font: 600 14px/1.2 var(--ui);
+  }
+
+  .dia circle { fill: none; stroke: var(--chalk-dim); stroke-width: 1.5; }
+  .dia .carrier { fill: var(--chalk); stroke: var(--chalk); }
+  .dia .los { stroke: var(--chalk-faint); stroke-width: 1; stroke-dasharray: 2 3; }
+  .dia .route { fill: none; stroke: var(--chalk); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .dia .route.pass { stroke-dasharray: 5 4; }
+  .dia .bar { stroke: var(--team); stroke-width: 4.5; stroke-linecap: round; }
+
+  /* Hand */
+  .section-label { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 10px; }
+  .section-label > span:first-child { font: 700 16px/1 var(--ui); letter-spacing: 0.02em; }
+  .section-label > span + span { font-size: 13px; color: var(--chalk-dim); }
+  .hand { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .hand .face { min-height: 156px; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s; }
+  .hand .face:hover:not(:disabled) { transform: translateY(-3px); }
+  .hand .face.on { transform: translateY(-8px); border-color: var(--team); box-shadow: 0 0 0 2px var(--team), 0 10px 20px rgba(0, 0, 0, 0.35); }
+  .hand .face:disabled { cursor: default; opacity: 0.5; }
+
+  /* Specials: yellow like a penalty flag. Each says when it works and what it does. */
+  .legend { margin: -4px 0 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--chalk-dim); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .badge { font: 700 11px/1 var(--ui); letter-spacing: 0.06em; padding: 3px 5px; border-radius: 3px; font-style: normal; }
+  .badge.save { background: var(--ink); color: var(--flag); }
+  .badge.bonus { color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+  .legend .badge.save { background: var(--flag); color: var(--ink); }
+  .legend .badge.bonus { color: var(--flag); box-shadow: inset 0 0 0 1.5px var(--flag); }
+
+  .specials { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .sp {
+    display: flex; flex-direction: column; gap: 5px; padding: 8px 8px 9px; border-radius: 10px; text-align: left;
+    background: var(--flag); color: var(--ink); border: 0; cursor: pointer; font: inherit; min-width: 0;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s;
+  }
+  .sp .kind { display: flex; align-items: center; justify-content: space-between; gap: 4px; font: 600 11.5px/1 var(--ui); }
+  .sp b { font: 700 16px/1 var(--ui); letter-spacing: 0.01em; }
+  .sp .when { font: 500 12px/1.2 var(--body); }
+  .sp .then { font: 700 13.5px/1.1 var(--ui); display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 2px; }
+  .sp .why { margin-top: auto; padding-top: 4px; border-top: 1px solid rgba(21, 32, 26, 0.35); font: 700 12px/1.1 var(--ui); }
+  .sp.on { transform: translateY(-4px); box-shadow: 0 0 0 3px var(--chalk); }
+  .sp:disabled { opacity: 0.5; cursor: default; }
+  .sp.empty {
+    background: transparent; border: 1px dashed var(--chalk-faint); color: var(--chalk-faint);
+    align-items: center; justify-content: center; text-align: center; font: 600 13px/1.2 var(--ui); min-height: 80px; cursor: default;
+  }
+
+  .actions {
+    position: sticky; bottom: 0; z-index: 5; display: flex; gap: 10px;
+    padding-block: 10px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to bottom, transparent, var(--turf-deep) 30%);
+  }
+  .snap {
+    flex: 1; height: 54px; border: 0; border-radius: 10px; cursor: pointer;
+    background: var(--you); color: var(--ink); font: 400 22px/1 var(--display); letter-spacing: 0.04em;
+  }
+  .snap:disabled { opacity: 0.35; cursor: default; }
+  .fg {
+    height: 54px; padding: 0 16px; border-radius: 10px; cursor: pointer;
+    background: transparent; color: var(--chalk); border: 2px solid var(--chalk);
+    font: 700 17px/1 var(--ui); letter-spacing: 0.02em;
+  }
+
+  button:focus-visible, summary:focus-visible { outline: 3px solid var(--flag); outline-offset: 2px; }
+
+  /* Play by play: the newest 5 show, older ones scroll. */
+  .box { background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 14px 14px 12px; display: grid; gap: 10px; min-width: 0; }
+  .box h2 { margin: 0; font: 400 17px/1 var(--display); }
+  .log { list-style: none; margin: 0; padding: 0 4px 0 0; display: grid; gap: 9px; position: relative; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--chalk-faint) transparent; }
+  .log li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; align-items: baseline; color: var(--chalk-dim); font-size: 13.5px; line-height: 1.35; }
+  .log li .n { font: 600 13px/1 var(--ui); color: var(--chalk-faint); font-variant-numeric: tabular-nums; }
+  .log li b { font: 700 15px/1 var(--ui); color: var(--tone); margin-right: 4px; }
+  .log li.t-you { --tone: var(--you); }
+  .log li.t-cpu { --tone: var(--cpu); }
+  .log li.t-you .n, .log li.t-cpu .n { color: var(--tone); }
+  .more { margin: 0; font-size: 12.5px; color: var(--chalk-faint); }
+
+  /* How to play: folded by default */
+  .rules { background: var(--board); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+  .rules summary {
+    list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 14px; font: 400 17px/1 var(--display); border-radius: 10px;
+  }
+  .rules summary::-webkit-details-marker { display: none; }
+  .rules summary svg { width: 18px; height: 18px; stroke: var(--chalk-dim); fill: none; stroke-width: 2; transition: transform 0.2s; }
+  .rules[open] summary svg { transform: rotate(180deg); }
+  .rules .body { padding: 0 14px 18px; display: grid; gap: 14px; }
+  .rules h3 { margin: 0; font: 700 16px/1 var(--ui); letter-spacing: 0.02em; color: var(--chalk); }
+  .rules ul { margin: 0; padding-left: 18px; display: grid; gap: 7px; line-height: 1.45; max-width: 65ch; }
+  .rules p { margin: 0; line-height: 1.5; color: var(--chalk-dim); max-width: 65ch; }
+  .rules dl { margin: 0; display: grid; gap: 8px; }
+  .rules dt { font: 700 15px/1.1 var(--ui); color: var(--flag); }
+  .rules dt span { color: var(--chalk-faint); font-weight: 600; }
+  .rules dd { margin: 2px 0 0; color: var(--chalk-dim); line-height: 1.4; }
+
+  /* Game over */
+  .over {
+    position: fixed; inset: 0; display: grid; place-items: center; z-index: 20;
+    background: rgba(5, 14, 10, 0.78);
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .over .panel {
+    background: var(--board); border: 2px solid var(--tone, var(--chalk)); border-radius: 14px;
+    padding: 26px 24px; display: grid; gap: 12px; text-align: center; width: min(340px, 100%);
+  }
+  .over h2 { margin: 0; font: 400 32px/1 var(--display); color: var(--tone, var(--chalk)); }
+  .over p { margin: 0; font: 400 22px/1 var(--display); font-variant-numeric: tabular-nums; }
+
+  /* Wide screens: one screen, no scrolling. Comes last so it overrides the phone layout above. */
+  @media (min-width: 900px) {
+    .wrap {
+      padding-block: 12px 16px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+      grid-template-areas:
+        "top    board"
+        "status status"
+        "field  field"
+        "stage  play"
+        "log    play"
+        "log    act"
+        "log    rules";
+      /* The last row is flexible so the tall log only stretches it, keeping Snap right under the specials. */
+      grid-template-rows: repeat(6, auto) 1fr;
+      align-items: start;
+      gap: 12px 24px;
+    }
+    .top { grid-area: top; align-self: center; }
+    .board { grid-area: board; }
+    .status { grid-area: status; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+    .field { grid-area: field; height: 76px; }
+    .stage { grid-area: stage; }
+    .slot .face { min-height: 140px; }
+    .log { gap: 7px; }
+    .log li { font-size: 13px; line-height: 1.3; }
+    .play { grid-area: play; }
+    .actions { grid-area: act; position: static; padding: 0; background: none; }
+    .log-box { grid-area: log; margin-top: 0; }
+    .rules { grid-area: rules; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" style="fill: var(--chalk)"></path>
+    </marker>
+    <symbol id="football" viewBox="0 0 40 24">
+      <ellipse cx="20" cy="12" rx="18" ry="10" style="fill: var(--leather)"></ellipse>
+      <path d="M13 12h14M16 9.5v5M19 9.5v5M22 9.5v5M25 9.5v5" style="stroke: var(--chalk); stroke-width: 1.6; stroke-linecap: round; fill: none"></path>
+    </symbol>
+  </defs>
+</svg>
+
+<main class="wrap">
+    <header class="top">
+      <div class="brand"><h1>Snap Call</h1><span class="chip">Prototype A</span></div>
+      <button class="ghost" id="newGame" type="button">New game</button>
+    </header>
+
+    <div class="board">
+      <div class="team you" id="tYou">
+        <span class="score" id="sYou">0</span>
+        <span class="who">
+          <span class="label">You</span>
+          <span class="poss"><svg aria-hidden="true"><use href="#football"></use></svg>Ball</span>
+        </span>
+      </div>
+      <div class="target">First to<b>21</b></div>
+      <div class="team cpu" id="tCpu">
+        <span class="who">
+          <span class="label">CPU</span>
+          <span class="poss">Ball<svg aria-hidden="true"><use href="#football"></use></svg></span>
+          <span class="pips" id="cpuPips" title="CPU special cards"></span>
+        </span>
+        <span class="score" id="sCpu">0</span>
+      </div>
+    </div>
+
+    <div class="status" aria-live="polite"><strong id="status"></strong><span id="hint"></span></div>
+
+    <div class="field" id="field" data-off="you">
+      <div class="zone" data-z="0">Own 25</div>
+      <div class="zone" data-z="1">Midfield</div>
+      <div class="zone" data-z="2">Red Zone</div>
+      <div class="zone ez" id="ez"></div>
+      <div id="trail"></div>
+      <div class="ball" id="ball"><svg aria-hidden="true"><use href="#football"></use></svg></div>
+    </div>
+
+    <section class="stage" aria-label="Snap">
+      <div class="table">
+        <div class="slot"><span class="slot-label you">You</span><div class="slot-body" id="slotYou"></div></div>
+        <div class="medal" id="medal">vs</div>
+        <div class="slot"><span class="slot-label cpu">CPU</span><div class="slot-body" id="slotCpu"></div></div>
+      </div>
+      <div class="result" id="result" aria-live="polite"></div>
+    </section>
+
+    <section class="play" aria-label="Your cards">
+      <div class="section-label"><span id="handLabel">Your play</span><span id="handHint"></span></div>
+      <div class="hand" id="hand"></div>
+
+      <div class="section-label"><span>Your specials</span><span>Optional, add one to your play</span></div>
+      <p class="legend">
+        <span><i class="badge save">Save</i>works if you lose the flip</span>
+        <span><i class="badge bonus">Bonus</i>works if you win it</span>
+      </p>
+      <div class="specials" id="specials"></div>
+    </section>
+
+    <div class="actions">
+      <button class="snap" id="snap" type="button">Snap</button>
+      <button class="fg" id="fg" type="button" hidden>Kick FG +3</button>
+    </div>
+
+    <section class="box log-box" aria-label="Play by play">
+      <h2>Play by play</h2>
+      <ol class="log" id="log"></ol>
+      <p class="more" id="more" hidden>Scroll for older plays</p>
+    </section>
+
+    <details class="rules" id="rules">
+      <summary>How to play<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></summary>
+      <div class="body">
+        <ul>
+          <li>The field has 3 zones between you and the end zone: Own 25, Midfield, Red Zone.</li>
+          <li>Every snap, the offense secretly picks a play and the defense secretly guesses it. Both flip at once.</li>
+          <li><strong>Wrong guess:</strong> the ball moves. Run and Short Pass move 1 zone. Deep Pass moves 2.</li>
+          <li><strong>Right guess:</strong> the defense takes the ball at its own 25. A guessed Deep Pass is an interception, so they start at midfield instead.</li>
+          <li>Touchdown is 7 points. From the Red Zone you can kick a field goal for 3 instead of snapping.</li>
+          <li>After a score, the team that got scored on gets the ball and draws a special card. You can hold 3.</li>
+          <li>First to 21 wins.</li>
+        </ul>
+
+        <h3>Specials: losers save, winners score</h3>
+        <p>Every special is a Save or a Bonus. You play it with your card, before the flip. A Save only works if you lose the flip. A Bonus only works if you win it. Only one special can work per snap, and a played special is used up either way.</p>
+        <dl>
+          <dt>Juke <span>offense save</span></dt><dd>With a Run: if you're stopped, gain 1 zone anyway.</dd>
+          <dt>Spectacular Catch <span>offense save</span></dt><dd>With a pass: if you're stopped, you catch it anyway and gain the full zones.</dd>
+          <dt>Sack <span>defense save</span></dt><dd>If they pass and you guessed wrong, they go back 1 zone and keep the ball.</dd>
+          <dt>Tackle for Loss <span>defense save</span></dt><dd>If they run and you guessed wrong, they go back 1 zone and keep the ball.</dd>
+          <dt>Challenge Flag <span>either side, save</span></dt><dd>If you lose the flip, the snap is replayed. Any other special played on it goes back to its owner.</dd>
+          <dt>Breakaway <span>offense bonus</span></dt><dd>With a Run: if it works, it goes all the way for a touchdown.</dd>
+          <dt>Hail Mary <span>offense bonus</span></dt><dd>With a Deep Pass: if it works, it goes all the way for a touchdown.</dd>
+          <dt>Pick Six <span>defense bonus</span></dt><dd>With Stop Short or Stop Deep: if you stop the pass, you score 7.</dd>
+          <dt>Forced Fumble <span>defense bonus</span></dt><dd>With Stop Run: if you stop the run, you recover the ball at midfield.</dd>
+        </dl>
+
+        <h3>The computer</h3>
+        <p>It remembers which plays you call and which ones you guess, and leans on your habits. Mix it up.</p>
+      </div>
+    </details>
+</main>
+
+<div class="over" id="over" hidden>
+  <div class="panel">
+    <h2 id="overHead"></h2>
+    <p id="overScore"></p>
+    <button class="snap" id="again" type="button">Play again</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const other = (w) => (w === 'you' ? 'cpu' : 'you');
+  const NAME = { you: 'You', cpu: 'CPU' };
+  const verb = (who, base) => (who === 'you' ? base : base + 's');
+  const ZONES = ['your own 25', 'midfield', 'the Red Zone'];
+  const TARGET = 21;
+
+  // win: what happens when the play beats the guess (offense) or the guess is right (defense). lose: the other way.
+  const PLAYS = {
+    run:    { side: 'off', name: 'Run', gain: 1, win: '+1 zone', lose: 'Guessed: their ball' },
+    short:  { side: 'off', name: 'Short Pass', gain: 1, win: '+1 zone', lose: 'Guessed: their ball' },
+    deep:   { side: 'off', name: 'Deep Pass', gain: 2, win: '+2 zones', lose: 'Guessed: intercepted' },
+    runD:   { side: 'def', name: 'Stop Run', stops: 'run', win: 'Right: your ball', lose: 'Wrong: they gain' },
+    shortD: { side: 'def', name: 'Stop Short', stops: 'short', win: 'Right: your ball', lose: 'Wrong: they gain' },
+    deepD:  { side: 'def', name: 'Stop Deep', stops: 'deep', win: 'Right: interception', lose: 'Wrong: they gain' },
+  };
+  const OFF = ['run', 'short', 'deep'];
+  const DEF = ['runD', 'shortD', 'deepD'];
+
+  // A Save only works if you lose the flip; a Bonus only works if you win it.
+  const SPECIALS = {
+    juke:      { name: 'Juke', side: 'off', kind: 'save', count: 2, needs: ['run'], when: 'Your Run is guessed', then: '+1 zone anyway' },
+    grab:      { name: 'Spectacular Catch', side: 'off', kind: 'save', count: 2, needs: ['short', 'deep'], when: 'Your pass is guessed', then: 'Caught anyway' },
+    sack:      { name: 'Sack', side: 'def', kind: 'save', count: 2, when: 'They pass and you guessed wrong', then: 'They lose 1 zone' },
+    tfl:       { name: 'Tackle for Loss', side: 'def', kind: 'save', count: 2, when: 'They run and you guessed wrong', then: 'They lose 1 zone' },
+    flag:      { name: 'Challenge Flag', side: 'any', kind: 'save', count: 2, when: 'You lose the flip', then: 'Replay the snap' },
+    breakaway: { name: 'Breakaway', side: 'off', kind: 'bonus', count: 2, needs: ['run'], when: 'Your Run works', then: 'Touchdown' },
+    hail:      { name: 'Hail Mary', side: 'off', kind: 'bonus', count: 2, needs: ['deep'], when: 'Your Deep Pass works', then: 'Touchdown' },
+    picksix:   { name: 'Pick Six', side: 'def', kind: 'bonus', count: 2, needs: ['shortD', 'deepD'], when: 'You stop a pass', then: 'You score 7' },
+    fumble:    { name: 'Forced Fumble', side: 'def', kind: 'bonus', count: 2, needs: ['runD'], when: 'You stop a Run', then: 'Your ball at midfield' },
+  };
+  const RULES_VERSION = 3;
+  const SIDE_LABEL = { off: 'Offense', def: 'Defense', any: 'Either side' };
+  const STATUS = { worked: 'Worked', wasted: 'No effect', back: 'Back to hand' };
+
+  const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const weighted = (w) => {
+    const ks = Object.keys(w); let r = Math.random() * ks.reduce((s, k) => s + w[k], 0);
+    for (const k of ks) { r -= w[k]; if (r <= 0) return k; }
+    return ks[ks.length - 1];
+  };
+
+  let S;
+  let uid = 0;
+  let shownResult = -1;
+
+  function newGame() {
+    const deck = [];
+    for (const [k, s] of Object.entries(SPECIALS)) for (let i = 0; i < s.count; i++) deck.push(k);
+    S = {
+      v: RULES_VERSION,
+      score: { you: 0, cpu: 0 }, poss: 'you', pos: 0,
+      hands: { you: [], cpu: [] }, deck: shuffle(deck), discard: [],
+      sel: { play: null, special: null },
+      phase: 'pick', last: null, move: null, showLast: false, flip: false, log: [], snaps: 0,
+      offHist: { run: 2, short: 2, deep: 2 },   // what you call on offense
+      defHist: { run: 2, short: 2, deep: 2 },   // what you guess on defense
+    };
+    for (let i = 0; i < 2; i++) { draw('you'); draw('cpu'); }
+    S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first.', tone: 'you' });
+    render();
+  }
+
+  function draw(w) {
+    if (S.hands[w].length >= 3) return;
+    if (!S.deck.length) { S.deck = shuffle(S.discard); S.discard = []; }
+    if (S.deck.length) S.hands[w].push({ id: ++uid, key: S.deck.pop() });
+  }
+
+  const side = () => (S.poss === 'you' ? 'off' : 'def');
+  // Why a special can't go with this play right now, or '' if it can.
+  function reason(key, play, sd) {
+    const s = SPECIALS[key];
+    if (s.side !== 'any' && s.side !== sd) return s.side === 'off' ? 'Use on offense' : 'Use on defense';
+    if (s.needs && play && !s.needs.includes(play)) return 'Only with ' + s.needs.map((n) => PLAYS[n].name).join(' or ');
+    return '';
+  }
+  const fits = (key, play, sd) => !reason(key, play, sd);
+  const ready = () => S.phase === 'pick' && !!S.sel.play;
+
+  // ---------- Computer ----------
+  function cpuPick() {
+    const hand = S.hands.cpu;
+    const has = (k) => hand.find((c) => c.key === k) || null;
+    if (S.poss === 'cpu') {
+      const behind = S.score.you - S.score.cpu;
+      const h = has('hail');
+      if (h && S.pos === 0 && behind >= 7 && Math.random() < 0.5) return { play: 'deep', card: h };
+      const g = S.defHist;
+      const play = weighted({ run: 1 / g.run, short: 1 / g.short, deep: (S.pos === 2 ? 0.35 : 0.8) / g.deep });
+      let card = null;
+      const b = has('breakaway'), j = has('juke'), c = has('grab'), f = has('flag');
+      if (play === 'deep' && h && S.pos === 0 && Math.random() < 0.6) card = h;
+      else if (play === 'run' && b && Math.random() < 0.6) card = b;
+      else if (play === 'run' && j && Math.random() < 0.4) card = j;
+      else if (play !== 'run' && c && Math.random() < 0.4) card = c;
+      else if (f && Math.random() < 0.2) card = f;
+      return { play, card };
+    }
+    const h = S.offHist;
+    const tot = h.run + h.short + h.deep;
+    const w = {};
+    for (const p of OFF) w[p] = 0.25 / 3 + 0.75 * (h[p] / tot);
+    if (S.pos === 2) w.deep *= 0.5;
+    const guess = weighted(w);
+    let card = null;
+    const tl = has('tfl'), sk = has('sack'), p6 = has('picksix'), ff = has('fumble'), f = has('flag');
+    if (p6 && guess !== 'run' && Math.random() < 0.5) card = p6;
+    else if (ff && guess === 'run' && Math.random() < 0.6) card = ff;
+    else if (tl && guess !== 'run' && Math.random() < 0.4) card = tl;
+    else if (sk && Math.random() < 0.3) card = sk;
+    else if (f && Math.random() < 0.2) card = f;
+    return { play: guess + 'D', card };
+  }
+
+  // ---------- Rules ----------
+  // Losers save, winners score: the plain flip first, then the loser's Save, then the winner's Bonus.
+  // `sp` names the side whose special worked; at most one does.
+  function resolve(o, d) {
+    const pass = o.play !== 'run';
+    if (PLAYS[d.play].stops === o.play) {
+      // The offense lost the flip.
+      if (o.sp === 'flag') return { kind: 'replay', sp: 'off' };
+      if (o.sp === 'juke' && !pass) return { kind: 'gain', zones: 1, how: 'juke', sp: 'off' };
+      if (o.sp === 'grab' && pass) return { kind: 'gain', zones: PLAYS[o.play].gain, how: 'grab', sp: 'off' };
+      if (pass && d.sp === 'picksix') return { kind: 'pick6', sp: 'def' };
+      if (!pass && d.sp === 'fumble') return { kind: 'fumble', sp: 'def' };
+      return { kind: o.play === 'deep' ? 'int' : 'stop' };
+    }
+    // The defense lost the flip.
+    if (d.sp === 'flag') return { kind: 'replay', sp: 'def' };
+    if (d.sp === 'sack' && pass) return { kind: 'sack', sp: 'def' };
+    if (d.sp === 'tfl' && !pass) return { kind: 'sack', how: 'tfl', sp: 'def' };
+    if (o.play === 'deep' && o.sp === 'hail') return { kind: 'td', how: 'hail', sp: 'off' };
+    if (o.play === 'run' && o.sp === 'breakaway') return { kind: 'td', how: 'breakaway', sp: 'off' };
+    return { kind: 'gain', zones: PLAYS[o.play].gain };
+  }
+
+  function callText(offWho, o, d) {
+    const oc = o.sp === 'hail' ? 'threw a Hail Mary' : 'called ' + PLAYS[o.play].name;
+    const dc = 'guessed ' + PLAYS[PLAYS[d.play].stops].name;
+    return `${NAME[offWho]} ${oc}. ${NAME[other(offWho)]} ${dc}.`;
+  }
+
+  const zoneName = (pos, who) => (pos === 0 ? (who === 'you' ? 'your own 25' : 'their own 25') : ZONES[pos]);
+
+  function kickoff(receiver) { S.poss = receiver; S.pos = 0; draw(receiver); }
+  function won(who) { if (S.score[who] >= TARGET) { S.phase = 'over'; return true; } return false; }
+  function score(who, pts) { S.score[who] += pts; if (!won(who)) kickoff(other(who)); }
+
+  function apply(r, off) {
+    const def = other(off);
+    switch (r.kind) {
+      case 'replay':
+        return { head: 'Flag! Replay', detail: `${NAME[r.by]} ${verb(r.by, 'throw')} the challenge flag. Same spot, snap again.`, tone: r.by };
+      case 'gain': {
+        S.pos += r.zones;
+        const lead = r.how === 'juke' ? 'Stopped, but the juke breaks free. ' : r.how === 'grab' ? 'Covered, but what a catch! ' : '';
+        if (S.pos >= 3) { score(off, 7); return { head: 'Touchdown!', detail: `${lead}${NAME[off]} ${verb(off, 'score')} 7.`, tone: off }; }
+        const head = r.how === 'juke' ? 'Juke!' : r.how === 'grab' ? 'What a catch!' : `+${r.zones} zone${r.zones > 1 ? 's' : ''}`;
+        return { head, detail: `${lead}Ball at ${zoneName(S.pos, off)}.`, tone: off };
+      }
+      case 'td': {
+        const lead = r.how === 'hail' ? 'Hail Mary! Caught in the end zone. '
+          : r.how === 'breakaway' ? 'Breakaway! Nobody catches the runner. ' : '';
+        score(off, 7);
+        return { head: 'Touchdown!', detail: `${lead}${NAME[off]} ${verb(off, 'score')} 7.`, tone: off };
+      }
+      case 'stop':
+        S.poss = def; S.pos = 0;
+        return { head: 'Stopped', detail: `Right guess. ${NAME[def]} ${verb(def, 'take')} over at ${zoneName(0, def)}.`, tone: def };
+      case 'int':
+        S.poss = def; S.pos = 1;
+        return { head: 'Intercepted!', detail: `${NAME[def]} ${verb(def, 'start')} at midfield.`, tone: def };
+      case 'sack': {
+        const was = S.pos;
+        S.pos = Math.max(0, S.pos - 1);
+        const tfl = r.how === 'tfl';
+        return { head: tfl ? 'Tackle for loss!' : 'Sacked!', detail: `Wrong guess, but ${tfl ? 'the runner is dropped behind the line' : 'the QB goes down'}. ${was === 0 ? 'No gain, still at' : 'Back to'} ${zoneName(S.pos, off)}.`, tone: def };
+      }
+      case 'fumble':
+        S.poss = def; S.pos = 1;
+        return { head: 'Fumble!', detail: `Ball knocked loose. ${NAME[def]} ${verb(def, 'recover')} it at midfield.`, tone: def };
+      case 'pick6':
+        score(def, 7);
+        return { head: 'Pick Six!', detail: `Picked off and run back. ${NAME[def]} ${verb(def, 'score')} 7.`, tone: def };
+    }
+  }
+
+  function addLog(e) { S.log.unshift(e); if (S.log.length > 80) S.log.length = 80; }
+
+  function snap() {
+    if (!ready()) return;
+    const you = { play: S.sel.play, card: S.sel.special };
+    const cpu = cpuPick();
+    for (const [w, c] of [['you', you], ['cpu', cpu]]) {
+      if (c.card) S.hands[w] = S.hands[w].filter((x) => x.id !== c.card.id);
+    }
+    const off = S.poss, def = other(off);
+    if (off === 'you') { if (you.play) S.offHist[you.play]++; } else S.defHist[PLAYS[you.play].stops]++;
+
+    const O = off === 'you' ? you : cpu, D = off === 'you' ? cpu : you;
+    const o = { play: O.play, sp: O.card ? O.card.key : null };
+    const d = { play: D.play, sp: D.card ? D.card.key : null };
+    const r = resolve(o, d);
+    const firedBy = r.sp ? (r.sp === 'off' ? off : def) : null;
+    if (r.kind === 'replay') r.by = firedBy;
+    // Played specials are used up, except that a replayed snap hands the other side's special back.
+    for (const [w, c] of [['you', you], ['cpu', cpu]]) {
+      if (!c.card) continue;
+      if (r.kind === 'replay' && w !== firedBy) { S.hands[w].push(c.card); c.status = 'back'; }
+      else { S.discard.push(c.card.key); c.status = w === firedBy ? 'worked' : 'wasted'; }
+    }
+
+    const text = callText(off, o, d);
+    const pos0 = S.pos;
+    const out = apply(r, off);
+    // Show the ball's path on the field when the same team keeps it.
+    S.move = S.phase !== 'over' && S.poss === off && S.pos !== pos0 ? { from: pos0, to: S.pos } : null;
+    S.snaps++;
+    S.last = { you, cpu, ...out, n: S.snaps, off, guessed: PLAYS[d.play].stops === o.play };
+    addLog({ n: S.snaps, head: out.head, text: `${text} ${out.detail}`, tone: out.tone });
+    S.sel = { play: null, special: null };
+    S.showLast = true; S.flip = true;
+    render();
+    afterChange();
+  }
+
+  function kickFG(who) {
+    S.snaps++;
+    const detail = `${NAME[who]} ${verb(who, 'kick')} it through. 3 points.`;
+    S.last = { fg: true, head: 'Field goal', detail, tone: who, n: S.snaps };
+    addLog({ n: S.snaps, head: 'Field goal', text: detail, tone: who });
+    S.sel = { play: null, special: null };
+    S.showLast = false; S.move = null;
+    score(who, 3);
+  }
+
+  function afterChange() {
+    if (S.phase !== 'pick' || S.poss !== 'cpu' || S.pos !== 2) return;
+    const kick = TARGET - S.score.cpu <= 3 || Math.random() < 0.45;
+    if (!kick) return;
+    S.phase = 'busy';
+    render();
+    const game = S;  // a New game during the wait cancels the kick
+    setTimeout(() => { if (S !== game || S.phase !== 'busy') return; S.phase = 'pick'; kickFG('cpu'); render(); }, 1100);
+  }
+
+  // ---------- Drawing ----------
+  const ROUTES = {
+    run:   { c: [50, 65], d: 'M50,61 L50,30 L44,12', p: [50, 30], e: [44, 12] },
+    short: { c: [84, 48.5], d: 'M84,45 L84,30 L66,22', p: [84, 30], e: [66, 22], pass: true },
+    deep:  { c: [16, 48.5], d: 'M16,45 Q16,16 42,10', p: [16, 16], e: [42, 10], pass: true },
+  };
+  function diagram(key) {
+    const def = PLAYS[key] && PLAYS[key].stops;
+    const r = ROUTES[def || key];
+    let s = '<line x1="6" y1="44" x2="94" y2="44" class="los"/>';
+    s += [38, 44, 50, 56, 62].map((x) => `<circle cx="${x}" cy="48.5" r="2.6"/>`).join('');
+    if (key !== 'run' && def !== 'run') s += '<circle cx="50" cy="56" r="2.6"/>';
+    s += `<circle class="carrier" cx="${r.c[0]}" cy="${r.c[1]}" r="3"/>`;
+    s += `<path class="route${r.pass ? ' pass' : ''}" d="${r.d}"${def ? '' : ' marker-end="url(#ah)"'}/>`;
+    if (def) {
+      let dx = r.e[0] - r.p[0], dy = r.e[1] - r.p[1];
+      const L = Math.hypot(dx, dy); dx /= L; dy /= L;
+      const nx = -dy * 7, ny = dx * 7;
+      s += `<line class="bar" x1="${(r.e[0] + nx).toFixed(1)}" y1="${(r.e[1] + ny).toFixed(1)}" x2="${(r.e[0] - nx).toFixed(1)}" y2="${(r.e[1] - ny).toFixed(1)}"/>`;
+    }
+    return `<svg class="dia" viewBox="0 0 100 72" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${s}</svg>`;
+  }
+  function faceInner(key) {
+    const p = PLAYS[key];
+    return `<span class="name">${p.name}</span>${diagram(key)}<span class="outs">`
+      + `<span class="out good"><i>✓</i><span>${p.win}</span></span>`
+      + `<span class="out bad"><i>✕</i><span>${p.lose}</span></span></span>`;
+  }
+  function faceBlock(c, owner, flip) {
+    const s = c.card && SPECIALS[c.card.key];
+    const tag = s ? `<span class="tag" data-st="${c.status || ''}"><span>${s.name}</span>${c.status ? `<small>${STATUS[c.status]}</small>` : ''}</span>` : '';
+    return `<div class="face ${owner}${flip ? ' flip' : ''}">${faceInner(c.play || 'deep')}</div>${tag}`;
+  }
+
+  // Show the newest 5 plays; older ones scroll. On wide screens a short window shows down to 3 so the game never needs page scrolling.
+  function fitLog() {
+    const log = $('#log'), li = log.children;
+    const bottom = (n) => li[n - 1].offsetTop + li[n - 1].offsetHeight;
+    let rows = 5;
+    if (matchMedia('(min-width: 900px)').matches) {
+      const room = innerHeight - (log.getBoundingClientRect().top + scrollY) - 56;
+      while (rows > 3 && li.length >= rows && bottom(rows) > room) rows--;
+    }
+    log.style.maxHeight = li.length > rows ? `${bottom(rows)}px` : '';
+    $('#more').hidden = li.length <= rows;
+  }
+
+  function render() {
+    // Scoreboard
+    $('#sYou').textContent = S.score.you;
+    $('#sCpu').textContent = S.score.cpu;
+    $('#tYou').classList.toggle('has-ball', S.poss === 'you');
+    $('#tCpu').classList.toggle('has-ball', S.poss === 'cpu');
+    $('#cpuPips').innerHTML = S.hands.cpu.map(() => '<i></i>').join('');
+
+    // Status
+    const left = 3 - S.pos;
+    const toGo = `${left} zone${left > 1 ? 's' : ''} to score`;
+    if (S.phase === 'over') { $('#status').textContent = 'Final'; $('#hint').textContent = ''; }
+    else if (S.phase === 'busy') { $('#status').textContent = 'CPU lines up a field goal'; $('#hint').textContent = 'From the Red Zone, 3 points.'; }
+    else if (S.poss === 'you') { $('#status').textContent = `Your ball: ${toGo}`; $('#hint').textContent = S.pos === 2 ? 'Pick a play, or kick a field goal for 3.' : 'Pick a play. The CPU will try to guess it.'; }
+    else { $('#status').textContent = `CPU ball: ${toGo}`; $('#hint').textContent = 'Guess their play. Guess right and you get the ball.'; }
+
+    // Field
+    const field = $('#field');
+    field.dataset.off = S.poss;
+    field.querySelectorAll('.zone[data-z]').forEach((z) => z.classList.toggle('here', +z.dataset.z === S.pos));
+    $('#ez').innerHTML = `End zone<small>${NAME[other(S.poss)]}</small>`;
+    $('#ball').style.left = `${12.5 + 25 * S.pos}%`;
+    const m = S.move;
+    if (m && S.showLast) {
+      const a = Math.min(m.from, m.to), b = Math.max(m.from, m.to), d = m.to - m.from;
+      $('#trail').outerHTML = `<div id="trail" class="trail${d < 0 ? ' loss' : ''}" style="left:${12.5 + 25 * a}%;width:${25 * (b - a)}%"><b>${d > 0 ? '+' : '−'}${Math.abs(d)}</b></div>`;
+    } else $('#trail').outerHTML = '<div id="trail"></div>';
+
+    // Stage
+    const medal = $('#medal');
+    const L = S.last;
+    if (S.showLast && L && !L.fg) {
+      $('#slotYou').innerHTML = faceBlock(L.you, 'you', false);
+      $('#slotCpu').innerHTML = faceBlock(L.cpu, 'cpu', S.flip);
+      medal.className = 'medal hit' + (S.flip ? ' pop' : '');
+      medal.style.setProperty('--tone', `var(--${L.guessed ? other(L.off) : L.off})`);
+      medal.innerHTML = L.guessed ? 'Right<br>guess' : 'Wrong<br>guess';
+    } else {
+      $('#slotYou').innerHTML = S.sel.play
+        ? faceBlock({ play: S.sel.play, card: S.sel.special }, 'you', false)
+        : '<div class="face empty">Pick a card below</div>';
+      $('#slotCpu').innerHTML = '<div class="face back cpu"><span>?</span></div>';
+      medal.className = 'medal'; medal.style.removeProperty('--tone'); medal.textContent = 'vs';
+    }
+    S.flip = false;
+
+    // Result
+    const res = $('#result');
+    const R = L || { head: 'Kickoff', detail: 'You start at your own 25. Pick a play, then snap.', tone: 'you', n: 0 };
+    res.style.setProperty('--tone', `var(--${R.tone})`);
+    res.innerHTML = `<span class="head">${R.head}</span><span class="detail">${R.detail}</span>`;
+    res.classList.remove('pop');
+    if (R.n !== shownResult && R.n > 0) { void res.offsetWidth; res.classList.add('pop'); $('#log').scrollTop = 0; }
+    shownResult = R.n;
+
+    // Hand
+    const keys = S.poss === 'you' ? OFF : DEF;
+    $('#handLabel').textContent = S.poss === 'you' ? 'Your play (offense)' : 'Your guess (defense)';
+    $('#handHint').textContent = S.poss === 'you' ? 'If the CPU guesses it, they get the ball' : 'Guess right to get the ball';
+    $('#hand').innerHTML = keys.map((k) => {
+      const on = S.sel.play === k;
+      return `<button type="button" class="face you${on ? ' on' : ''}" data-play="${k}" aria-pressed="${on}"${S.phase !== 'pick' ? ' disabled' : ''}>${faceInner(k)}</button>`;
+    }).join('');
+
+    // Specials
+    const sd = side();
+    const sp = S.hands.you.map((c) => {
+      const s = SPECIALS[c.key];
+      const on = S.sel.special && S.sel.special.id === c.id;
+      const why = reason(c.key, S.sel.play, sd);
+      const ok = S.phase === 'pick' && !why;
+      return `<button type="button" class="sp${on ? ' on' : ''}" data-sp="${c.id}" aria-pressed="${!!on}"${ok || on ? '' : ' disabled'}>`
+        + `<span class="kind"><i class="badge ${s.kind}">${s.kind === 'save' ? 'Save' : 'Bonus'}</i><span>${SIDE_LABEL[s.side]}</span></span>`
+        + `<b>${s.name}</b><span class="when">${s.when}</span><span class="then"><span>→</span><span>${s.then}</span></span>`
+        + (why ? `<span class="why">${why}</span>` : '') + '</button>';
+    });
+    while (sp.length < 3) sp.push('<div class="sp empty">Empty slot. You draw one when you get scored on.</div>');
+    $('#specials').innerHTML = sp.join('');
+
+    // Actions
+    $('#snap').disabled = !ready();
+    $('#snap').textContent = S.poss === 'you' ? 'Snap' : 'Snap · Defend';
+    $('#fg').hidden = !(S.phase === 'pick' && S.poss === 'you' && S.pos === 2);
+
+    // Play by play
+    $('#log').innerHTML = S.log.map((e) => `<li class="t-${e.tone}"><span class="n">${e.n || 'KO'}</span><span><b>${e.head || ''}</b>${e.text}</span></li>`).join('');
+    fitLog();
+
+    // Game over
+    const over = $('#over');
+    over.hidden = S.phase !== 'over';
+    if (S.phase === 'over') {
+      const w = S.score.you > S.score.cpu ? 'you' : 'cpu';
+      over.querySelector('.panel').style.setProperty('--tone', `var(--${w})`);
+      $('#overHead').textContent = w === 'you' ? 'You win' : 'CPU wins';
+      $('#overScore').textContent = `${S.score.you} – ${S.score.cpu}`;
+    }
+  }
+
+  // ---------- Input ----------
+  $('#hand').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-play]');
+    if (!b || S.phase !== 'pick') return;
+    const k = b.dataset.play;
+    S.sel.play = S.sel.play === k ? null : k;
+    const s = S.sel.special;
+    if (s && S.sel.play && !fits(s.key, S.sel.play, side())) S.sel.special = null;
+    S.showLast = false;
+    render();
+  });
+  $('#specials').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sp]');
+    if (!b || S.phase !== 'pick') return;
+    const card = S.hands.you.find((c) => c.id === +b.dataset.sp);
+    if (!card) return;
+    if (S.sel.special && S.sel.special.id === card.id) S.sel.special = null;
+    else {
+      S.sel.special = card;
+      // A special that only works with one play picks that play for you.
+      const needs = SPECIALS[card.key].needs;
+      if (!S.sel.play && needs && needs.length === 1) S.sel.play = needs[0];
+    }
+    S.showLast = false;
+    render();
+  });
+  $('#snap').addEventListener('click', snap);
+  $('#fg').addEventListener('click', () => { if (S.phase === 'pick' && S.poss === 'you' && S.pos === 2) { kickFG('you'); render(); } });
+  $('#newGame').addEventListener('click', newGame);
+  $('#again').addEventListener('click', newGame);
+  $('#rules').addEventListener('toggle', fitLog);
+  window.addEventListener('resize', fitLog);
+
+  // Keep the game going across live updates of this page.
+  if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ S, uid }));
+  function start(data) {
+    if (data && data.S && data.S.v === RULES_VERSION) {
+      S = data.S; uid = data.uid || 0;
+      if (S.phase === 'busy') S.phase = 'pick';
+      render(); afterChange();
+    } else newGame();
+  }
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
