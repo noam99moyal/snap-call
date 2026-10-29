@@ -199,24 +199,30 @@
   .face.cpu { --team: var(--cpu); }
   .face .name { font: 700 17px/1 var(--ui); letter-spacing: 0.01em; }
   .face .dia { width: 100%; height: 46px; }
-  .face .outs { display: grid; gap: 5px; margin-top: auto; }
-  /* Narrow cards: "✓ Not stopped" with the result flush left under it. Wide cards: one line, "✓ Not stopped: +1 zone". */
-  .out { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 1px 3px; align-items: baseline; font: 700 13.5px/1.15 var(--ui); }
-  .out b { grid-column: 1 / -1; }
+  .face .outs { display: grid; gap: 6px; margin-top: auto; }
+  /* Narrow cards: each outcome is a small label over an icon and the result, split by a hairline.
+     Wide cards: one line each, "✓ Not stopped: +1 zone". The good result takes the team color. */
+  .out {
+    display: grid; grid-template-columns: 13px minmax(0, 1fr); grid-template-areas: "label label" "icon result";
+    gap: 2px 4px; align-items: baseline;
+  }
+  .out + .out { padding-top: 6px; border-top: 1px solid var(--line); }
+  .out em { grid-area: label; font: normal 500 12px/1.1 var(--ui); color: var(--chalk-dim); }
+  .out i { grid-area: icon; font: normal 700 13px/1 var(--ui); }
+  .out b { grid-area: result; font: 700 15px/1.1 var(--ui); }
   .out b::first-letter { text-transform: uppercase; }
+  .out.good i, .out.good b { color: var(--team); }
+  .out.bad i { color: var(--chalk-dim); }
+  .out.bad b { color: var(--chalk); }
   @container (min-width: 128px) {
-    .out { grid-template-columns: 14px auto minmax(0, 1fr); column-gap: 4px; font-size: 13px; }
+    .face .outs { gap: 5px; }
+    .out { grid-template-columns: 13px auto minmax(0, 1fr); grid-template-areas: "icon label result"; column-gap: 4px; }
+    .out + .out { padding-top: 0; border-top: 0; }
+    .out em { font-size: 12.5px; }
     .out em::after { content: ':'; }
-    .out b { grid-column: auto; }
+    .out b { font-size: 13px; }
     .out b::first-letter { text-transform: none; }
   }
-  .out i { font-style: normal; font-weight: 700; text-align: center; }
-  .out.good { color: var(--chalk); }
-  .out.good i { color: var(--team); }
-  .out.bad { color: var(--chalk-dim); }
-  .out.bad i { color: var(--chalk-faint); }
-  .out em { font: normal 500 12.5px/1.15 var(--ui); color: var(--chalk-dim); }
-  .out.bad em { color: var(--chalk-faint); }
   .face.flip { animation: flip 0.38s ease-out; }
   @keyframes flip { from { transform: rotateY(90deg); } to { transform: rotateY(0deg); } }
   .face.back {
