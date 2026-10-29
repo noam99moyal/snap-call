@@ -194,18 +194,28 @@
     background: linear-gradient(180deg, color-mix(in srgb, var(--team) 12%, var(--slate)), var(--slate) 60%);
     border: 2px solid color-mix(in srgb, var(--team) 55%, transparent);
     color: var(--chalk); text-align: left; font: inherit;
+    container-type: inline-size;
   }
   .face.cpu { --team: var(--cpu); }
   .face .name { font: 700 17px/1 var(--ui); letter-spacing: 0.01em; }
   .face .dia { width: 100%; height: 46px; }
   .face .outs { display: grid; gap: 5px; margin-top: auto; }
-  .out { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 4px; align-items: start; font: 600 13px/1.1 var(--ui); }
+  /* Narrow cards: "✓ Not stopped" with the result flush left under it. Wide cards: one line, "✓ Not stopped: +1 zone". */
+  .out { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 1px 3px; align-items: baseline; font: 700 13.5px/1.15 var(--ui); }
+  .out b { grid-column: 1 / -1; }
+  .out b::first-letter { text-transform: uppercase; }
+  @container (min-width: 128px) {
+    .out { grid-template-columns: 14px auto minmax(0, 1fr); column-gap: 4px; font-size: 13px; }
+    .out em::after { content: ':'; }
+    .out b { grid-column: auto; }
+    .out b::first-letter { text-transform: none; }
+  }
   .out i { font-style: normal; font-weight: 700; text-align: center; }
   .out.good { color: var(--chalk); }
   .out.good i { color: var(--team); }
   .out.bad { color: var(--chalk-dim); }
   .out.bad i { color: var(--chalk-faint); }
-  .out em { font-style: normal; font-weight: 500; color: var(--chalk-dim); }
+  .out em { font: normal 500 12.5px/1.15 var(--ui); color: var(--chalk-dim); }
   .out.bad em { color: var(--chalk-faint); }
   .face.flip { animation: flip 0.38s ease-out; }
   @keyframes flip { from { transform: rotateY(90deg); } to { transform: rotateY(0deg); } }
@@ -258,13 +268,30 @@
   .ico-ball { width: 19px; height: 11px; }
   .ico-shield { width: 11px; height: 13px; fill: var(--ink); }
   .sp b { font: 700 16px/1 var(--ui); letter-spacing: 0.01em; }
+  .sp .rule { display: flex; flex-direction: column; gap: 5px; }
   .sp .when { font: 500 12px/1.2 var(--body); }
-  .sp .then { font: 700 13.5px/1.1 var(--ui); display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 2px; }
+  .sp .then { font: 700 13.5px/1.15 var(--ui); }
   .sp.on { transform: translateY(-4px); box-shadow: 0 0 0 3px var(--chalk); }
   .sp:disabled { opacity: 0.5; cursor: default; }
   .sp.empty {
     background: transparent; border: 1px dashed var(--chalk-faint); color: var(--chalk-faint);
     align-items: center; justify-content: center; text-align: center; font: 600 13px/1.2 var(--ui); min-height: 80px; cursor: default;
+  }
+  /* Phones: specials are full-width rows, so each rule reads as one sentence instead of wrapping in a narrow column. */
+  @media (max-width: 899px) {
+    .specials { grid-template-columns: minmax(0, 1fr); }
+    .sp {
+      display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "badge name side" "rule rule rule";
+      align-items: center; gap: 7px 8px; padding: 9px 11px 10px;
+    }
+    .sp .kind { display: contents; }
+    .sp .badge { grid-area: badge; }
+    .sp b { grid-area: name; font-size: 17px; }
+    .sp .side { grid-area: side; }
+    .sp .rule { grid-area: rule; display: block; font: 500 13.5px/1.35 var(--body); }
+    .sp .when { font: inherit; }
+    .sp .then { display: inline-block; font: 700 15px/1.35 var(--ui); }
+    .sp.empty { display: flex; min-height: 44px; }
   }
 
   .actions {
@@ -768,7 +795,7 @@
   // "Stopped: their ball" → a quiet label, then the result in bold.
   function outText(t) {
     const [label, result] = t.split(': ');
-    return `<span><em>${label}:</em> ${result}</span>`;
+    return `<em>${label}</em><b>${result}</b>`;
   }
   function faceBlock(c, owner, flip) {
     const s = c.card && SPECIALS[c.card.key];
@@ -861,7 +888,7 @@
       const ok = S.phase === 'pick' && fits(c.key, S.sel.play, sd);
       return `<button type="button" class="sp${on ? ' on' : ''}" data-sp="${c.id}" aria-pressed="${!!on}"${ok || on ? '' : ' disabled'}>`
         + `<span class="kind"><i class="badge ${s.kind}">${s.kind === 'save' ? 'Save' : 'Bonus'}</i><span class="side">${SIDE_ICON[s.side]}${SIDE_LABEL[s.side]}</span></span>`
-        + `<b>${s.name}</b><span class="when">${s.when}</span><span class="then"><span>→</span><span>${s.then}</span></span>`
+        + `<b>${s.name}</b><span class="rule"><span class="when">${s.when}</span> <span class="then">→ ${s.then}</span></span>`
         + '</button>';
     });
     while (sp.length < 3) sp.push('<div class="sp empty">Empty slot. You draw one when you get scored on.</div>');
