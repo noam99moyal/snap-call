@@ -434,7 +434,7 @@
 
       <div class="section-label"><span>Your specials</span><span>Optional, add one to your play</span></div>
       <p class="legend">
-        <span><i class="badge save">Save</i>works if you lose the flip</span>
+        <span><i class="badge save">Save</i>works if you lose the snap</span>
         <span><i class="badge bonus">Bonus</i>works if you win it</span>
       </p>
       <div class="specials" id="specials"></div>
@@ -456,7 +456,7 @@
       <div class="body">
         <ul>
           <li>The field has 3 zones between you and the end zone: Own 25, Midfield, Red Zone.</li>
-          <li>Every snap, the offense secretly picks a play and the defense secretly guesses it. Both flip at once.</li>
+          <li>Every snap, the offense secretly picks a play and the defense secretly guesses it. Both cards are shown at once.</li>
           <li><strong>Wrong guess:</strong> the ball moves. Run and Short Pass move 1 zone. Deep Pass moves 2.</li>
           <li><strong>Right guess:</strong> the defense takes the ball at its own 25. A guessed Deep Pass is an interception, so they start at midfield instead.</li>
           <li>Touchdown is 7 points. From the Red Zone you can kick a field goal for 3 instead of snapping.</li>
@@ -465,17 +465,15 @@
         </ul>
 
         <h3>Specials: losers save, winners score</h3>
-        <p>Every special is a Save or a Bonus. You play it with your card, before the flip. A Save only works if you lose the flip. A Bonus only works if you win it. Only one special can work per snap, and a played special is used up either way.</p>
+        <p>Every special is a Save or a Bonus. You play it with your card, before the cards are shown. A Save only works if you lose the snap, with any play. A Bonus only works if you win it. Only one special can work per snap, and a played special is used up either way.</p>
         <dl>
-          <dt>Juke <span>offense save</span></dt><dd>With a Run: if you're stopped, gain 1 zone anyway.</dd>
-          <dt>Spectacular Catch <span>offense save</span></dt><dd>With a pass: if you're stopped, you catch it anyway and gain the full zones.</dd>
-          <dt>Sack <span>defense save</span></dt><dd>If they pass and you guessed wrong, they go back 1 zone and keep the ball.</dd>
-          <dt>Tackle for Loss <span>defense save</span></dt><dd>If they run and you guessed wrong, they go back 1 zone and keep the ball.</dd>
-          <dt>Challenge Flag <span>either side, save</span></dt><dd>If you lose the flip, the snap is replayed. Any other special played on it goes back to its owner.</dd>
-          <dt>Breakaway <span>offense bonus</span></dt><dd>With a Run: if it works, it goes all the way for a touchdown.</dd>
-          <dt>Hail Mary <span>offense bonus</span></dt><dd>With a Deep Pass: if it works, it goes all the way for a touchdown.</dd>
-          <dt>Pick Six <span>defense bonus</span></dt><dd>With Stop Short or Stop Deep: if you stop the pass, you score 7.</dd>
-          <dt>Forced Fumble <span>defense bonus</span></dt><dd>With Stop Run: if you stop the run, you recover the ball at midfield.</dd>
+          <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If they guess your play, you still gain 1 zone. A guessed Deep Pass gains 1 instead of being intercepted.</dd>
+          <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd>If you guess wrong, they gain nothing and go back 1 zone (never behind their own 25). They keep the ball.</dd>
+          <dt>Challenge Flag <span>either side, save</span></dt><dd>If you lose the snap, cancel it and both sides pick again. Any other special played on it goes back to its owner.</dd>
+          <dt>Breakaway <span>offense bonus</span></dt><dd>If you run and they guess wrong, it goes all the way for a touchdown.</dd>
+          <dt>Hail Mary <span>offense bonus</span></dt><dd>If you throw deep and they guess wrong, it goes all the way for a touchdown.</dd>
+          <dt>Pick Six <span>defense bonus</span></dt><dd>If you guess their pass right (Stop Short or Stop Deep), you score 7.</dd>
+          <dt>Forced Fumble <span>defense bonus</span></dt><dd>If you guess their run right, you recover the ball at midfield.</dd>
         </dl>
 
         <h3>The computer</h3>
@@ -513,19 +511,20 @@
   const OFF = ['run', 'short', 'deep'];
   const DEF = ['runD', 'shortD', 'deepD'];
 
-  // A Save only works if you lose the flip; a Bonus only works if you win it.
+  // A Save only works if you lose the snap; a Bonus only works if you win it.
+  // Saves work with any play, so they never decide what you pick. Same-effect pairs keep two names for variety.
   const SPECIALS = {
-    juke:      { name: 'Juke', side: 'off', kind: 'save', count: 2, needs: ['run'], when: 'Your Run is guessed', then: '+1 zone anyway' },
-    grab:      { name: 'Spectacular Catch', side: 'off', kind: 'save', count: 2, needs: ['short', 'deep'], when: 'Your pass is guessed', then: 'Caught anyway' },
-    sack:      { name: 'Sack', side: 'def', kind: 'save', count: 2, when: 'They pass and you guessed wrong', then: 'They lose 1 zone' },
-    tfl:       { name: 'Tackle for Loss', side: 'def', kind: 'save', count: 2, when: 'They run and you guessed wrong', then: 'They lose 1 zone' },
-    flag:      { name: 'Challenge Flag', side: 'any', kind: 'save', count: 2, when: 'You lose the flip', then: 'Replay the snap' },
-    breakaway: { name: 'Breakaway', side: 'off', kind: 'bonus', count: 2, needs: ['run'], when: 'Your Run works', then: 'Touchdown' },
-    hail:      { name: 'Hail Mary', side: 'off', kind: 'bonus', count: 2, needs: ['deep'], when: 'Your Deep Pass works', then: 'Touchdown' },
-    picksix:   { name: 'Pick Six', side: 'def', kind: 'bonus', count: 2, needs: ['shortD', 'deepD'], when: 'You stop a pass', then: 'You score 7' },
-    fumble:    { name: 'Forced Fumble', side: 'def', kind: 'bonus', count: 2, needs: ['runD'], when: 'You stop a Run', then: 'Your ball at midfield' },
+    juke:      { name: 'Juke', side: 'off', kind: 'save', count: 2, when: 'If they guess your play', then: 'You still gain 1 zone' },
+    grab:      { name: 'Spectacular Catch', side: 'off', kind: 'save', count: 2, when: 'If they guess your play', then: 'You still gain 1 zone' },
+    sack:      { name: 'Sack', side: 'def', kind: 'save', count: 2, when: 'If you guess wrong', then: 'No gain. They go back 1 zone' },
+    tfl:       { name: 'Tackle for Loss', side: 'def', kind: 'save', count: 2, when: 'If you guess wrong', then: 'No gain. They go back 1 zone' },
+    flag:      { name: 'Challenge Flag', side: 'any', kind: 'save', count: 2, when: 'If you lose the snap', then: 'Cancel it. Both pick again' },
+    breakaway: { name: 'Breakaway', side: 'off', kind: 'bonus', count: 2, needs: ['run'], when: 'If you run and they guess wrong', then: 'Touchdown' },
+    hail:      { name: 'Hail Mary', side: 'off', kind: 'bonus', count: 2, needs: ['deep'], when: 'If you throw deep and they guess wrong', then: 'Touchdown' },
+    picksix:   { name: 'Pick Six', side: 'def', kind: 'bonus', count: 2, needs: ['shortD', 'deepD'], when: 'If you guess their pass right', then: 'You score 7' },
+    fumble:    { name: 'Forced Fumble', side: 'def', kind: 'bonus', count: 2, needs: ['runD'], when: 'If you guess their run right', then: 'Your ball at midfield' },
   };
-  const RULES_VERSION = 3;
+  const RULES_VERSION = 4;
   const SIDE_LABEL = { off: 'Offense', def: 'Defense', any: 'Either side' };
   const STATUS = { worked: 'Worked', wasted: 'No effect', back: 'Back to hand' };
 
@@ -588,8 +587,7 @@
       const b = has('breakaway'), j = has('juke'), c = has('grab'), f = has('flag');
       if (play === 'deep' && h && S.pos === 0 && Math.random() < 0.6) card = h;
       else if (play === 'run' && b && Math.random() < 0.6) card = b;
-      else if (play === 'run' && j && Math.random() < 0.4) card = j;
-      else if (play !== 'run' && c && Math.random() < 0.4) card = c;
+      else if ((j || c) && Math.random() < (play === 'deep' ? 0.5 : 0.35)) card = j || c;
       else if (f && Math.random() < 0.2) card = f;
       return { play, card };
     }
@@ -603,30 +601,27 @@
     const tl = has('tfl'), sk = has('sack'), p6 = has('picksix'), ff = has('fumble'), f = has('flag');
     if (p6 && guess !== 'run' && Math.random() < 0.5) card = p6;
     else if (ff && guess === 'run' && Math.random() < 0.6) card = ff;
-    else if (tl && guess !== 'run' && Math.random() < 0.4) card = tl;
-    else if (sk && Math.random() < 0.3) card = sk;
+    else if ((tl || sk) && Math.random() < 0.4) card = tl || sk;
     else if (f && Math.random() < 0.2) card = f;
     return { play: guess + 'D', card };
   }
 
   // ---------- Rules ----------
-  // Losers save, winners score: the plain flip first, then the loser's Save, then the winner's Bonus.
+  // Losers save, winners score: the plain result first, then the loser's Save, then the winner's Bonus.
   // `sp` names the side whose special worked; at most one does.
   function resolve(o, d) {
     const pass = o.play !== 'run';
     if (PLAYS[d.play].stops === o.play) {
-      // The offense lost the flip.
+      // The offense lost the snap.
       if (o.sp === 'flag') return { kind: 'replay', sp: 'off' };
-      if (o.sp === 'juke' && !pass) return { kind: 'gain', zones: 1, how: 'juke', sp: 'off' };
-      if (o.sp === 'grab' && pass) return { kind: 'gain', zones: PLAYS[o.play].gain, how: 'grab', sp: 'off' };
+      if (o.sp === 'juke' || o.sp === 'grab') return { kind: 'gain', zones: 1, how: o.sp, sp: 'off' };
       if (pass && d.sp === 'picksix') return { kind: 'pick6', sp: 'def' };
       if (!pass && d.sp === 'fumble') return { kind: 'fumble', sp: 'def' };
       return { kind: o.play === 'deep' ? 'int' : 'stop' };
     }
-    // The defense lost the flip.
+    // The defense lost the snap.
     if (d.sp === 'flag') return { kind: 'replay', sp: 'def' };
-    if (d.sp === 'sack' && pass) return { kind: 'sack', sp: 'def' };
-    if (d.sp === 'tfl' && !pass) return { kind: 'sack', how: 'tfl', sp: 'def' };
+    if (d.sp === 'sack' || d.sp === 'tfl') return { kind: 'sack', how: d.sp, sp: 'def' };
     if (o.play === 'deep' && o.sp === 'hail') return { kind: 'td', how: 'hail', sp: 'off' };
     if (o.play === 'run' && o.sp === 'breakaway') return { kind: 'td', how: 'breakaway', sp: 'off' };
     return { kind: 'gain', zones: PLAYS[o.play].gain };
@@ -651,7 +646,7 @@
         return { head: 'Flag! Replay', detail: `${NAME[r.by]} ${verb(r.by, 'throw')} the challenge flag. Same spot, snap again.`, tone: r.by };
       case 'gain': {
         S.pos += r.zones;
-        const lead = r.how === 'juke' ? 'Stopped, but the juke breaks free. ' : r.how === 'grab' ? 'Covered, but what a catch! ' : '';
+        const lead = r.how === 'juke' ? 'Guessed, but the juke breaks free. ' : r.how === 'grab' ? 'Guessed, but what a catch! ' : '';
         if (S.pos >= 3) { score(off, 7); return { head: 'Touchdown!', detail: `${lead}${NAME[off]} ${verb(off, 'score')} 7.`, tone: off }; }
         const head = r.how === 'juke' ? 'Juke!' : r.how === 'grab' ? 'What a catch!' : `+${r.zones} zone${r.zones > 1 ? 's' : ''}`;
         return { head, detail: `${lead}Ball at ${zoneName(S.pos, off)}.`, tone: off };
@@ -672,7 +667,7 @@
         const was = S.pos;
         S.pos = Math.max(0, S.pos - 1);
         const tfl = r.how === 'tfl';
-        return { head: tfl ? 'Tackle for loss!' : 'Sacked!', detail: `Wrong guess, but ${tfl ? 'the runner is dropped behind the line' : 'the QB goes down'}. ${was === 0 ? 'No gain, still at' : 'Back to'} ${zoneName(S.pos, off)}.`, tone: def };
+        return { head: tfl ? 'Tackle for loss!' : 'Sacked!', detail: `Wrong guess, but the defense breaks through. ${was === 0 ? 'No gain, still at' : 'Back to'} ${zoneName(S.pos, off)}.`, tone: def };
       }
       case 'fumble':
         S.poss = def; S.pos = 1;
