@@ -330,6 +330,22 @@
   .score.bump { animation: bump 0.6s ease-out; }
   @keyframes bump { from { transform: scale(1.7); color: var(--flag); } to { transform: scale(1); } }
 
+  /* Press and hold any card to see it big: on phone-sized cards the printed rules are small.
+     No image menu, drag or text selection gets in the way of the hold. */
+  .card, .zone { -webkit-user-select: none; user-select: none; }
+  .card img, .zone img { -webkit-touch-callout: none; -webkit-user-drag: none; }
+  /* A card you can't play right now still takes a hold, so you can read it. */
+  button.card:disabled { pointer-events: none; }
+  .zoom {
+    position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 16px;
+    background: rgba(5, 14, 10, 0.72); pointer-events: none;
+  }
+  .zoom img {
+    display: block; width: min(380px, 100%, (100dvh - 32px) / 1.4); height: auto; border-radius: 4.5% / 3.2%;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6); animation: zoom-in 0.15s ease-out;
+  }
+  @keyframes zoom-in { from { transform: scale(0.85); opacity: 0; } }
+
   /* Game over */
   .over {
     position: fixed; inset: 0; display: grid; place-items: center; z-index: 20;
@@ -490,6 +506,7 @@
           <li>Touchdown is 7 points. From the Red Zone you can kick a field goal for 3 instead of snapping.</li>
           <li>After a score, the team that got scored on gets the ball and draws a special card. You can hold 3.</li>
           <li>First to 21 wins.</li>
+          <li>Press and hold any card to see it big.</li>
         </ul>
 
         <h3>Specials: losers save, winners score</h3>
@@ -513,6 +530,8 @@
 <div class="cele" id="cele" hidden>
   <div class="cele-in"><div class="cele-cards" id="celeCards"></div><p id="celeText"></p></div>
 </div>
+
+<div class="zoom" id="zoom" hidden><img id="zoomImg" alt="" width="600" height="840"></div>
 
 <div class="over" id="over" hidden>
   <div class="panel">
@@ -888,7 +907,7 @@
     } else {
       $('#slotYou').innerHTML = S.sel.play
         ? faceBlock({ play: S.sel.play, card: S.sel.special }, 'you', false)
-        : '<div class="card empty"><span class="cv">Pick a card below</span></div>';
+        : '<div class="card empty"><span class="cv">Pick a card below. Hold one to see it big.</span></div>';
       $('#slotCpu').innerHTML = BACK;
       medal.className = 'medal'; medal.style.removeProperty('--tone'); medal.textContent = 'vs';
     }
@@ -972,6 +991,52 @@
     S.showLast = false;
     render();
   });
+  // Press and hold a card to see it big; let go and it goes back. A quick tap still picks the card.
+  // Cards are found by position, since a disabled card ignores the pointer.
+  const ZOOMABLE = '.hand .card, .specials .card:not(.empty), .slot .card:not(.back):not(.empty), .tuck, .zone';
+  let hold = null, zoomed = false, swallowClick = false;
+  function cardImgAt(x, y) {
+    const hits = [...document.querySelectorAll(ZOOMABLE)].filter((el) => {
+      const r = el.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    });
+    // A tucked special sits behind its play card, so the play card wins where they overlap.
+    const el = hits.find((h) => !h.classList.contains('tuck')) || hits[0];
+    return el ? el.querySelector('img') : null;
+  }
+  function showZoom(img) {
+    zoomed = true; swallowClick = true;
+    $('#zoomImg').src = img.currentSrc || img.src;
+    $('#zoomImg').alt = img.alt;
+    $('#zoom').hidden = false;
+  }
+  function endHold() {
+    if (!hold) return;
+    clearTimeout(hold.timer);
+    hold = null;
+    if (zoomed) { zoomed = false; $('#zoom').hidden = true; }
+  }
+  document.addEventListener('pointerdown', (e) => {
+    swallowClick = false;
+    endHold();
+    if (e.button !== 0 || e.target.closest('dialog, .cele, .over')) return;
+    const img = cardImgAt(e.clientX, e.clientY);
+    if (img) hold = { x: e.clientX, y: e.clientY, timer: setTimeout(() => showZoom(img), 400) };
+  });
+  // Moving the finger before the card opens means scrolling, not holding.
+  document.addEventListener('pointermove', (e) => {
+    if (hold && !zoomed && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 10) endHold();
+  });
+  document.addEventListener('pointerup', endHold);
+  document.addEventListener('pointercancel', endHold);
+  // Letting go after a hold is not a tap: it must not pick or drop the card.
+  document.addEventListener('click', (e) => {
+    if (!swallowClick) return;
+    swallowClick = false;
+    e.preventDefault(); e.stopPropagation();
+  }, true);
+  document.addEventListener('contextmenu', (e) => { if (cardImgAt(e.clientX, e.clientY)) e.preventDefault(); });
+
   $('#snap').addEventListener('click', snap);
   $('#fg').addEventListener('click', () => { if (S.phase === 'pick' && S.poss === 'you' && S.pos === 2) { kickFG('you'); render(); } });
   $('#newGame').addEventListener('click', newGame);
