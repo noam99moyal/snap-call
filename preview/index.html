@@ -69,8 +69,9 @@
   .log-box { margin-top: 10px; }
 
   /* Header */
-  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; min-width: 0; }
+  /* The title never squeezes under the buttons: on the narrowest screens the buttons move to their own row. */
+  .top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+  .brand { flex: 1 1 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
   .brand h1 { margin: 0; font: 400 24px/1 var(--display); letter-spacing: 0.02em; white-space: nowrap; }
   .chip { font: 600 13px/1 var(--ui); letter-spacing: 0.04em; color: var(--chalk-dim); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; white-space: nowrap; }
   .ghost {
@@ -79,11 +80,15 @@
     border-radius: 6px; padding: 8px 12px; cursor: pointer;
   }
   .ghost:hover { border-color: var(--chalk); }
-  .top-actions { display: flex; gap: 8px; flex: none; }
+  .top-actions { display: flex; gap: 8px; flex: none; margin-left: auto; }
   .top-actions .short { display: none; }
   @media (max-width: 430px) {
     .top-actions .long { display: none; }
     .top-actions .short { display: inline; }
+  }
+  /* Small phones: a slightly smaller title keeps title and buttons on one row down to about 310px. */
+  @media (max-width: 340px) {
+    .brand h1 { font-size: 21px; }
   }
 
   /* Scoreboard */
@@ -107,6 +112,12 @@
   .target { text-align: center; font: 600 12px/1.2 var(--ui); color: var(--chalk-dim); }
   .target b { display: block; font: 400 18px/1 var(--display); color: var(--chalk); }
   .pips { display: flex; gap: 3px; }
+  /* The narrowest screens (folding phones' outer screens are about 280px): tighter spacing and slightly smaller scores keep the board on screen. */
+  @media (max-width: 340px) {
+    .board { gap: 6px; padding-inline: 10px; }
+    .team { gap: 6px; }
+    .team .score { font-size: 34px; }
+  }
   .pips i { width: 9px; height: 12px; border-radius: 2px; background: var(--flag); opacity: 0.9; }
 
   /* Status */
