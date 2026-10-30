@@ -1,0 +1,122 @@
+[
+  {
+    "card": "run",
+    "type": "offense",
+    "lines": [
+      "✓ Not stopped: +1 zone",
+      "✕ Stopped: their ball"
+    ]
+  },
+  {
+    "card": "short-pass",
+    "type": "offense",
+    "lines": [
+      "✓ Not stopped: +1 zone",
+      "✕ Stopped: their ball"
+    ]
+  },
+  {
+    "card": "deep-pass",
+    "type": "offense",
+    "lines": [
+      "✓ Not stopped: +2 zones",
+      "✕ Stopped: intercepted"
+    ]
+  },
+  {
+    "card": "stop-run",
+    "type": "defense",
+    "lines": [
+      "✓ Stopped: your ball",
+      "✕ Not stopped: they gain"
+    ]
+  },
+  {
+    "card": "stop-short",
+    "type": "defense",
+    "lines": [
+      "✓ Stopped: your ball",
+      "✕ Not stopped: they gain"
+    ]
+  },
+  {
+    "card": "stop-deep",
+    "type": "defense",
+    "lines": [
+      "✓ Stopped: interception",
+      "✕ Not stopped: they gain"
+    ]
+  },
+  {
+    "card": "juke",
+    "type": "special",
+    "lines": [
+      "If your play is stopped",
+      "→ Still gain 1 zone"
+    ]
+  },
+  {
+    "card": "spectacular-catch",
+    "type": "special",
+    "lines": [
+      "If your play is stopped",
+      "→ Still gain 1 zone"
+    ]
+  },
+  {
+    "card": "sack",
+    "type": "special",
+    "lines": [
+      "If you don’t stop the play",
+      "→ They go back 1 zone"
+    ]
+  },
+  {
+    "card": "tackle-for-loss",
+    "type": "special",
+    "lines": [
+      "If you don’t stop the play",
+      "→ They go back 1 zone"
+    ]
+  },
+  {
+    "card": "challenge-flag",
+    "type": "special",
+    "lines": [
+      "If you lose the snap",
+      "→ Replay it"
+    ]
+  },
+  {
+    "card": "breakaway",
+    "type": "special",
+    "lines": [
+      "If your Run isn’t stopped",
+      "→ Touchdown"
+    ]
+  },
+  {
+    "card": "hail-mary",
+    "type": "special",
+    "lines": [
+      "If your Deep Pass isn’t stopped",
+      "→ Touchdown"
+    ]
+  },
+  {
+    "card": "pick-six",
+    "type": "special",
+    "lines": [
+      "If you stop a pass",
+      "→ You score 7"
+    ]
+  },
+  {
+    "card": "forced-fumble",
+    "type": "special",
+    "lines": [
+      "If you stop a Run",
+      "→ Your ball at midfield"
+    ]
+  }
+]

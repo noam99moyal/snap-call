@@ -213,45 +213,28 @@
     transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s, filter 0.15s;
   }
   .cv > img { display: block; width: 100%; height: auto; }
-  .panel {
-    box-sizing: border-box; min-height: 29.43cqi;
-    display: grid; align-content: center; gap: 1.6cqi;
+  .cv > .panel {
+    box-sizing: border-box; height: 29.43cqi; min-width: 0;
+    display: grid; align-content: center; grid-template-rows: repeat(2, 7cqi); gap: 1.6cqi;
+    font: 700 var(--rule-font, 7cqi)/1 var(--ui);
     border-style: solid; border-color: transparent;
     border-width: 4.43cqi 7.55cqi 9.25cqi;
     border-image-slice: 15.06% 7.547% 31.41% fill;
     border-image-repeat: stretch;
   }
-  /* On wide cards the text may reach into the cream edge of the strip, so two lines fit the printed panel without stretching it. */
-  @container (min-width: 128px) {
-    .panel > :first-child { margin-top: -1.4cqi; }
-    .panel > :last-child { margin-bottom: -1.4cqi; }
-  }
   .card.off { --deep: #0046d8; }
   .card.def { --deep: #c4000e; }
-  /* Narrow cards: each outcome is a small label over an icon and the result, split by a hairline.
-     Wide cards: one line each, "✓ Not stopped: +1 zone". The good result takes the frame's color. */
+  /* Always two rows, including narrow cards. The longer row determines both rows' font size. */
   .out {
-    display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "label label" "icon result";
-    gap: 1px 3px; align-items: baseline;
+    display: inline-flex; width: max-content; gap: 0.25em; align-items: baseline; white-space: nowrap;
   }
-  .out + .out { padding-top: 4px; border-top: 1px solid rgba(21, 32, 26, 0.18); }
-  .out em { grid-area: label; font: normal 600 11.5px/1.1 var(--ui); color: rgba(21, 32, 26, 0.64); }
-  .out i { grid-area: icon; font: normal 700 13px/1 var(--ui); }
-  .out b { grid-area: result; font: 700 14px/1.1 var(--ui); font-size: min(14px, 13cqi); }
-  .out b::first-letter { text-transform: uppercase; }
+  .out em { font: inherit; font-weight: 600; color: rgba(21, 32, 26, 0.72); }
+  .out em::after { content: ':'; }
+  .out i, .out b { font: inherit; }
   .out.good i, .out.good b { color: var(--deep); }
   .out.bad i { color: rgba(21, 32, 26, 0.55); }
   /* On the stage, the outcome that didn't happen fades. */
   .out.miss { opacity: 0.28; }
-  @container (min-width: 128px) {
-    .out { grid-template-columns: auto auto minmax(0, 1fr); grid-template-areas: "icon label result"; column-gap: 3px; white-space: nowrap; line-height: 1.05; }
-    .out em, .out i, .out b { line-height: inherit; }
-    .out + .out { padding-top: 0; border-top: 0; }
-    .out em { font-size: min(13px, 8.6cqi); }
-    .out em::after { content: ':'; }
-    .out i, .out b { font-size: min(13.5px, 9cqi); }
-    .out b::first-letter { text-transform: none; }
-  }
 
   button.card { cursor: pointer; }
   button.card:hover:not(:disabled) .cv { transform: translateY(-3px); }
@@ -279,14 +262,8 @@
   .badge { font: 700 11px/1 var(--ui); letter-spacing: 0.06em; padding: 3px 5px; border-radius: 3px; font-style: normal; }
   .badge.save { background: var(--flag); color: var(--ink); }
   .badge.bonus { color: var(--flag); box-shadow: inset 0 0 0 1.5px var(--flag); }
-  .sp .when { display: block; font: 500 12px/1.2 var(--ui); color: rgba(21, 32, 26, 0.72); }
-  .sp .then { display: block; font: 700 13px/1.15 var(--ui); }
-  /* Wide cards: the condition and the effect each fit on one line. */
-  @container (min-width: 128px) {
-    /* 7.7cqi keeps the longest rule, Hail Mary's, inside the panel frame. */
-    .sp .when { white-space: nowrap; font-size: min(13px, 7.7cqi); }
-    .sp .then { white-space: nowrap; font-size: min(14px, 9.4cqi); }
-  }
+  .sp .when, .sp .then { display: block; width: max-content; white-space: nowrap; font: inherit; }
+  .sp .when { font-weight: 600; color: rgba(21, 32, 26, 0.72); }
   @media (max-width: 899px) {
     .specials { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .specials .card.empty { grid-column: 1 / -1; }
@@ -592,11 +569,11 @@
   const SPECIALS = {
     juke:      { name: 'Juke', side: 'off', kind: 'save', count: 2, when: 'If your play is stopped', then: 'Still gain 1 zone' },
     grab:      { name: 'Spectacular Catch', side: 'off', kind: 'save', count: 2, when: 'If your play is stopped', then: 'Still gain 1 zone' },
-    sack:      { name: 'Sack', side: 'def', kind: 'save', count: 2, when: "If you don't stop the play", then: 'They go back 1 zone' },
-    tfl:       { name: 'Tackle for Loss', side: 'def', kind: 'save', count: 2, when: "If you don't stop the play", then: 'They go back 1 zone' },
+    sack:      { name: 'Sack', side: 'def', kind: 'save', count: 2, when: "If you don’t stop the play", then: 'They go back 1 zone' },
+    tfl:       { name: 'Tackle for Loss', side: 'def', kind: 'save', count: 2, when: "If you don’t stop the play", then: 'They go back 1 zone' },
     flag:      { name: 'Challenge Flag', side: 'any', kind: 'save', count: 2, when: 'If you lose the snap', then: 'Replay it' },
-    breakaway: { name: 'Breakaway', side: 'off', kind: 'bonus', count: 2, needs: ['run'], when: "If your Run isn't stopped", then: 'Touchdown' },
-    hail:      { name: 'Hail Mary', side: 'off', kind: 'bonus', count: 2, needs: ['deep'], when: "If your Deep Pass isn't stopped", then: 'Touchdown' },
+    breakaway: { name: 'Breakaway', side: 'off', kind: 'bonus', count: 2, needs: ['run'], when: "If your Run isn’t stopped", then: 'Touchdown' },
+    hail:      { name: 'Hail Mary', side: 'off', kind: 'bonus', count: 2, needs: ['deep'], when: "If your Deep Pass isn’t stopped", then: 'Touchdown' },
     picksix:   { name: 'Pick Six', side: 'def', kind: 'bonus', count: 2, needs: ['shortD', 'deepD'], when: 'If you stop a pass', then: 'You score 7' },
     fumble:    { name: 'Forced Fumble', side: 'def', kind: 'bonus', count: 2, needs: ['runD'], when: 'If you stop a Run', then: 'Your ball at midfield' },
   };
@@ -902,6 +879,19 @@
     $('#more').hidden = li.length <= rows;
   }
 
+  // Measure the actual loaded font: long conditions such as Hail Mary must never wrap.
+  // Size both rows together, keeping their wording, margins and the original card ratio.
+  function fitCardRules() {
+    document.querySelectorAll('.card .cv > .panel').forEach((panel) => {
+      if (!panel.clientWidth) return;
+      panel.style.removeProperty('--rule-font');
+      const base = parseFloat(getComputedStyle(panel).fontSize);
+      const needed = Math.max(...Array.from(panel.children, (row) => row.getBoundingClientRect().width));
+      const size = base * Math.min(1, (panel.clientWidth - 1) / needed);
+      panel.style.setProperty('--rule-font', `${Math.floor(size * 100) / 100}px`);
+    });
+  }
+
   function render() {
     // Scoreboard
     $('#sYou').textContent = cele && cele.who === 'you' ? cele.before : S.score.you;
@@ -998,6 +988,7 @@
       $('#overHead').textContent = w === 'you' ? 'You win' : 'CPU wins';
       $('#overScore').textContent = `${S.score.you} – ${S.score.cpu}`;
     }
+    fitCardRules();
   }
 
   // ---------- Input ----------
@@ -1034,7 +1025,11 @@
   $('#howTo').addEventListener('click', () => $('#rules').showModal());
   $('#closeRules').addEventListener('click', () => $('#rules').close());
   $('#rules').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
-  window.addEventListener('resize', fitLog);
+  window.addEventListener('resize', () => { fitLog(); fitCardRules(); });
+  document.fonts.ready.then(fitCardRules);
+  document.fonts.addEventListener('loadingdone', fitCardRules);
+  const cardSizes = new ResizeObserver(fitCardRules);
+  document.querySelectorAll('.hand, .specials, .slot-body, .cele-in').forEach((area) => cardSizes.observe(area));
   // Fetch every card up front so the first reveal never waits on an image.
   for (const f of [...Object.values(ART).flatMap((n) => [`${n}-top`, `${n}-panel`]), 'card-back', 'touchdown', 'field-goal']) new Image().src = `cards/${f}.webp`;
 
