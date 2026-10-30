@@ -3,11 +3,14 @@
 game.html is the game as published on Claude (no <head>). This wraps it into a full
 index.html for GitHub Pages, and optionally zips that for itch.io:
 
-    python3 build.py                       # writes index.html and preview/index.html
+    python3 build.py                       # writes index.html, preview/index.html and full-cards/index.html
     python3 build.py ~/Desktop/snap-call-itch.zip   # also writes the zip
+    python3 build.py --netlify ~/Desktop/snap-call-netlify.zip   # also zips full-cards/ as a whole site
 
 preview/ is the card art version of the game (preview/game.html plus the card images in
-preview/cards/). It is built next to the live game but never goes into the itch zip.
+preview/cards/). full-cards/ is the same game played with the finished printed cards. Both are
+built next to the live game but never go into the itch zip. The Netlify zip holds full-cards/
+on its own: index.html plus cards/, ready to drop onto Netlify.
 """
 import sys
 import zipfile
@@ -51,9 +54,22 @@ def build(folder, title):
 
 build(HERE, "Snap Call")
 build(HERE / "preview", "Snap Call: card art preview")
+build(HERE / "full-cards", "Snap Call")
 
-if len(sys.argv) > 1:
-    out = Path(sys.argv[1]).expanduser()
+args = sys.argv[1:]
+if "--netlify" in args:
+    i = args.index("--netlify")
+    netlify = Path(args[i + 1]).expanduser()
+    del args[i:i + 2]
+    site = HERE / "full-cards"
+    with zipfile.ZipFile(netlify, "w", zipfile.ZIP_DEFLATED) as z:
+        z.write(site / "index.html", "index.html")
+        for f in sorted((site / "cards").glob("*.webp")):
+            z.write(f, f"cards/{f.name}")
+    print(f"wrote {netlify}")
+
+if args:
+    out = Path(args[0]).expanduser()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         z.write(HERE / "index.html", "index.html")
     print(f"wrote {out}")
