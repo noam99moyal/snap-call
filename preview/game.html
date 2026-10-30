@@ -155,8 +155,9 @@
   .slot-label { font: 700 13px/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; }
   .slot-label.you { color: var(--you); }
   .slot-label.cpu { color: var(--cpu); }
-  .slot-body { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  .slot .card { width: min(140px, 100%); perspective: 700px; }
+  /* The top padding is the room a tucked special's name banner shows in. */
+  .slot-body { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: calc(min(132px, 100%) * 0.235); }
+  .slot .card { width: min(132px, 100%); perspective: 700px; }
   .medal {
     --tone: var(--chalk-faint);
     align-self: center; margin-top: 18px; width: 66px; height: 66px; border-radius: 50%;
@@ -168,19 +169,28 @@
   .medal.pop { animation: stamp 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
   @keyframes stamp { from { transform: scale(1.8) rotate(-12deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
 
+  /* A special played with a card is tucked behind it, its name banner showing above,
+     like laying it under your play card at the table. After the snap, a stamp on the play card says what it did. */
+  .slot .card { position: relative; }
+  .tuck {
+    position: absolute; z-index: -1; left: 0; right: 0; top: 0;
+    transform: translateY(-21cqi) rotate(3deg); transform-origin: 50% 100%;
+  }
+  .card.cpu .tuck { transform: translateY(-21cqi) rotate(-3deg); }
+  .tuck img { display: block; width: 100%; height: auto; filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5)); }
+  .tuck[data-st="worked"] img { filter: drop-shadow(0 0 3px var(--flag)) drop-shadow(0 0 10px rgba(255, 212, 71, 0.7)); }
+  .tuck[data-st="wasted"] img { filter: grayscale(0.9) brightness(0.55); }
+  .tuck[data-st="back"] img { opacity: 0.6; }
+  .card.flip .tuck { animation: tuck-in 0.35s 0.3s ease-out both; }
+  @keyframes tuck-in { from { transform: none; } }
   .tag {
-    display: grid; gap: 2px; justify-items: center; text-align: center; max-width: 100%;
-    background: var(--flag); color: var(--ink); font: 700 13px/1.05 var(--ui);
+    position: absolute; left: 50%; top: calc(110.6cqi - 4px); transform: translate(-50%, -100%);
+    background: var(--flag); color: var(--ink); font: 700 13px/1 var(--ui); letter-spacing: 0.02em; white-space: nowrap;
     border-radius: 5px; padding: 5px 8px;
   }
-  .tag small { font: 600 11px/1 var(--ui); letter-spacing: 0.04em; }
   .tag[data-st="worked"] { box-shadow: 0 0 0 2px var(--chalk), 0 0 18px rgba(255, 212, 71, 0.55); }
   .tag[data-st="wasted"] { background: rgba(8, 21, 15, 0.9); color: var(--chalk-dim); box-shadow: inset 0 0 0 1px var(--chalk-faint); }
-  .tag[data-st="wasted"] span { text-decoration: line-through; }
   .tag[data-st="back"] { background: rgba(8, 21, 15, 0.9); color: var(--flag); box-shadow: inset 0 0 0 1px var(--flag); }
-  /* On the stage, the special played with a card sits on it, over the bottom of the art. */
-  .slot .card { position: relative; }
-  .card > .tag { position: absolute; left: 50%; top: calc(110.6cqi - 4px); transform: translate(-50%, -100%); width: max-content; max-width: 94cqi; }
 
   .result { display: grid; gap: 4px; text-align: center; min-height: 54px; align-content: center; }
   .result .head { font: 400 27px/1 var(--display); color: var(--tone, var(--chalk)); text-wrap: balance; }
@@ -273,7 +283,8 @@
   .sp .then { display: block; font: 700 13px/1.15 var(--ui); }
   /* Wide cards: the condition and the effect each fit on one line. */
   @container (min-width: 128px) {
-    .sp .when { white-space: nowrap; font-size: min(13px, 8.6cqi); }
+    /* 7.7cqi keeps the longest rule, Hail Mary's, inside the panel frame. */
+    .sp .when { white-space: nowrap; font-size: min(13px, 7.7cqi); }
     .sp .then { white-space: nowrap; font-size: min(14px, 9.4cqi); }
   }
   @media (max-width: 899px) {
@@ -347,12 +358,18 @@
     position: fixed; inset: 0; z-index: 15; display: grid; place-items: center; padding: 16px;
     background: rgba(5, 14, 10, 0.62); cursor: pointer;
   }
-  .cele-in { display: grid; justify-items: center; gap: 14px; animation: deal 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
-  .cele img {
+  .cele-in { display: grid; justify-items: center; gap: 14px; }
+  .cele-cards { display: flex; align-items: center; justify-content: center; gap: 16px; }
+  .cele-cards > *, .cele p { animation: deal 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+  .cele-score {
     display: block; width: min(250px, 60vw, (100dvh - 150px) / 1.4); height: auto; border-radius: 4.5% / 3.2%;
     box-shadow: 0 0 0 3px var(--tone), 0 0 40px color-mix(in srgb, var(--tone) 55%, transparent), 0 18px 40px rgba(0, 0, 0, 0.5);
   }
-  .cele p { margin: 0; font: 400 24px/1.1 var(--display); color: var(--tone); text-align: center; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
+  .cele.pair .cele-score, .cele-sp { width: min(200px, 42vw, (100dvh - 150px) / 1.5); }
+  .cele.pair .cele-score, .cele.pair p { animation-delay: 0.35s; }
+  .cele-sp { rotate: -4deg; }
+  .cele-sp .cv { box-shadow: 0 0 0 3px var(--flag), 0 0 30px rgba(255, 212, 71, 0.45), 0 18px 40px rgba(0, 0, 0, 0.5); }
+  .cele p { margin: 0; font: 400 min(24px, (100vw - 40px) / 14.5)/1.1 var(--display); color: var(--tone); text-align: center; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
   @keyframes deal { from { transform: translateY(50px) scale(0.55) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
   .score.bump { animation: bump 0.6s ease-out; }
   @keyframes bump { from { transform: scale(1.7); color: var(--flag); } to { transform: scale(1); } }
@@ -538,7 +555,7 @@
 </main>
 
 <div class="cele" id="cele" hidden>
-  <div class="cele-in"><img id="celeImg" alt="" width="480" height="672"><p id="celeText"></p></div>
+  <div class="cele-in"><div class="cele-cards" id="celeCards"></div><p id="celeText"></p></div>
 </div>
 
 <div class="over" id="over" hidden>
@@ -606,17 +623,19 @@
   // A score being shown: its card is on screen and the board still shows the points from before.
   let cele = null;
 
-  function celebrate(who, card, line, before) {
+  // `sp` is the special that made the score, if any: it comes in first, then the score card.
+  function celebrate(who, card, line, before, sp) {
     if (cele) clearTimeout(cele.timer);
-    cele = { who, before, timer: setTimeout(endCelebrate, 2000) };
+    cele = { who, before, timer: setTimeout(endCelebrate, sp ? 2600 : 2000) };
     const box = $('#cele');
     box.style.setProperty('--tone', `var(--${who})`);
-    $('#celeImg').src = `cards/${card}.webp`;
-    $('#celeImg').alt = card === 'touchdown' ? 'Touchdown card' : 'Field goal card';
-    $('#celeText').textContent = line;
+    box.classList.toggle('pair', !!sp);
+    $('#celeCards').innerHTML = (sp ? `<div class="card sp cele-sp">${spInner(sp, SPECIALS[sp].name)}</div>` : '')
+      + `<img class="cele-score" src="cards/${card}.webp" alt="${card === 'touchdown' ? 'Touchdown card' : 'Field goal card'}" width="480" height="672">`;
+    const text = $('#celeText');
+    text.textContent = line;
+    text.style.animation = 'none'; void text.offsetWidth; text.style.animation = '';
     box.hidden = false;
-    const inner = box.firstElementChild;
-    inner.style.animation = 'none'; void inner.offsetWidth; inner.style.animation = '';
   }
   function endCelebrate() {
     if (!cele) return;
@@ -801,7 +820,8 @@
     const before = { ...S.score };
     const out = apply(r, off);
     for (const w of ['you', 'cpu']) {
-      if (S.score[w] > before[w]) celebrate(w, 'touchdown', `${out.head} ${NAME[w]} ${verb(w, 'score')} 7`, before[w]);
+      const sp = firedBy === w ? (w === 'you' ? you : cpu).card.key : null;
+      if (S.score[w] > before[w]) celebrate(w, 'touchdown', `${out.head} ${NAME[w]} ${verb(w, 'score')} 7`, before[w], sp);
     }
     // Show the ball's path on the field when the same team keeps it.
     S.move = S.phase !== 'over' && S.poss === off && S.pos !== pos0 ? { from: pos0, to: S.pos } : null;
@@ -847,6 +867,9 @@
       + `<span class="out good${miss === 'win' ? ' miss' : ''}"><i>✓</i>${outText(p.win)}</span>`
       + `<span class="out bad${miss === 'lose' ? ' miss' : ''}"><i>✕</i>${outText(p.lose)}</span></span></span>`;
   }
+  // A special card: the rule on its panel; the name, Save / Bonus and side are on the art.
+  const spInner = (key, alt) => `<span class="cv">${art(key, alt)}`
+    + `<span class="when">${SPECIALS[key].when}</span> <span class="then">→ ${SPECIALS[key].then}</span></span></span>`;
   // "Stopped: their ball" → a quiet label, then the result in bold.
   function outText(t) {
     const [label, result] = t.split(': ');
@@ -855,10 +878,11 @@
   function faceBlock(c, owner, flip, L) {
     const key = c.play || 'deep';
     const s = c.card && SPECIALS[c.card.key];
-    const tag = s ? `<span class="tag" data-st="${c.status || ''}"><span>${s.name}</span>${c.status ? `<small>${STATUS[c.status]}</small>` : ''}</span>` : '';
+    const tuck = s ? `<span class="tuck" data-st="${c.status || ''}"><img src="cards/${ART[c.card.key]}-top.webp" alt="with ${s.name}" width="480" height="531" decoding="sync"></span>` : '';
+    const tag = s && c.status ? `<span class="tag" data-st="${c.status}">${STATUS[c.status]}</span>` : '';
     // A defense card wins when the play was stopped; an offense card wins when it wasn't.
     const miss = L ? ((PLAYS[key].side === 'def') === L.guessed ? 'lose' : 'win') : null;
-    return `<div class="card ${PLAYS[key].side} ${owner}${flip ? ' flip' : ''}">${faceInner(key, miss)}${tag}</div>`;
+    return `<div class="card ${PLAYS[key].side} ${owner}${flip ? ' flip' : ''}">${faceInner(key, miss)}${tuck}${tag}</div>`;
   }
   const BACK = '<div class="card back"><span class="cv"><img src="cards/card-back.webp" alt="CPU card, face down" width="480" height="672" decoding="sync"></span></div>';
   // Center of field card k, in the 4-column row with 6px gaps.
@@ -950,7 +974,7 @@
       const ok = S.phase === 'pick' && fits(c.key, S.sel.play, sd);
       const alt = `${s.name}, ${s.kind === 'save' ? 'Save' : 'Bonus'}, ${SIDE_LABEL[s.side]}`;
       return `<button type="button" class="card sp${on ? ' on' : ''}" data-sp="${c.id}" aria-pressed="${!!on}"${ok || on ? '' : ' disabled'}>`
-        + `<span class="cv">${art(c.key, alt)}<span class="when">${s.when}</span> <span class="then">→ ${s.then}</span></span></span>`
+        + spInner(c.key, alt)
         + '</button>';
     });
     while (sp.length < 3) sp.push('<div class="card empty"><span class="cv">Empty slot. You draw one when you get scored on.</span></div>');
