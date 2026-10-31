@@ -101,14 +101,15 @@
   .has-ball .poss { visibility: visible; }
   .target { text-align: center; font: 600 12px/1.2 var(--ui); color: var(--chalk-dim); }
   .target b { display: block; font: 400 18px/1 var(--display); color: var(--chalk); }
-  .pips { display: flex; gap: 3px; }
+  .pips { display: flex; gap: 4px; }
   /* The narrowest screens (folding phones' outer screens are about 280px): tighter spacing and slightly smaller scores keep the board on screen. */
   @media (max-width: 340px) {
     .board { gap: 6px; padding-inline: 10px; }
     .team { gap: 6px; }
     .team .score { font-size: 34px; }
   }
-  .pips i { width: 9px; height: 12px; border-radius: 2px; background: var(--flag); opacity: 0.9; }
+  /* The CPU's specials: one tiny card back per card it holds. */
+  .pips i { width: 13px; height: 18px; border-radius: 2px; background: url(cards/card-back.webp) center / cover; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
 
   /* Status */
   .scoreline { display: grid; gap: 12px; }
