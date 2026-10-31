@@ -320,6 +320,19 @@
   .rules dt span { color: var(--chalk-faint); font-weight: 600; }
   .rules dd { margin: 2px 0 0; color: var(--chalk-dim); line-height: 1.4; }
 
+  /* New game: pick how the computer plays. Hard shows under "First to 21" for the whole game. */
+  .level { width: min(420px, calc(100% - 32px)); }
+  .level .body { gap: 10px; }
+  .lvl-pick {
+    display: grid; gap: 6px; text-align: left; cursor: pointer; padding: 14px 16px;
+    background: transparent; color: var(--chalk); border: 1px solid var(--chalk-faint); border-radius: 10px;
+  }
+  .lvl-pick:hover { border-color: var(--chalk); }
+  .lvl-pick b { font: 400 22px/1 var(--display); letter-spacing: 0.03em; }
+  .lvl-pick[data-level="hard"] b { color: var(--flag); }
+  .lvl-pick span { font: 400 14px/1.35 var(--ui); color: var(--chalk-dim); }
+  .lvl-tag { display: block; margin-top: 4px; font: 700 11px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--flag); }
+
   /* Scoring: the Touchdown or Field Goal card takes the screen for a moment, then the points go on the board. */
   .cele {
     position: fixed; inset: 0; z-index: 15; display: grid; place-items: center; padding: 16px;
@@ -447,7 +460,7 @@
         </span>
         <span class="score" id="sYou">0</span>
       </div>
-      <div class="target">First to<b>21</b></div>
+      <div class="target">First to<b>21</b><span class="lvl-tag" id="lvlTag" hidden>Hard</span></div>
       <div class="team cpu" id="tCpu">
         <span class="score" id="sCpu">0</span>
         <span class="who">
@@ -534,6 +547,14 @@
 
         <h3>The computer</h3>
         <p>It remembers which plays you call and which ones you guess, and leans on your habits. Mix it up.</p>
+      </div>
+    </dialog>
+
+    <dialog class="rules level" id="level" aria-labelledby="levelHead">
+      <div class="head"><h2 id="levelHead">New game</h2><button class="ghost" id="closeLevel" type="button">Close</button></div>
+      <div class="body">
+        <button class="lvl-pick" type="button" data-level="normal"><b>Normal</b><span>Learns your habits as you play.</span></button>
+        <button class="lvl-pick" type="button" data-level="hard"><b>Hard</b><span>Reads you closely and remembers your last few games.</span></button>
       </div>
     </dialog>
 </main>
@@ -634,12 +655,18 @@
     el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
   }
 
-  function newGame() {
+  // The level picked last time on this device starts the next game.
+  const LEVEL_KEY = 'snap-call-level';
+  function savedLevel() {
+    try { return localStorage.getItem(LEVEL_KEY) === 'hard' ? 'hard' : 'normal'; } catch (e) { return 'normal'; }
+  }
+
+  function newGame(level) {
     if (cele) { clearTimeout(cele.timer); cele = null; $('#cele').hidden = true; }
     const deck = [];
     for (const [k, s] of Object.entries(SPECIALS)) for (let i = 0; i < s.count; i++) deck.push(k);
     S = {
-      v: RULES_VERSION,
+      v: RULES_VERSION, level,
       score: { you: 0, cpu: 0 }, poss: 'you', pos: 0,
       hands: { you: [], cpu: [] }, deck: shuffle(deck), discard: [],
       sel: { play: null, special: null },
@@ -647,6 +674,13 @@
       offHist: { run: 2, short: 2, deep: 2 },   // what you call on offense
       defHist: { run: 2, short: 2, deep: 2 },   // what you guess on defense
     };
+    if (level === 'hard') {
+      S.hard = loadHard();
+      foldGame(S.hard.off);
+      foldGame(S.hard.dfn);
+      saveHard();
+    }
+    try { localStorage.setItem(LEVEL_KEY, level); } catch (e) { /* the next visit starts on Normal */ }
     for (let i = 0; i < 2; i++) { draw('you'); draw('cpu'); }
     S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first.', tone: 'you' });
     render();
@@ -668,36 +702,162 @@
   const ready = () => S.phase === 'pick' && !!S.sel.play;
 
   // ---------- Computer ----------
+  // Normal leans on how often you've called and guessed each play this game. Hard reads you (see below).
+  // Both play their special cards the same way. `seen` is what Hard expected, so it can score its hunches after the snap.
   function cpuPick() {
     const hand = S.hands.cpu;
     const has = (k) => hand.find((c) => c.key === k) || null;
+    const hard = S.level === 'hard';
     if (S.poss === 'cpu') {
+      const read = hard ? hardCall() : null;
+      const seen = read && read.seen;
       const behind = S.score.you - S.score.cpu;
       const h = has('hail');
-      if (h && S.pos === 0 && behind >= 7 && Math.random() < 0.5) return { play: 'deep', card: h };
+      if (h && S.pos === 0 && behind >= 7 && Math.random() < 0.5) return { play: 'deep', card: h, seen };
       const g = S.defHist;
-      const play = weighted({ run: 1 / g.run, short: 1 / g.short, deep: (S.pos === 2 ? 0.35 : 0.8) / g.deep });
+      const play = read ? read.play : weighted({ run: 1 / g.run, short: 1 / g.short, deep: (S.pos === 2 ? 0.35 : 0.8) / g.deep });
       let card = null;
       const b = has('breakaway'), j = has('juke'), c = has('grab'), f = has('flag');
       if (play === 'deep' && h && S.pos === 0 && Math.random() < 0.6) card = h;
       else if (play === 'run' && b && Math.random() < 0.6) card = b;
       else if ((j || c) && Math.random() < (play === 'deep' ? 0.5 : 0.35)) card = j || c;
       else if (f && Math.random() < 0.2) card = f;
-      return { play, card };
+      return { play, card, seen };
     }
+    const read = hard ? hardGuess() : null;
     const h = S.offHist;
     const tot = h.run + h.short + h.deep;
     const w = {};
     for (const p of OFF) w[p] = 0.25 / 3 + 0.75 * (h[p] / tot);
     if (S.pos === 2) w.deep *= 0.5;
-    const guess = weighted(w);
+    const guess = read ? read.play : weighted(w);
     let card = null;
     const tl = has('tfl'), sk = has('sack'), p6 = has('picksix'), ff = has('fumble'), f = has('flag');
     if (p6 && guess !== 'run' && Math.random() < 0.5) card = p6;
     else if (ff && guess === 'run' && Math.random() < 0.6) card = ff;
     else if ((tl || sk) && Math.random() < 0.4) card = tl || sk;
     else if (f && Math.random() < 0.2) card = f;
-    return { play: guess + 'D', card };
+    return { play: guess + 'D', card, seen: read && read.seen };
+  }
+
+  // ---------- Hard computer ----------
+  // Several hunches about how you play run at once: your favorite play, your last few calls, what you call in this zone,
+  // what you call after each play, repeating, evening out, and reading the computer back. Each is scored on how well it
+  // would have guessed lately. Hard starts from the calls and guesses nobody can read, even knowing its odds, and leans
+  // on the hunches only as far as they have been working. Tuned by simulating thousands of games (tools/cpu-sim).
+  // It remembers your last few games on this device: the last one counts half, the one before a quarter, and so on.
+  const HARD_KEY = 'snap-call-hard';
+  const HUNCHES = ['even', 'all', 'recent', 'zone', 'after', 'repeat', 'balance', 'counter'];
+  const EVEN = [1 / 3, 1 / 3, 1 / 3];
+  const norm = (v) => { const s = v[0] + v[1] + v[2]; return v.map((x) => x / s); };
+  const peak = (i) => [0, 1, 2].map((j) => (j === i ? 0.6 : 0.2));
+  const pickBy = (v, better) => {
+    const best = v.reduce((m, x) => (better(x, m) ? x : m));
+    const ties = [0, 1, 2].filter((i) => Math.abs(v[i] - best) < 1e-9);
+    return ties[Math.floor(Math.random() * ties.length)];
+  };
+  const lowest = (v) => pickBy(v, (a, b) => a < b);
+  const highest = (v) => pickBy(v, (a, b) => a > b);
+  const sample = (v) => { let r = Math.random(); for (let i = 0; i < 2; i++) { r -= v[i]; if (r <= 0) return i; } return 2; };
+
+  // One tracker for your calls on offense, one for your guesses on defense.
+  // Rows are [zone, your previous pick, your pick, weight]; this game's rows have no weight yet.
+  const newTracker = () => ({ past: [], game: [], prev: null, score: Object.fromEntries(HUNCHES.map((k) => [k, 0])), mix: 0 });
+  function loadHard() {
+    try {
+      const m = JSON.parse(localStorage.getItem(HARD_KEY));
+      if (m && m.off && m.dfn) {
+        for (const t of [m.off, m.dfn]) {
+          if (!Array.isArray(t.past) || !Array.isArray(t.game)) throw new Error('bad memory');
+          t.score = { ...newTracker().score, ...t.score };
+          t.mix = Number(t.mix) || 0;
+        }
+        return m;
+      }
+    } catch (e) { /* nothing usable saved: start fresh */ }
+    return { off: newTracker(), dfn: newTracker() };
+  }
+  function saveHard() {
+    try { localStorage.setItem(HARD_KEY, JSON.stringify(S.hard)); } catch (e) { /* this device just won't remember */ }
+  }
+  // A new game: every earlier game counts half as much as before, and very old ones drop out.
+  function foldGame(t) {
+    t.prev = null;
+    if (!t.game.length) return;
+    t.past = [...t.past, ...t.game.map((r) => [...r, 1])].map(([z, p, c, w]) => [z, p, c, w / 2]).filter((r) => r[3] > 0.05);
+    for (const k of HUNCHES) t.score[k] /= 2;
+    t.mix /= 2;
+    t.game = [];
+  }
+
+  const share = (rows) => { const n = [1, 1, 1]; for (const r of rows) n[OFF.indexOf(r[2])] += r[3]; return norm(n); };
+  // `counterOf(first guess)` is the pick of a player reading the computer back.
+  function predict(t, pos, counterOf) {
+    const now = t.game.map((r) => [...r, 1]);
+    const rows = [...t.past, ...now];
+    const e = { even: EVEN, all: share(rows), recent: share(now.slice(-5)), zone: share(rows.filter((r) => r[0] === pos)) };
+    e.after = t.prev ? share(rows.filter((r) => r[1] === t.prev)) : e.all;
+    e.repeat = t.prev ? peak(OFF.indexOf(t.prev)) : EVEN;
+    e.balance = peak(lowest(share(now)));
+    const w = Object.fromEntries(HUNCHES.map((k) => [k, Math.exp(t.score[k])]));
+    const blend = () => norm([0, 1, 2].map((i) => Object.keys(e).reduce((s, k) => s + w[k] * e[k][i], 0)));
+    e.counter = peak(counterOf(blend()));
+    const full = blend();
+    return { full, seen: { pos, e, full } };
+  }
+  function learn(t, seen, pick) {
+    const i = OFF.indexOf(pick);
+    for (const k of Object.keys(seen.e)) t.score[k] = 0.9 * t.score[k] + Math.log(3 * seen.e[k][i]);
+    t.mix = 0.9 * t.mix + Math.log(3 * seen.full[i]);
+    t.game.push([seen.pos, t.prev, pick]);
+    t.prev = pick;
+  }
+
+  // What each play is worth to the offense here: zones gained (reaching the end zone counts extra), and what a stop costs.
+  function stakes(pos) {
+    const gain = OFF.map((p) => Math.min(PLAYS[p].gain, 3 - pos) + (pos + PLAYS[p].gain >= 3 ? 1 : 0));
+    const loss = OFF.map((p) => (p === 'deep' ? 1.8 : 1.2));
+    return { gain, loss };
+  }
+  // The calls and guesses nobody can read: each side leaves the other nothing to gain by switching.
+  function safeMix(pos) {
+    const { gain, loss } = stakes(pos);
+    const inv = [0, 1, 2].map((i) => 1 / (gain[i] + loss[i]));
+    const v = (inv.reduce((s, x, i) => s + gain[i] * x, 0) - 1) / (inv[0] + inv[1] + inv[2]);
+    return { calls: norm(inv), guesses: norm([0, 1, 2].map((i) => Math.max(0, (gain[i] - v) * inv[i]))) };
+  }
+  // 0 plays the safe mix, 1 plays fully into the read; never more than 80% on one play.
+  function lean(safe, read, t) {
+    const c = Math.max(0, Math.min(1, t.mix / 0.5));
+    const q = [0, 1, 2].map((i) => (1 - c) * safe[i] + c * read[i]);
+    const hi = Math.max(...q);
+    const s = hi > 0.8 ? (hi - 0.8) / (hi - 1 / 3) : 0;
+    return q.map((x) => (1 - s) * x + s / 3);
+  }
+  function guessOdds(P, pos) {
+    const { gain, loss } = stakes(pos);
+    // What your offense expects to get if Hard guesses x.
+    const payoff = [0, 1, 2].map((x) => [0, 1, 2].reduce((s, y) => s + (y === x ? -P[x] * loss[x] : P[y] * gain[y]), 0));
+    const lo = Math.min(...payoff);
+    return lean(safeMix(pos).guesses, norm(payoff.map((x) => Math.exp(-(x - lo) / 0.3))), S.hard.off);
+  }
+  function callOdds(G, pos) {
+    const { gain, loss } = stakes(pos);
+    const ev = [0, 1, 2].map((i) => (1 - G[i]) * gain[i] - G[i] * loss[i]);
+    const top = Math.max(...ev);
+    return lean(safeMix(pos).calls, norm(ev.map((x) => Math.exp((x - top) / 0.3))), S.hard.dfn);
+  }
+  function hardGuess() {
+    const pos = S.pos;
+    // Someone reading Hard back calls the play it is least likely to guess.
+    const { full, seen } = predict(S.hard.off, pos, (first) => lowest(guessOdds(first, pos)));
+    return { play: OFF[sample(guessOdds(full, pos))], seen };
+  }
+  function hardCall() {
+    const pos = S.pos;
+    // ...and guesses the play it is most likely to call.
+    const { full, seen } = predict(S.hard.dfn, pos, (first) => highest(callOdds(first, pos)));
+    return { play: OFF[sample(callOdds(full, pos))], seen };
   }
 
   // ---------- Rules ----------
@@ -787,6 +947,11 @@
     }
     const off = S.poss, def = other(off);
     if (off === 'you') { if (you.play) S.offHist[you.play]++; } else S.defHist[PLAYS[you.play].stops]++;
+    if (cpu.seen) {
+      learn(off === 'you' ? S.hard.off : S.hard.dfn, cpu.seen, off === 'you' ? you.play : PLAYS[you.play].stops);
+      delete cpu.seen;
+      saveHard();
+    }
 
     const O = off === 'you' ? you : cpu, D = off === 'you' ? cpu : you;
     const o = { play: O.play, sp: O.card ? O.card.key : null };
@@ -884,6 +1049,7 @@
     $('#sCpu').textContent = cele && cele.who === 'cpu' ? cele.before : S.score.cpu;
     $('#tYou').classList.toggle('has-ball', S.poss === 'you');
     $('#tCpu').classList.toggle('has-ball', S.poss === 'cpu');
+    $('#lvlTag').hidden = S.level !== 'hard';
     $('#cpuPips').innerHTML = S.hands.cpu.map(() => '<i></i>').join('');
 
     // Status
@@ -1053,8 +1219,16 @@
 
   $('#snap').addEventListener('click', snap);
   $('#fg').addEventListener('click', () => { if (S.phase === 'pick' && S.poss === 'you' && S.pos === 2) { kickFG('you'); render(); } });
-  $('#newGame').addEventListener('click', newGame);
-  $('#again').addEventListener('click', newGame);
+  // New game and Play again ask Normal or Hard; the level you're playing now is ready to pick again.
+  function askLevel() {
+    $('#level').showModal();
+    $(`.lvl-pick[data-level="${S.level || 'normal'}"]`).focus();
+  }
+  $('#newGame').addEventListener('click', askLevel);
+  $('#again').addEventListener('click', askLevel);
+  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', () => { $('#level').close(); newGame(b.dataset.level); });
+  $('#closeLevel').addEventListener('click', () => $('#level').close());
+  $('#level').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   $('#cele').addEventListener('click', endCelebrate);
   $('#howTo').addEventListener('click', () => $('#rules').showModal());
   $('#closeRules').addEventListener('click', () => $('#rules').close());
@@ -1070,7 +1244,7 @@
       S = data.S; uid = data.uid || 0;
       if (S.phase === 'busy') S.phase = 'pick';
       render(); afterChange();
-    } else newGame();
+    } else newGame(savedLevel());
   }
   window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
