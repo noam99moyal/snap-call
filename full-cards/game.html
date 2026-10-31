@@ -341,7 +341,7 @@
   .score.bump { animation: bump 0.6s ease-out; }
   @keyframes bump { from { transform: scale(1.7); color: var(--flag); } to { transform: scale(1); } }
 
-  /* Press and hold any card to see it big: on phone-sized cards the printed rules are small.
+  /* Press and hold any card to see it big, until the next tap: on phone-sized cards the printed rules are small.
      No image menu, drag or text selection gets in the way of the hold. */
   .card, .zone { -webkit-user-select: none; user-select: none; }
   .card img, .zone img { -webkit-touch-callout: none; -webkit-user-drag: none; }
@@ -1002,7 +1002,7 @@
     S.showLast = false;
     render();
   });
-  // Press and hold a card to see it big; let go and it goes back. A quick tap still picks the card.
+  // Press and hold a card to see it big; it stays open until the next tap. A quick tap still picks the card.
   // Cards are found by position, since a disabled card ignores the pointer.
   const ZOOMABLE = '.hand .card, .specials .card:not(.empty), .slot .card:not(.back):not(.empty), .tuck, .zone';
   let hold = null, zoomed = false, swallowClick = false;
@@ -1016,31 +1016,34 @@
     return el ? el.querySelector('img') : null;
   }
   function showZoom(img) {
-    zoomed = true; swallowClick = true;
+    hold = null; zoomed = true; swallowClick = true;
     $('#zoomImg').src = img.currentSrc || img.src;
     $('#zoomImg').alt = img.alt;
     $('#zoom').hidden = false;
   }
-  function endHold() {
+  function closeZoom() { zoomed = false; $('#zoom').hidden = true; }
+  function cancelHold() {
     if (!hold) return;
     clearTimeout(hold.timer);
     hold = null;
-    if (zoomed) { zoomed = false; $('#zoom').hidden = true; }
   }
   document.addEventListener('pointerdown', (e) => {
     swallowClick = false;
-    endHold();
+    cancelHold();
+    // The tap that closes the big card does nothing else.
+    if (zoomed) { closeZoom(); swallowClick = true; return; }
     if (e.button !== 0 || e.target.closest('dialog, .cele, .over')) return;
     const img = cardImgAt(e.clientX, e.clientY);
     if (img) hold = { x: e.clientX, y: e.clientY, timer: setTimeout(() => showZoom(img), 400) };
   });
   // Moving the finger before the card opens means scrolling, not holding.
   document.addEventListener('pointermove', (e) => {
-    if (hold && !zoomed && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 10) endHold();
+    if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 10) cancelHold();
   });
-  document.addEventListener('pointerup', endHold);
-  document.addEventListener('pointercancel', endHold);
-  // Letting go after a hold is not a tap: it must not pick or drop the card.
+  document.addEventListener('pointerup', cancelHold);
+  document.addEventListener('pointercancel', cancelHold);
+  document.addEventListener('keydown', (e) => { if (zoomed && e.key === 'Escape') closeZoom(); });
+  // Letting go after a hold, or the tap that closes the big card, must not pick or drop a card.
   document.addEventListener('click', (e) => {
     if (!swallowClick) return;
     swallowClick = false;
