@@ -6,12 +6,15 @@ index.html for GitHub Pages, and optionally zips that for itch.io:
     python3 build.py                       # writes index.html, preview/index.html and full-cards/index.html
     python3 build.py ~/Desktop/snap-call-itch.zip   # also writes the zip
     python3 build.py --netlify ~/Desktop/snap-call-netlify.zip   # also zips full-cards/ as a whole site
+    python3 build.py --netlify-downs ~/Desktop/snap-call-netlify-downs.zip   # the downs test as a whole site
 
 preview/ is the card art version of the game (preview/game.html plus the card images in
 preview/cards/). full-cards/ is the same game played with the finished printed cards. downs/ is
 full-cards with a test of 2 downs on a longer field. All are built next to the live game but
 never go into the itch zip. The Netlify zip holds full-cards/
-on its own: index.html plus cards/, ready to drop onto Netlify.
+on its own: index.html plus cards/, ready to drop onto Netlify. The downs Netlify zip is the same for
+downs/: its own cards replace full-cards' cards of the same name, and its paths to ../full-cards/cards/
+point at cards/.
 """
 import sys
 import zipfile
@@ -68,6 +71,19 @@ if "--netlify" in args:
         z.write(site / "index.html", "index.html")
         for f in sorted((site / "cards").glob("*.webp")):
             z.write(f, f"cards/{f.name}")
+    print(f"wrote {netlify}")
+
+if "--netlify-downs" in args:
+    i = args.index("--netlify-downs")
+    netlify = Path(args[i + 1]).expanduser()
+    del args[i:i + 2]
+    cards = {f.name: f for f in sorted((HERE / "full-cards" / "cards").glob("*.webp"))}
+    cards.update({f.name: f for f in sorted((HERE / "downs" / "cards").glob("*.webp"))})
+    page = (HERE / "downs" / "index.html").read_text(encoding="utf-8").replace("../full-cards/cards/", "cards/")
+    with zipfile.ZipFile(netlify, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("index.html", page)
+        for name, f in sorted(cards.items()):
+            z.write(f, f"cards/{name}")
     print(f"wrote {netlify}")
 
 if args:
