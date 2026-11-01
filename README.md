@@ -6,9 +6,11 @@ Play it: https://noam99moyal.github.io/snap-call/
 
 Card art preview (same game, played with the printed card art): https://noam99moyal.github.io/snap-call/preview/
 
-Finished 23-card deck and PNG downloads: https://noam99moyal.github.io/snap-call/artwork/
+Finished 24-card deck and PNG downloads: https://noam99moyal.github.io/snap-call/artwork/
 
 Played with the finished cards (rules printed on the cards): https://noam99moyal.github.io/snap-call/full-cards/
+
+The Kick Field Goal choice card shows the existing Red Zone option: score 3 instead of snapping. Its artwork is available alongside the purple Field Goal score card.
 
 The 15 play and special cards use the approved wording in `artwork/rules.json`, with exactly two lines on each cream panel. Field, Ball, and score cards are full art without a description panel. The Ball is a plain football without facial features.
 

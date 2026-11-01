@@ -118,5 +118,13 @@
       "If you stop a Run",
       "→ Your ball at midfield"
     ]
+  },
+  {
+    "card": "kick-field-goal",
+    "type": "choice",
+    "lines": [
+      "From the Red Zone",
+      "→ Score 3 instead of snapping"
+    ]
   }
 ]
