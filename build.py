@@ -8,8 +8,9 @@ index.html for GitHub Pages, and optionally zips that for itch.io:
     python3 build.py --netlify ~/Desktop/snap-call-netlify.zip   # also zips full-cards/ as a whole site
 
 preview/ is the card art version of the game (preview/game.html plus the card images in
-preview/cards/). full-cards/ is the same game played with the finished printed cards. Both are
-built next to the live game but never go into the itch zip. The Netlify zip holds full-cards/
+preview/cards/). full-cards/ is the same game played with the finished printed cards. downs/ is
+full-cards with a test of 2 downs on a longer field. All are built next to the live game but
+never go into the itch zip. The Netlify zip holds full-cards/
 on its own: index.html plus cards/, ready to drop onto Netlify.
 """
 import sys
@@ -55,6 +56,7 @@ def build(folder, title):
 build(HERE, "Snap Call")
 build(HERE / "preview", "Snap Call: card art preview")
 build(HERE / "full-cards", "Snap Call")
+build(HERE / "downs", "Snap Call: downs test")
 
 args = sys.argv[1:]
 if "--netlify" in args:

@@ -10,6 +10,8 @@ Finished 24-card deck and PNG downloads: https://noam99moyal.github.io/snap-call
 
 Played with the finished cards (rules printed on the cards): https://noam99moyal.github.io/snap-call/full-cards/
 
+Downs test (2 downs per zone on a longer field, kept apart from the main game): https://noam99moyal.github.io/snap-call/downs/
+
 The Kick Field Goal choice card shows the existing Red Zone option: score 3 instead of snapping. Its artwork is available alongside the purple Field Goal score card.
 
 The 15 play and special cards use the approved wording in `artwork/rules.json`, with exactly two lines on each cream panel. Field, Ball, and score cards are full art without a description panel. The Ball is a plain football without facial features.
@@ -25,3 +27,5 @@ In the preview, rules remain live text separate from the artwork. Both rows shar
 `full-cards/` is the same game as the preview, but every card is the finished printed card from `artwork/cards/`, rules included, so the text always fits. `full-cards/cards/` holds 600px WebP copies with rounded corners. On the stage, a cream veil over a card's printed line fades the outcome that didn't happen. `python3 build.py --netlify ~/Desktop/snap-call-netlify.zip` also zips `full-cards/` as a site of its own for Netlify.
 
 In `full-cards/`, New game asks Normal or Hard. Normal is the original computer. Hard reads your habits but starts from calls nobody can read, so tricking it doesn't pay, and it remembers your last few games on that device. `tools/cpu-sim/` simulates both against scripted players; check Hard there before changing it.
+
+`downs/` is `full-cards/` with the rules being tested: 5 zones (Own 20, Own 35, Midfield, Their 35, Red Zone), 2 downs in each, a guessed Deep Pass intercepted only on the last down, the team that gets the ball second starting with 3 specials, and the Kick Field Goal card in your hand in the Red Zone. It uses the card images in `full-cards/cards/`; `downs/cards/` only holds stand-in field cards for the three new zones until there's real art. The play cards still print the old results. `tools/rules-sim/downs.py` is the simulation behind these rules.
