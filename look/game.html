@@ -10,8 +10,10 @@
      The cards are the printed cards: blue frames are offense, red defense, yellow specials. What happens either way is printed on each card's cream panel.
      Team colors (you orange, CPU teal) stay off the frames so they never read as offense or defense.
      The one loud moment is the stage: the CPU's card flips over and a referee-style medal says whether the play was stopped.
-     New look preview: the scoreboard is the only box. The snap is played on the turf itself, with the two cards facing
-     each other across a chalk line of scrimmage, and labels are set in plain case instead of spaced-out capitals. */
+     Look preview: the Old look / New look switch in the header flips this page between the current design (Old,
+     the same as full-../full-cards/cards/) and a proposed one (New): the scoreboard is the only box, the snap is played on the
+     turf with the two cards facing each other across a chalk line of scrimmage, labels are in plain case instead
+     of spaced-out capitals, the announcer has a few lines per result, and How to play walks through one drive. */
   :root {
     --turf: #0f3d29;
     --turf-2: #13492f;
@@ -78,12 +80,6 @@
     .top-actions .long { display: none; }
     .top-actions .short { display: inline; }
   }
-  /* Phones: the title and the buttons don't fit on one row, so both rows are centered. */
-  @media (max-width: 500px) {
-    .top { flex-direction: column; align-items: center; gap: 10px; }
-    .brand { flex: none; justify-content: center; }
-    .top-actions { margin-left: 0; }
-  }
   /* Small phones: a slightly smaller title keeps title and buttons on one row down to about 310px. */
   @media (max-width: 340px) {
     .brand h1 { font-size: 21px; }
@@ -99,7 +95,7 @@
   .team .who { display: grid; gap: 4px; }
   .team.you .who { justify-items: end; }
   .team.cpu .who { justify-items: start; }
-  .team .label { font: 700 19px/1 var(--ui); letter-spacing: 0.01em; }
+  .team .label { font: 700 15px/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; }
   .team.you .label { color: var(--you); }
   .team.cpu .label { color: var(--cpu); }
   .team .score { font: 400 40px/1 var(--display); font-variant-numeric: tabular-nums; min-width: 1.4em; }
@@ -141,7 +137,7 @@
   /* On the end zone card: whose end zone it is. */
   .who-ez {
     position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%);
-    font: 700 13px/1 var(--ui); white-space: nowrap;
+    font: 700 12px/1 var(--ui); letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
     color: var(--defc); background: rgba(8, 21, 15, 0.88); border-radius: 4px; padding: 3px 6px;
   }
   .ball {
@@ -166,18 +162,13 @@
 
   /* Stage: the snap, revealed */
   .stage {
-    background: radial-gradient(ellipse 60% 55% at 50% 42%, rgba(236, 243, 232, 0.09), transparent 72%);
-    padding: 6px 0 4px;
+    background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(236, 243, 232, 0.08), transparent 70%), var(--board);
+    border: 1px solid var(--line); border-radius: 14px; padding: 12px 12px 14px;
     display: grid; gap: 12px;
   }
-  .table { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: 8px; }
-  /* The line of scrimmage: offense on one side, defense on the other. */
-  .table::before {
-    content: ''; position: absolute; left: 50%; top: 22px; bottom: -4px; width: 2px; margin-left: -1px;
-    background: repeating-linear-gradient(180deg, var(--chalk-faint) 0 9px, transparent 9px 16px);
-  }
+  .table { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: 8px; }
   .slot { display: flex; flex-direction: column; align-items: center; gap: 6px; perspective: 700px; min-width: 0; }
-  .slot-label { font: 700 17px/1 var(--ui); letter-spacing: 0.01em; }
+  .slot-label { font: 700 13px/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; }
   .slot-label.you { color: var(--you); }
   .slot-label.cpu { color: var(--cpu); }
   /* The top padding is the room a tucked special's name banner shows in. */
@@ -185,9 +176,9 @@
   .slot .card { width: min(132px, 100%); perspective: 700px; }
   .medal {
     --tone: var(--chalk-faint);
-    position: relative; align-self: center; margin-top: 18px; width: 66px; height: 66px; border-radius: 50%;
+    align-self: center; margin-top: 18px; width: 66px; height: 66px; border-radius: 50%;
     display: grid; place-items: center; text-align: center;
-    background: var(--turf-deep); border: 2px solid var(--tone); color: var(--chalk-faint);
+    border: 2px solid var(--tone); color: var(--chalk-faint);
     font: 400 12px/1.1 var(--display);
   }
   .medal.hit { background: var(--tone); color: var(--ink); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tone) 30%, transparent), 0 0 24px color-mix(in srgb, var(--tone) 45%, transparent); }
@@ -297,7 +288,7 @@
   button:focus-visible, summary:focus-visible { outline: 3px solid var(--flag); outline-offset: 2px; }
 
   /* Play by play: the newest 5 show, older ones scroll. */
-  .box { border-top: 2px solid var(--line); padding: 14px 0 0; display: grid; gap: 10px; min-width: 0; }
+  .box { background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 14px 14px 12px; display: grid; gap: 10px; min-width: 0; }
   .box h2 { margin: 0; font: 400 17px/1 var(--display); }
   .log { list-style: none; margin: 0; padding: 0 4px 0 0; display: grid; gap: 9px; position: relative; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--chalk-faint) transparent; }
   /* Sized so every play-by-play line fits in two lines, on phones too. */
@@ -345,7 +336,7 @@
   .lvl-pick b { font: 400 22px/1 var(--display); letter-spacing: 0.03em; }
   .lvl-pick[data-level="hard"] b { color: var(--flag); }
   .lvl-pick span { font: 400 14px/1.35 var(--ui); color: var(--chalk-dim); }
-  .lvl-tag { display: block; margin-top: 4px; font: 700 14px/1 var(--ui); color: var(--flag); }
+  .lvl-tag { display: block; margin-top: 4px; font: 700 11px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--flag); }
 
   /* Scoring: the Touchdown or Field Goal card takes the screen for a moment, then the points go on the board. */
   .cele {
@@ -445,6 +436,43 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
   }
+
+  /* ---------- Look preview ---------- */
+  .look-pick { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .look-pick button {
+    font: 600 13px/1 var(--ui); letter-spacing: 0.02em; color: var(--chalk-dim);
+    background: transparent; border: 0; padding: 5px 8px; cursor: pointer; white-space: nowrap;
+  }
+  .look-pick button[aria-pressed="true"] { background: var(--chalk); color: var(--turf-deep); }
+  .look-pick button:focus-visible { outline: 2px solid var(--chalk); outline-offset: -2px; }
+  .new-look .old-only, html:not(.new-look) .new-only { display: none; }
+
+  /* New look: everything below only applies when the switch is on New. */
+  .new-look .team .label { font: 700 19px/1 var(--ui); letter-spacing: 0.01em; text-transform: none; }
+  .new-look .who-ez { font: 700 13px/1 var(--ui); letter-spacing: 0; text-transform: none; }
+  .new-look .slot-label { font: 700 17px/1 var(--ui); letter-spacing: 0.01em; text-transform: none; }
+  .new-look .lvl-tag { font: 700 14px/1 var(--ui); letter-spacing: 0; text-transform: none; }
+  /* The snap is played on the turf itself: no box, just a soft light. */
+  .new-look .stage {
+    background: radial-gradient(ellipse 60% 55% at 50% 42%, rgba(236, 243, 232, 0.09), transparent 72%);
+    border: 0; border-radius: 0; padding: 6px 0 4px;
+  }
+  /* The line of scrimmage: offense on one side, defense on the other. */
+  .new-look .table { position: relative; }
+  .new-look .table::before {
+    content: ''; position: absolute; left: 50%; top: 22px; bottom: -4px; width: 2px; margin-left: -1px;
+    background: repeating-linear-gradient(180deg, var(--chalk-faint) 0 9px, transparent 9px 16px);
+  }
+  .new-look .medal { position: relative; background: var(--turf-deep); }
+  .new-look .medal.hit { background: var(--tone); }
+  /* The play-by-play loses its box: a chalk rule on top is enough. */
+  .new-look .box { background: none; border: 0; border-top: 2px solid var(--line); border-radius: 0; padding: 14px 0 0; }
+  /* Phones: the title and the buttons don't fit on one row, so both rows are centered. */
+  @media (max-width: 500px) {
+    .new-look .top { flex-direction: column; align-items: center; gap: 10px; }
+    .new-look .brand { flex: none; justify-content: center; }
+    .new-look .top-actions { margin-left: 0; }
+  }
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -458,7 +486,7 @@
 
 <main class="wrap">
     <header class="top">
-      <div class="brand"><h1>Snap Call</h1><span class="chip">New look preview</span></div>
+      <div class="brand"><h1>Snap Call</h1><div class="look-pick" role="group" aria-label="Screen design"><button type="button" data-look="old" aria-pressed="false">Old look</button><button type="button" data-look="new" aria-pressed="true">New look</button></div></div>
       <div class="top-actions">
         <button class="ghost" id="howTo" type="button"><span class="long">How to play</span><span class="short">Rules</span></button>
         <button class="ghost" id="newGame" type="button">New game</button>
@@ -536,21 +564,32 @@
     <dialog class="rules" id="rules" aria-labelledby="rulesHead">
       <div class="head"><h2 id="rulesHead">How to play</h2><button class="ghost" id="closeRules" type="button">Close</button></div>
       <div class="body">
-        <p>Each snap, the offense secretly picks a play and the defense tries to guess it. Both cards flip at once. A wrong guess moves the ball. A right guess stops the play, and the defense gets the ball.</p>
+        <ul class="old-only">
+          <li>The field has 3 zones between you and the end zone: Own 25, Midfield, Red Zone.</li>
+          <li>Every snap, the offense secretly picks a play and the defense secretly guesses it. Both cards are shown at once.</li>
+          <li><strong>Wrong guess:</strong> the ball moves. Run and Short Pass move 1 zone. Deep Pass moves 2.</li>
+          <li><strong>Right guess:</strong> the defense takes the ball at its own 25. A guessed Deep Pass is an interception, so they start at midfield instead.</li>
+          <li>Touchdown is 7 points. From the Red Zone you can kick a field goal for 3 instead of snapping.</li>
+          <li>After a score, the team that got scored on gets the ball and draws a special card. You can hold 3.</li>
+          <li>The marks under CPU show how many special cards it holds, but not which ones.</li>
+          <li>First to 21 wins.</li>
+          <li>Press and hold any card to see it big.</li>
+        </ul>
 
-        <h3>One drive, snap by snap</h3>
-        <ol>
+        <p class="new-only">Each snap, the offense secretly picks a play and the defense tries to guess it. Both cards flip at once. A wrong guess moves the ball. A right guess stops the play, and the defense gets the ball.</p>
+        <h3 class="new-only">One drive, snap by snap</h3>
+        <ol class="new-only">
           <li>You start at your own 25 and call Run. The CPU guesses Stop Short. Wrong guess, so you gain a zone to midfield.</li>
           <li>At midfield you call Short Pass, and the CPU guesses Stop Run. Wrong again, and you’re in the Red Zone.</li>
           <li>From the Red Zone you could kick a field goal for 3, but you call Deep Pass and the CPU guesses Stop Short. Touchdown, 7 points.</li>
           <li>The CPU gets the ball at its own 25 and draws a special. It calls Run, you guess Stop Run, and the ball is yours at your own 25.</li>
         </ol>
-        <p>Run and Short Pass gain 1 zone, and Deep Pass gains 2. A guessed Deep Pass is intercepted, and the defense starts at midfield.</p>
-        <p>First to 21 wins. Press and hold any card to see it big.</p>
+        <p class="new-only">Run and Short Pass gain 1 zone, and Deep Pass gains 2. A guessed Deep Pass is intercepted, and the defense starts at midfield.</p>
+        <p class="new-only">First to 21 wins. Press and hold any card to see it big.</p>
 
         <h3>Specials: losers save, winners score</h3>
         <p>Every special is a Save or a Bonus. You play it with your card, before the cards are shown. A Save only works if you lose the snap, with any play. A Bonus only works if you win it. Only one special can work per snap, and a played special is used up either way.</p>
-        <p>You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>
+        <p class="new-only">You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>
         <dl>
           <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If they guess your play, you still gain 1 zone. A guessed Deep Pass gains 1 instead of being intercepted.</dd>
           <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd>If you guess wrong, they gain nothing and go back 1 zone (never behind their own 25). They keep the ball.</dd>
@@ -642,6 +681,10 @@
   };
 
   let S;
+  // Look preview: which design is showing (the switch in the header). Remembered on this device.
+  const LOOK_KEY = 'snap-call-look-style';
+  let newLook = true;
+  try { newLook = localStorage.getItem(LOOK_KEY) !== 'old'; } catch (e) { /* New look */ }
   let uid = 0;
   let shownResult = -1;
   // A score being shown: its card is on screen and the board still shows the points from before.
@@ -906,14 +949,14 @@
 
   const zoneName = (pos, who) => (pos === 0 ? (who === 'you' ? 'your own 25' : 'their own 25') : ZONES[pos]);
   const cap = (s) => s[0].toUpperCase() + s.slice(1);
-  // Commentary: each result has a few lines, picked at random, so the play-by-play doesn't repeat itself.
-  // Every line stays short so a play-by-play entry still fits two lines on phones.
-  const pick = (a) => a[Math.floor(Math.random() * a.length)];
-  const ballAt = (pos, who) => (pos === ZONES.length - 1 ? 'Ball in the Red Zone.' : `Ball at ${zoneName(pos, who)}.`);
+  // New look: each result has a few announcer lines, picked at random, so the play-by-play doesn't repeat itself.
+  // Old look: the current line (the first one, unless given). Every line stays short enough for two lines on phones.
+  const say = (lines, old = lines[0]) => (newLook ? lines[Math.floor(Math.random() * lines.length)] : old);
+  const ballAt = (pos, who) => (newLook && pos === ZONES.length - 1 ? 'Ball in the Red Zone.' : `Ball at ${zoneName(pos, who)}.`);
   const GAIN_SAYS = {
-    run: ['Good gain.', 'Found a gap.', 'Room to run.'],
-    short: ['Good gain.', 'Easy catch.', 'Moving the chains.'],
-    deep: ['Over the top!', 'Wide open!', 'Deep ball, caught!'],
+    run: ['Good gain. ', 'Found a gap. ', 'Room to run. '],
+    short: ['Good gain. ', 'Easy catch. ', 'Moving the chains. '],
+    deep: ['Over the top! ', 'Wide open! ', 'Deep ball, caught! '],
   };
 
   function kickoff(receiver) { S.poss = receiver; S.pos = 0; draw(receiver); }
@@ -924,47 +967,47 @@
     const def = other(off);
     switch (r.kind) {
       case 'replay':
-        return { head: 'Flag! Replay', detail: pick([`${NAME[r.by]} threw the flag. Snap again.`, `Flag on the play. Snap again.`]), tone: r.by };
+        return { head: 'Flag! Replay', detail: say([`${NAME[r.by]} threw the flag. Snap again.`, 'Flag on the play. Snap again.'], `${NAME[r.by]} threw the flag: snap again.`), tone: r.by };
       case 'gain': {
         S.pos += r.zones;
         const td = S.pos >= 3;
         if (td) score(off, 7);
-        const rest = td ? `${pick(['Into the end zone!', 'All the way!', 'Nobody touches it!'])} ${NAME[off]} ${verb(off, 'score')} 7.`
-          : r.how ? '+1 zone.' : `${pick(GAIN_SAYS[r.play])} ${ballAt(S.pos, off)}`;
+        const rest = td ? `${say(['Into the end zone! ', 'All the way! ', 'Nobody touches it! '], '')}${NAME[off]} ${verb(off, 'score')} 7.`
+          : r.how ? '+1 zone.' : `${say(GAIN_SAYS[r.play], '')}${ballAt(S.pos, off)}`;
         const head = td ? 'Touchdown!' : r.how === 'juke' ? 'Juke!' : r.how === 'grab' ? 'What a catch!' : `+${r.zones} zone${r.zones > 1 ? 's' : ''}`;
         if (!r.how) return { head, detail: rest, tone: off };
         // A Save turns a stop into a gain, so the log joins it to the picks with "but".
-        const save = r.how === 'juke' ? pick(['the juke breaks free.', 'one cut and through.', 'a quick juke and gone.'])
-          : pick(['what a catch!', 'a one-handed grab!', 'hauled in anyway!']);
+        const save = r.how === 'juke' ? say(['the juke breaks free.', 'one cut and through.', 'a quick juke and gone.'])
+          : say(['what a catch!', 'a one-handed grab!', 'hauled in anyway!']);
         return { head, detail: `${cap(save)} ${rest}`, but: `${save} ${rest}`, tone: off };
       }
       case 'td': {
-        const lead = r.how === 'hail' ? pick(['Caught! ', 'Up for grabs, and caught! ', 'Hail Mary, caught! '])
-          : r.how === 'breakaway' ? pick(['Breakaway! ', 'Gone! ', 'Untouched! ']) : '';
+        const lead = r.how === 'hail' ? say(['Caught! ', 'Up for grabs, and caught! ', 'Hail Mary, caught! '])
+          : r.how === 'breakaway' ? say(['Breakaway! ', 'Gone! ', 'Untouched! ']) : '';
         score(off, 7);
         return { head: 'Touchdown!', detail: `${lead}${NAME[off]} ${verb(off, 'score')} 7.`, tone: off };
       }
       case 'stop': {
         S.poss = def; S.pos = 0;
-        const at = `${def === 'you' ? 'your' : 'their'} 25`;
-        return { head: 'Stopped', detail: pick([`${NAME[def]} ${verb(def, 'take')} over at ${at}.`, `Stuffed. ${NAME[def]} ${verb(def, 'take')} over at ${at}.`, `Read it. ${NAME[def]} ${verb(def, 'take')} over at ${at}.`]), tone: def };
+        const at = `${NAME[def]} ${verb(def, 'take')} over at ${def === 'you' ? 'your' : 'their'} 25.`;
+        return { head: 'Stopped', detail: say([at, `Stuffed. ${at}`, `Read it. ${at}`]), tone: def };
       }
       case 'int':
         S.poss = def; S.pos = 1;
-        return { head: 'Intercepted!', detail: pick([`${NAME[def]} ${verb(def, 'start')} at midfield.`, 'Jumped the route. Ball at midfield.', 'Read it all the way. Ball at midfield.']), tone: def };
+        return { head: 'Intercepted!', detail: say([`${NAME[def]} ${verb(def, 'start')} at midfield.`, 'Jumped the route. Ball at midfield.', 'Read it all the way. Ball at midfield.']), tone: def };
       case 'sack': {
         const was = S.pos;
         S.pos = Math.max(0, S.pos - 1);
         const rest = was === 0 ? 'No gain.' : 'Back 1 zone.';
-        const how = pick(['the defense got through.', 'brought down behind the line.', 'swarmed in the backfield.']);
-        return { head: r.how === 'tfl' ? 'Tackle for loss!' : 'Sacked!', detail: `${cap(how)} ${rest}`, but: `${how} ${rest}`, tone: def };
+        const how = say(['the defense got through.', 'brought down behind the line.', 'swarmed in the backfield.']);
+        return { head: r.how === 'tfl' ? 'Tackle for loss!' : 'Sacked!', detail: `${cap(how)} ${rest}`, but: newLook ? `${how} ${rest}` : `got through. ${rest}`, tone: def };
       }
       case 'fumble':
         S.poss = def; S.pos = 1;
-        return { head: 'Fumble!', detail: pick([`${NAME[def]} ${verb(def, 'recover')} at midfield.`, `Loose ball! ${NAME[def]} ${verb(def, 'fall')} on it.`]), tone: def };
+        return { head: 'Fumble!', detail: say([`${NAME[def]} ${verb(def, 'recover')} at midfield.`, `Loose ball! ${NAME[def]} ${verb(def, 'fall')} on it.`]), tone: def };
       case 'pick6':
         score(def, 7);
-        return { head: 'Pick Six!', detail: `${pick(['Picked off!', 'Pick and gone!', 'All the way back!'])} ${NAME[def]} ${verb(def, 'score')} 7.`, tone: def };
+        return { head: 'Pick Six!', detail: `${say(['Picked off!', 'Pick and gone!', 'All the way back!'])} ${NAME[def]} ${verb(def, 'score')} 7.`, tone: def };
     }
   }
 
@@ -1019,7 +1062,7 @@
 
   function kickFG(who) {
     S.snaps++;
-    const detail = pick([`${NAME[who]} ${verb(who, 'kick')} it through. 3 points.`, 'Right down the middle. 3 points.', 'It’s good! 3 points.']);
+    const detail = say([`${NAME[who]} ${verb(who, 'kick')} it through. 3 points.`, 'Right down the middle. 3 points.', 'It’s good! 3 points.']);
     S.last = { fg: true, head: 'Field goal', detail, tone: who, n: S.snaps };
     addLog({ n: S.snaps, head: 'Field goal', text: detail, tone: who });
     S.sel = { play: null, special: null };
@@ -1156,7 +1199,7 @@
 
     // Actions
     $('#snap').disabled = !ready();
-    $('#snap').textContent = S.poss === 'you' ? 'Snap' : 'Defend';
+    $('#snap').textContent = S.poss === 'you' ? 'Snap' : newLook ? 'Defend' : 'Snap · Defend';
     $('#fg').hidden = !(S.phase === 'pick' && S.poss === 'you' && S.pos === 2);
 
     // Play by play
@@ -1258,6 +1301,14 @@
   }
   $('#newGame').addEventListener('click', askLevel);
   $('#again').addEventListener('click', askLevel);
+  function setLook(on) {
+    newLook = on;
+    document.documentElement.classList.toggle('new-look', on);
+    for (const b of document.querySelectorAll('.look-pick button')) b.setAttribute('aria-pressed', String((b.dataset.look === 'new') === on));
+    try { localStorage.setItem(LOOK_KEY, on ? 'new' : 'old'); } catch (e) { /* this device just won't remember */ }
+  }
+  setLook(newLook);
+  for (const b of document.querySelectorAll('.look-pick button')) b.addEventListener('click', () => { setLook(b.dataset.look === 'new'); render(); });
   for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', () => { $('#level').close(); newGame(b.dataset.level); });
   $('#closeLevel').addEventListener('click', () => $('#level').close());
   $('#level').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });

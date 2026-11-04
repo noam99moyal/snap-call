@@ -11,7 +11,7 @@ Finished 24-card deck and PNG downloads: https://noam99moyal.github.io/snap-call
 Played with the finished cards (rules printed on the cards): https://noam99moyal.github.io/snap-call/full-cards/
 
 Downs test (2 downs per zone on a longer field, kept apart from the main game): https://noam99moyal.github.io/snap-call/downs/
-New look preview (the finished-cards game with a calmer screen design and new wording to review): https://noam99moyal.github.io/snap-call/look/
+Look preview (the finished-cards game with an Old look / New look switch, to compare the current design with a proposed one): https://noam99moyal.github.io/snap-call/look/
 
 The Kick Field Goal choice card shows the existing Red Zone option: score 3 instead of snapping. Its artwork is available alongside the purple Field Goal score card.
 
@@ -31,4 +31,4 @@ In `full-cards/`, New game asks Normal or Hard. Normal is the original computer.
 
 `downs/` is `full-cards/` with the rules being tested: 5 zones (Own 20, Own 35, Midfield, Their 35, Red Zone) where you can be stopped once and keep the ball (stopped twice in the same zone, they get it), a Deep Pass intercepted only on the second stop, the team that gets the ball second starting with 3 specials, a special drawn when you win the ball back, the Kick Field Goal card in your hand in the Red Zone, and a choice of first to 21, 28 or 35. It uses the card images in `full-cards/cards/`, except `downs/cards/`: stand-in field cards for the three new zones and test copies of the 6 play cards with "Stopped twice" added, until there's real art. `tools/rules-sim/downs.py` is the simulation behind these rules.
 
-`look/` is `full-cards/` (the original rules) with a proposed new look: plain-case labels, the stage on the turf with a chalk line of scrimmage instead of a box, the play-by-play without a box, varied announcer lines on the stage and in the play-by-play, and How to play built around one example drive. Its wording is a proposal; nothing in it has gone into `downs/` or `full-cards/`. It uses the card images in `full-cards/cards/` and keeps its own Hard memory.
+`look/` is `full-cards/` (the original rules) with an Old look / New look switch in the header. Old is the current design and wording, exactly as in `full-cards/`. New is the proposal: plain-case labels, the stage on the turf with a chalk line of scrimmage instead of a box, the play-by-play without a box, varied announcer lines on the stage and in the play-by-play, and How to play built around one example drive. Its wording is a proposal; nothing in it has gone into `downs/` or `full-cards/`. It uses the card images in `full-cards/cards/` and keeps its own Hard memory.
