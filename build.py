@@ -7,6 +7,7 @@ index.html for GitHub Pages, and optionally zips that for itch.io:
     python3 build.py ~/Desktop/snap-call-itch.zip   # also writes the zip
     python3 build.py --netlify ~/Desktop/snap-call-netlify.zip   # also zips full-cards/ as a whole site
     python3 build.py --netlify-downs ~/Desktop/snap-call-netlify-downs.zip   # the downs test as a whole site
+    python3 build.py --netlify-look ~/Desktop/snap-call-netlify-look.zip     # the look preview as a whole site
 
 preview/ is the card art version of the game (preview/game.html plus the card images in
 preview/cards/). full-cards/ is the same game played with the finished printed cards. downs/ is
@@ -86,6 +87,23 @@ if "--netlify-downs" in args:
         z.writestr("index.html", page)
         for name, f in sorted(cards.items()):
             z.write(f, f"cards/{name}")
+    print(f"wrote {netlify}")
+
+if "--netlify-look" in args:
+    # The look preview as a whole site: the Stopped once page at the root, the Stopped twice page in downs/.
+    i = args.index("--netlify-look")
+    netlify = Path(args[i + 1]).expanduser()
+    del args[i:i + 2]
+    once = (HERE / "look" / "index.html").read_text(encoding="utf-8").replace("../full-cards/cards/", "cards/")
+    twice = ((HERE / "look" / "downs" / "index.html").read_text(encoding="utf-8")
+             .replace("../../full-cards/cards/", "../cards/").replace("../../downs/cards/", "cards/"))
+    with zipfile.ZipFile(netlify, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("index.html", once)
+        z.writestr("downs/index.html", twice)
+        for f in sorted((HERE / "full-cards" / "cards").glob("*.webp")):
+            z.write(f, f"cards/{f.name}")
+        for f in sorted((HERE / "downs" / "cards").glob("*.webp")):
+            z.write(f, f"downs/cards/{f.name}")
     print(f"wrote {netlify}")
 
 if args:
