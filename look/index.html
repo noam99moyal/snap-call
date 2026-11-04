@@ -129,12 +129,12 @@
   .status strong { font: 700 21px/1.1 var(--ui); letter-spacing: 0.02em; }
   .status span { color: var(--chalk-dim); }
 
-  /* Field: the six field cards in a row, always from the offense's side, attacking to the right.
+  /* Field: the four field cards in a row, always from the offense's side, attacking to the right.
      The ball sits on the card of the zone it's in, like the ball card placed on the field cards on a table. */
   .field { position: relative; }
   .field[data-off="you"] { --offc: var(--you); --defc: var(--cpu); }
   .field[data-off="cpu"] { --offc: var(--cpu); --defc: var(--you); }
-  .zones { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+  .zones { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
   .zone { position: relative; container-type: inline-size; }
   .zone img {
     display: block; width: 100%; height: auto; border-radius: 4.5cqi;
@@ -153,9 +153,7 @@
     width: 36px; height: 22px; transition: left 0.55s cubic-bezier(0.3, 0.7, 0.3, 1);
     filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 6px var(--offc));
   }
-  .ball svg { width: 100%; height: 100%; display: block; transition: rotate 0.3s; }
-  /* Last down: the ball turns sideways, like turning the ball card at the table. */
-  .ball.last svg { rotate: 90deg; }
+  .ball svg { width: 100%; height: 100%; display: block; }
   #trail { position: absolute; }
   .trail {
     top: 79%; height: 6px; transform: translateY(-50%); border-radius: 3px;
@@ -242,7 +240,7 @@
   }
   .cv > img { display: block; width: 100%; height: auto; }
   /* On the stage, the outcome that didn't happen fades: a cream veil over its printed line.
-     Every play card prints ✓ on the first line and ✕ on the second, in the same place. After a first stop, both fade. */
+     Every play card prints ✓ on the first line and ✕ on the second, in the same place. */
   .cv { position: relative; }
   .veil { position: absolute; left: 6%; right: 6%; height: 6.2%; border-radius: 1cqi; background: rgba(252, 245, 231, 0.74); }
   .veil.win { top: 81.8%; }
@@ -267,8 +265,6 @@
   .section-label > span:first-child { font: 700 16px/1 var(--ui); letter-spacing: 0.02em; }
   .section-label > span + span { font-size: 13px; color: var(--chalk-dim); }
   .hand, .specials { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: start; }
-  /* In the Red Zone the Kick Field Goal card joins your plays, four in the row. */
-  .hand.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 
   /* Specials: the name, Save / Bonus, side and rule are all printed on the card. */
   .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--chalk-dim); }
@@ -296,6 +292,11 @@
     background: var(--you); color: var(--ink); font: 400 22px/1 var(--display); letter-spacing: 0.04em;
   }
   .snap:disabled { opacity: 0.35; cursor: default; }
+  .fg {
+    height: 54px; padding: 0 16px; border-radius: 10px; cursor: pointer;
+    background: transparent; color: var(--chalk); border: 2px solid var(--chalk);
+    font: 700 17px/1 var(--ui); letter-spacing: 0.02em;
+  }
 
   button:focus-visible, summary:focus-visible { outline: 3px solid var(--flag); outline-offset: 2px; }
 
@@ -337,7 +338,7 @@
   .rules dt span { color: var(--chalk-faint); font-weight: 600; }
   .rules dd { margin: 2px 0 0; color: var(--chalk-dim); line-height: 1.4; }
 
-  /* New game: pick the length and how the computer plays. Hard shows under "First to 21" for the whole game. */
+  /* New game: pick how the computer plays. Hard shows under "First to 21" for the whole game. */
   .level { width: min(420px, calc(100% - 32px)); }
   .level .body { gap: 10px; }
   .lvl-pick {
@@ -348,13 +349,6 @@
   .lvl-pick b { font: 400 22px/1 var(--display); letter-spacing: 0.03em; }
   .lvl-pick[data-level="hard"] b { color: var(--flag); }
   .lvl-pick span { font: 400 14px/1.35 var(--ui); color: var(--chalk-dim); }
-  .len { display: flex; align-items: center; gap: 8px; }
-  .len > span { font: 600 15px/1 var(--ui); color: var(--chalk-dim); margin-right: 4px; }
-  .len button {
-    flex: 1; height: 44px; cursor: pointer; border-radius: 8px;
-    background: transparent; color: var(--chalk); border: 1px solid var(--chalk-faint); font: 400 20px/1 var(--display);
-  }
-  .len button[aria-checked="true"] { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
   .lvl-tag { display: block; margin-top: 4px; font: 700 14px/1 var(--ui); color: var(--flag); }
 
   /* Scoring: the Touchdown or Field Goal card takes the screen for a moment, then the points go on the board. */
@@ -437,7 +431,7 @@
     .target { grid-area: target; display: flex; align-items: baseline; justify-content: center; gap: 6px; }
     .target b { display: inline; font-size: 16px; }
     .field { grid-area: field; }
-    .zones { grid-template-columns: repeat(6, clamp(58px, 6.2vw, 84px)); gap: 6px; }
+    .zones { grid-template-columns: repeat(4, 84px); gap: 6px; }
     .team { gap: 16px; }
     .team .label { font-size: 19px; }
     .team .score { font-size: 48px; }
@@ -448,7 +442,6 @@
     /* Hand and specials are full cards, so their width also follows the window's height: both rows and Snap fit on one screen.
        Never under 128px, where every line of card text still fits on one line; very short windows scroll instead. */
     .hand, .specials { grid-template-columns: repeat(3, min((100% - 20px) / 3, max(128px, (100dvh - 400px) / 2.8))); }
-    .hand.four { grid-template-columns: repeat(4, min((100% - 24px) / 4, max(128px, (100dvh - 400px) / 2.8))); }
     .actions { grid-area: act; position: static; padding: 0; background: none; }
     .log-box { grid-area: log; margin-top: 0; }
   }
@@ -486,7 +479,7 @@
         </span>
         <span class="score" id="sYou">0</span>
       </div>
-      <div class="target">First to<b id="targetNum">21</b><span class="lvl-tag" id="lvlTag" hidden>Hard</span></div>
+      <div class="target">First to<b>21</b><span class="lvl-tag" id="lvlTag" hidden>Hard</span></div>
       <div class="team cpu" id="tCpu">
         <span class="score" id="sCpu">0</span>
         <span class="who">
@@ -499,11 +492,9 @@
 
     <div class="field" id="field" data-off="you">
       <div class="zones">
-        <div class="zone" data-z="0"><img src="../downs/cards/own-20.webp" alt="Own 20" width="600" height="840"></div>
-        <div class="zone" data-z="1"><img src="../downs/cards/own-35.webp" alt="Own 35" width="600" height="840"></div>
-        <div class="zone" data-z="2"><img src="../full-cards/cards/midfield.webp" alt="Midfield" width="600" height="840"></div>
-        <div class="zone" data-z="3"><img src="../downs/cards/their-35.webp" alt="Their 35" width="600" height="840"></div>
-        <div class="zone" data-z="4"><img src="../full-cards/cards/red-zone.webp" alt="Red Zone" width="600" height="840"></div>
+        <div class="zone" data-z="0"><img src="../full-cards/cards/own-25.webp" alt="Own 25" width="600" height="840"></div>
+        <div class="zone" data-z="1"><img src="../full-cards/cards/midfield.webp" alt="Midfield" width="600" height="840"></div>
+        <div class="zone" data-z="2"><img src="../full-cards/cards/red-zone.webp" alt="Red Zone" width="600" height="840"></div>
         <div class="zone ez"><img src="../full-cards/cards/end-zone.webp" alt="End zone" width="600" height="840"><span class="who-ez" id="ezTeam"></span></div>
       </div>
       <div id="trail"></div>
@@ -538,6 +529,7 @@
 
     <div class="actions">
       <button class="snap" id="snap" type="button">Snap</button>
+      <button class="fg" id="fg" type="button" hidden>Kick FG +3</button>
     </div>
 
     <section class="box log-box" aria-label="Play by play">
@@ -549,24 +541,24 @@
     <dialog class="rules" id="rules" aria-labelledby="rulesHead">
       <div class="head"><h2 id="rulesHead">How to play</h2><button class="ghost" id="closeRules" type="button">Close</button></div>
       <div class="body">
-        <p>Each snap, the offense secretly picks a play and the defense tries to guess it. Both cards flip at once. A wrong guess moves the ball. A right guess stops the play.</p>
+        <p>Each snap, the offense secretly picks a play and the defense tries to guess it. Both cards flip at once. A wrong guess moves the ball. A right guess stops the play, and the defense gets the ball.</p>
 
         <h3>One drive, snap by snap</h3>
         <ol>
-          <li>You start at your own 20 and call Run. The CPU guesses Stop Short. Wrong guess, so you gain a zone.</li>
-          <li>At your own 35 you call Deep Pass, and the CPU guesses Stop Deep. You’re stopped once. You keep the ball, and the ball turns sideways as a reminder.</li>
-          <li>You call Short Pass and the CPU guesses Stop Run. You gain a zone to midfield, and the new zone starts the count over.</li>
-          <li>Two more zones take you into the Red Zone. Score a touchdown for 7, or play the Kick Field Goal card for 3.</li>
+          <li>You start at your own 25 and call Run. The CPU guesses Stop Short. Wrong guess, so you gain a zone to midfield.</li>
+          <li>At midfield you call Short Pass, and the CPU guesses Stop Run. Wrong again, and you’re in the Red Zone.</li>
+          <li>From the Red Zone you could kick a field goal for 3, but you call Deep Pass and the CPU guesses Stop Short. Touchdown, 7 points.</li>
+          <li>The CPU gets the ball at its own 25 and draws a special. It calls Run, you guess Stop Run, and the ball is yours at your own 25.</li>
         </ol>
-        <p>Run and Short Pass gain 1 zone, and Deep Pass gains 2. If you’re stopped twice in the same zone, the CPU takes the ball at its own 20. When that second stop comes on a Deep Pass, it’s intercepted, and the CPU starts at midfield.</p>
-        <p>First to 21 wins, or pick 28 or 35 at New game for a longer one. Press and hold any card to see it big.</p>
+        <p>Run and Short Pass gain 1 zone, and Deep Pass gains 2. A guessed Deep Pass is intercepted, and the defense starts at midfield.</p>
+        <p>First to 21 wins. Press and hold any card to see it big.</p>
 
         <h3>Specials: losers save, winners score</h3>
         <p>Every special is a Save or a Bonus. You play it with your card, before the cards are shown. A Save only works if you lose the snap, with any play. A Bonus only works if you win it. Only one special can work per snap, and a played special is used up either way.</p>
-        <p>You start with 2 specials, or 3 if you get the ball second. You draw one when you’re scored on and when you win the ball back with a stop, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>
+        <p>You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>
         <dl>
-          <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If they guess your play, it doesn’t count as a stop, and you still gain 1 zone.</dd>
-          <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd>If you guess wrong, they gain nothing and go back 1 zone (never behind their own 20). They keep the ball.</dd>
+          <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If they guess your play, you still gain 1 zone. A guessed Deep Pass gains 1 instead of being intercepted.</dd>
+          <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd>If you guess wrong, they gain nothing and go back 1 zone (never behind their own 25). They keep the ball.</dd>
           <dt>Challenge Flag <span>either side, save</span></dt><dd>If you lose the snap, cancel it and both sides pick again. Any other special played on it goes back to its owner.</dd>
           <dt>Breakaway <span>offense bonus</span></dt><dd>If you run and they guess wrong, it goes all the way for a touchdown.</dd>
           <dt>Hail Mary <span>offense bonus</span></dt><dd>If you throw deep and they guess wrong, it goes all the way for a touchdown.</dd>
@@ -583,12 +575,6 @@
     <dialog class="rules level" id="level" aria-labelledby="levelHead">
       <div class="head"><h2 id="levelHead">New game</h2><button class="ghost" id="closeLevel" type="button">Close</button></div>
       <div class="body">
-        <div class="len" role="radiogroup" aria-label="Game length">
-          <span>First to</span>
-          <button type="button" role="radio" data-target="21" aria-checked="true">21</button>
-          <button type="button" role="radio" data-target="28" aria-checked="false">28</button>
-          <button type="button" role="radio" data-target="35" aria-checked="false">35</button>
-        </div>
         <button class="lvl-pick" type="button" data-level="normal"><b>Normal</b><span>Learns your habits as you play.</span></button>
         <button class="lvl-pick" type="button" data-level="hard"><b>Hard</b><span>Reads you closely and remembers your last few games.</span></button>
       </div>
@@ -615,22 +601,17 @@
   const other = (w) => (w === 'you' ? 'cpu' : 'you');
   const NAME = { you: 'You', cpu: 'CPU' };
   const verb = (who, base) => (who === 'you' ? base : base + 's');
-  // Downs test: 5 zones to the end zone, and 2 downs to get out of each one.
-  const ZONES = 5, RED = 4, MID = 2, DOWNS = 2;
-  const TARGETS = [21, 28, 35];
-  // The stand-in field cards (Own 20, Own 35, Their 35) and the 6 play cards reprinted with "Stopped twice"
-  // come from downs/cards/; every other card comes from full-cards/.
-  const CARDS = '../full-cards/cards/';
-  const KICK = 'From the Red Zone → Score 3';
+  const ZONES = ['your own 25', 'midfield', 'the Red Zone'];
+  const TARGET = 21;
 
   // win: what happens when the play beats the guess (offense) or the guess is right (defense). lose: the other way.
   const PLAYS = {
-    run:    { side: 'off', name: 'Run', gain: 1, win: 'Not stopped: +1 zone', lose: 'Stopped twice: their ball' },
-    short:  { side: 'off', name: 'Short Pass', gain: 1, win: 'Not stopped: +1 zone', lose: 'Stopped twice: their ball' },
-    deep:   { side: 'off', name: 'Deep Pass', gain: 2, win: 'Not stopped: +2 zones', lose: 'Stopped twice: intercepted' },
-    runD:   { side: 'def', name: 'Stop Run', stops: 'run', win: 'Stopped twice: your ball', lose: 'Not stopped: they gain' },
-    shortD: { side: 'def', name: 'Stop Short', stops: 'short', win: 'Stopped twice: your ball', lose: 'Not stopped: they gain' },
-    deepD:  { side: 'def', name: 'Stop Deep', stops: 'deep', win: 'Stopped twice: interception', lose: 'Not stopped: they gain' },
+    run:    { side: 'off', name: 'Run', gain: 1, win: 'Not stopped: +1 zone', lose: 'Stopped: their ball' },
+    short:  { side: 'off', name: 'Short Pass', gain: 1, win: 'Not stopped: +1 zone', lose: 'Stopped: their ball' },
+    deep:   { side: 'off', name: 'Deep Pass', gain: 2, win: 'Not stopped: +2 zones', lose: 'Stopped: intercepted' },
+    runD:   { side: 'def', name: 'Stop Run', stops: 'run', win: 'Stopped: your ball', lose: 'Not stopped: they gain' },
+    shortD: { side: 'def', name: 'Stop Short', stops: 'short', win: 'Stopped: your ball', lose: 'Not stopped: they gain' },
+    deepD:  { side: 'def', name: 'Stop Deep', stops: 'deep', win: 'Stopped: interception', lose: 'Not stopped: they gain' },
   };
   const OFF = ['run', 'short', 'deep'];
   const DEF = ['runD', 'shortD', 'deepD'];
@@ -648,10 +629,10 @@
     picksix:   { name: 'Pick Six', side: 'def', kind: 'bonus', count: 2, needs: ['shortD', 'deepD'], when: 'If you stop a pass', then: 'You score 7' },
     fumble:    { name: 'Forced Fumble', side: 'def', kind: 'bonus', count: 2, needs: ['runD'], when: 'If you stop a Run', then: 'Your ball at midfield' },
   };
-  const RULES_VERSION = 6;
+  const RULES_VERSION = 4;
   const SIDE_LABEL = { off: 'Offense', def: 'Defense', any: 'Either side' };
   const STATUS = { worked: 'Worked', wasted: 'No effect', back: 'Back to hand' };
-  // Card images in cards/: "<name>.webp" is the finished card, made from the PNGs in ../artwork/cards/.
+  // Card images in ../full-cards/cards/: "<name>.webp" is the finished card, made from the PNGs in ../artwork/cards/.
   const ART = {
     run: 'run', short: 'short-pass', deep: 'deep-pass', runD: 'stop-run', shortD: 'stop-short', deepD: 'stop-deep',
     juke: 'juke', grab: 'spectacular-catch', sack: 'sack', tfl: 'tackle-for-loss', flag: 'challenge-flag',
@@ -679,7 +660,7 @@
     box.style.setProperty('--tone', `var(--${who})`);
     box.classList.toggle('pair', !!sp);
     $('#celeCards').innerHTML = (sp ? `<div class="card sp cele-sp">${spInner(sp, SPECIALS[sp].name)}</div>` : '')
-      + `<img class="cele-score" src="${CARDS}${card}.webp" alt="${card === 'touchdown' ? 'Touchdown card' : 'Field goal card'}" width="600" height="840">`;
+      + `<img class="cele-score" src="../full-cards/cards/${card}.webp" alt="${card === 'touchdown' ? 'Touchdown card' : 'Field goal card'}" width="600" height="840">`;
     const text = $('#celeText');
     text.textContent = line;
     text.style.animation = 'none'; void text.offsetWidth; text.style.animation = '';
@@ -701,19 +682,14 @@
   function savedLevel() {
     try { return localStorage.getItem(LEVEL_KEY) === 'hard' ? 'hard' : 'normal'; } catch (e) { return 'normal'; }
   }
-  // So is the game length, on this test page.
-  const TARGET_KEY = 'snap-call-downs-target';
-  function savedTarget() {
-    try { const t = +localStorage.getItem(TARGET_KEY); return TARGETS.includes(t) ? t : 21; } catch (e) { return 21; }
-  }
 
-  function newGame(level, target = savedTarget()) {
+  function newGame(level) {
     if (cele) { clearTimeout(cele.timer); cele = null; $('#cele').hidden = true; }
     const deck = [];
     for (const [k, s] of Object.entries(SPECIALS)) for (let i = 0; i < s.count; i++) deck.push(k);
     S = {
-      v: RULES_VERSION, level, target,
-      score: { you: 0, cpu: 0 }, poss: 'you', pos: 0, down: 1,
+      v: RULES_VERSION, level,
+      score: { you: 0, cpu: 0 }, poss: 'you', pos: 0,
       hands: { you: [], cpu: [] }, deck: shuffle(deck), discard: [],
       sel: { play: null, special: null },
       phase: 'pick', last: null, move: null, showLast: false, flip: false, log: [], snaps: 0,
@@ -726,11 +702,9 @@
       foldGame(S.hard.dfn);
       saveHard();
     }
-    try { localStorage.setItem(LEVEL_KEY, level); localStorage.setItem(TARGET_KEY, target); } catch (e) { /* the next visit starts on Normal, first to 21 */ }
+    try { localStorage.setItem(LEVEL_KEY, level); } catch (e) { /* the next visit starts on Normal */ }
     for (let i = 0; i < 2; i++) { draw('you'); draw('cpu'); }
-    // The team that gets the ball second starts with one more special.
-    draw('cpu');
-    S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first, so the CPU starts with 3 specials.', tone: 'you' });
+    S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first.', tone: 'you' });
     render();
   }
 
@@ -743,7 +717,6 @@
   const side = () => (S.poss === 'you' ? 'off' : 'def');
   // Whether a special can go with this play on this side right now. The card face already says which side and play it needs.
   function fits(key, play, sd) {
-    if (play === 'fg') return false;   // a kick isn't a snap, so no special goes with it
     const s = SPECIALS[key];
     if (s.side !== 'any' && s.side !== sd) return false;
     return !(s.needs && play && !s.needs.includes(play));
@@ -762,13 +735,13 @@
       const seen = read && read.seen;
       const behind = S.score.you - S.score.cpu;
       const h = has('hail');
-      if (h && S.pos + 2 < ZONES && behind >= 7 && Math.random() < 0.5) return { play: 'deep', card: h, seen };
+      if (h && S.pos === 0 && behind >= 7 && Math.random() < 0.5) return { play: 'deep', card: h, seen };
       const g = S.defHist;
-      const play = read ? read.play : weighted({ run: 1 / g.run, short: 1 / g.short, deep: (S.pos === RED ? 0.35 : 0.8) / g.deep });
+      const play = read ? read.play : weighted({ run: 1 / g.run, short: 1 / g.short, deep: (S.pos === 2 ? 0.35 : 0.8) / g.deep });
       let card = null;
       const b = has('breakaway'), j = has('juke'), c = has('grab'), f = has('flag');
-      if (play === 'deep' && h && S.pos + 2 < ZONES && Math.random() < 0.6) card = h;
-      else if (play === 'run' && b && S.pos + 1 < ZONES && Math.random() < 0.6) card = b;
+      if (play === 'deep' && h && S.pos === 0 && Math.random() < 0.6) card = h;
+      else if (play === 'run' && b && Math.random() < 0.6) card = b;
       else if ((j || c) && Math.random() < (play === 'deep' ? 0.5 : 0.35)) card = j || c;
       else if (f && Math.random() < 0.2) card = f;
       return { play, card, seen };
@@ -778,7 +751,7 @@
     const tot = h.run + h.short + h.deep;
     const w = {};
     for (const p of OFF) w[p] = 0.25 / 3 + 0.75 * (h[p] / tot);
-    if (S.pos === RED) w.deep *= 0.5;
+    if (S.pos === 2) w.deep *= 0.5;
     const guess = read ? read.play : weighted(w);
     let card = null;
     const tl = has('tfl'), sk = has('sack'), p6 = has('picksix'), ff = has('fumble'), f = has('flag');
@@ -795,8 +768,7 @@
   // would have guessed lately. Hard starts from the calls and guesses nobody can read, even knowing its odds, and leans
   // on the hunches only as far as they have been working. Tuned by simulating thousands of games (tools/cpu-sim).
   // It remembers your last few games on this device: the last one counts half, the one before a quarter, and so on.
-  // Its own memory, apart from the 3-zone game's: zones mean different spots here.
-  const HARD_KEY = 'snap-call-downs-hard';
+  const HARD_KEY = 'snap-call-look-hard';
   const HUNCHES = ['even', 'all', 'recent', 'zone', 'after', 'repeat', 'balance', 'counter'];
   const EVEN = [1 / 3, 1 / 3, 1 / 3];
   const norm = (v) => { const s = v[0] + v[1] + v[2]; return v.map((x) => x / s); };
@@ -864,11 +836,9 @@
   }
 
   // What each play is worth to the offense here: zones gained (reaching the end zone counts extra), and what a stop costs.
-  // A first stop only costs a try; a second one costs the ball, and a Deep Pass is intercepted.
-  // Not re-tuned for downs yet: the tools/cpu-sim numbers are for the 3-zone game.
   function stakes(pos) {
-    const gain = OFF.map((p) => Math.min(PLAYS[p].gain, ZONES - pos) + (pos + PLAYS[p].gain >= ZONES ? 1 : 0));
-    const loss = OFF.map((p) => (S.down < DOWNS ? 0.5 : p === 'deep' ? 1.8 : 1.2));
+    const gain = OFF.map((p) => Math.min(PLAYS[p].gain, 3 - pos) + (pos + PLAYS[p].gain >= 3 ? 1 : 0));
+    const loss = OFF.map((p) => (p === 'deep' ? 1.8 : 1.2));
     return { gain, loss };
   }
   // The calls and guesses nobody can read: each side leaves the other nothing to gain by switching.
@@ -939,38 +909,20 @@
     return `${NAME[offWho]} ${oc}. ${NAME[other(offWho)]} ${dc}.`;
   }
 
-  // Where the ball is, said from the side of `who`, the team with the ball.
-  const zoneName = (pos, who) => [
-    who === 'you' ? 'your own 20' : 'their own 20',
-    who === 'you' ? 'your own 35' : 'their own 35',
-    'midfield',
-    who === 'you' ? 'the CPU’s 35' : 'your 35',
-    'the Red Zone',
-  ][pos];
+  const zoneName = (pos, who) => (pos === 0 ? (who === 'you' ? 'your own 25' : 'their own 25') : ZONES[pos]);
   const cap = (s) => s[0].toUpperCase() + s.slice(1);
   // Commentary: each result has a few lines, picked at random, so the play-by-play doesn't repeat itself.
   // Every line stays short so a play-by-play entry still fits two lines on phones.
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
-  const ballAt = (pos, who) => (pos === RED ? 'Ball in the Red Zone.' : `Ball at ${zoneName(pos, who)}.`);
+  const ballAt = (pos, who) => (pos === ZONES.length - 1 ? 'Ball in the Red Zone.' : `Ball at ${zoneName(pos, who)}.`);
   const GAIN_SAYS = {
     run: ['Good gain.', 'Found a gap.', 'Room to run.'],
     short: ['Good gain.', 'Easy catch.', 'Moving the chains.'],
     deep: ['Over the top!', 'Wide open!', 'Deep ball, caught!'],
   };
 
-  // Winning the ball back with a stop draws a special, if there's room in the hand. The result says so;
-  // the play-by-play leaves it out so every line still fits two lines on phones.
-  function wonBack(who, text) {
-    const n = S.hands[who].length;
-    draw(who);
-    if (S.hands[who].length === n) return { detail: text, log: text };
-    // "CPU recovers at midfield and draws a special." or "Jumped the route. Ball at midfield. CPU draws a special."
-    const detail = text.startsWith(`${NAME[who]} `) && !text.slice(0, -1).includes('.')
-      ? `${text.slice(0, -1)} and ${verb(who, 'draw')} a special.` : `${text} ${NAME[who]} ${verb(who, 'draw')} a special.`;
-    return { detail, log: text };
-  }
-  function kickoff(receiver) { S.poss = receiver; S.pos = 0; S.down = 1; draw(receiver); }
-  function won(who) { if (S.score[who] >= S.target) { S.phase = 'over'; return true; } return false; }
+  function kickoff(receiver) { S.poss = receiver; S.pos = 0; draw(receiver); }
+  function won(who) { if (S.score[who] >= TARGET) { S.phase = 'over'; return true; } return false; }
   function score(who, pts) { S.score[who] += pts; if (!won(who)) kickoff(other(who)); }
 
   function apply(r, off) {
@@ -979,13 +931,11 @@
       case 'replay':
         return { head: 'Flag! Replay', detail: pick([`${NAME[r.by]} threw the flag. Snap again.`, `Flag on the play. Snap again.`]), tone: r.by };
       case 'gain': {
-        // Every new zone starts the count over.
-        const play = r.play;
-        S.pos += r.zones; S.down = 1;
-        const td = S.pos >= ZONES;
+        S.pos += r.zones;
+        const td = S.pos >= 3;
         if (td) score(off, 7);
         const rest = td ? `${pick(['Into the end zone!', 'All the way!', 'Nobody touches it!'])} ${NAME[off]} ${verb(off, 'score')} 7.`
-          : r.how ? '+1 zone.' : `${pick(GAIN_SAYS[play])} ${ballAt(S.pos, off)}`;
+          : r.how ? '+1 zone.' : `${pick(GAIN_SAYS[r.play])} ${ballAt(S.pos, off)}`;
         const head = td ? 'Touchdown!' : r.how === 'juke' ? 'Juke!' : r.how === 'grab' ? 'What a catch!' : `+${r.zones} zone${r.zones > 1 ? 's' : ''}`;
         if (!r.how) return { head, detail: rest, tone: off };
         // A Save turns a stop into a gain, so the log joins it to the picks with "but".
@@ -999,32 +949,24 @@
         score(off, 7);
         return { head: 'Touchdown!', detail: `${lead}${NAME[off]} ${verb(off, 'score')} 7.`, tone: off };
       }
-      // Stopped once, the offense tries again. Stopped twice in the same zone, the defense gets the ball at its own 20,
-      // or at midfield when the second stop is a Deep Pass: intercepted.
-      case 'stop':
+      case 'stop': {
+        S.poss = def; S.pos = 0;
+        const at = `${def === 'you' ? 'your' : 'their'} 25`;
+        return { head: 'Stopped', detail: pick([`${NAME[def]} ${verb(def, 'take')} over at ${at}.`, `Stuffed. ${NAME[def]} ${verb(def, 'take')} over at ${at}.`, `Read it. ${NAME[def]} ${verb(def, 'take')} over at ${at}.`]), tone: def };
+      }
       case 'int':
-        if (S.down < DOWNS) {
-          S.down++;
-          return { head: 'Stopped once', detail: pick(['One more try.', 'Stuffed. One more try.', 'Read it. One more try.', 'No room. One more try.']), tone: def, once: true };
-        }
-        S.poss = def; S.down = 1;
-        if (r.kind === 'int') {
-          S.pos = MID;
-          return { ...wonBack(def, pick([`${NAME[def]} ${verb(def, 'start')} at midfield.`, 'Jumped the route. Ball at midfield.', 'Read it all the way. Ball at midfield.'])), head: 'Intercepted!', tone: def, twice: true };
-        }
-        S.pos = 0;
-        return { ...wonBack(def, pick([`${NAME[def]} ${verb(def, 'take')} over at ${def === 'you' ? 'your' : 'their'} own 20.`, `Held again. ${NAME[def]} ${verb(def, 'take')} over.`, `Two stops. ${NAME[def]} ${verb(def, 'take')} over.`])), head: 'Stopped twice', tone: def, twice: true };
+        S.poss = def; S.pos = 1;
+        return { head: 'Intercepted!', detail: pick([`${NAME[def]} ${verb(def, 'start')} at midfield.`, 'Jumped the route. Ball at midfield.', 'Read it all the way. Ball at midfield.']), tone: def };
       case 'sack': {
         const was = S.pos;
         S.pos = Math.max(0, S.pos - 1);
-        if (S.pos !== was) S.down = 1;
         const rest = was === 0 ? 'No gain.' : 'Back 1 zone.';
         const how = pick(['the defense got through.', 'brought down behind the line.', 'swarmed in the backfield.']);
         return { head: r.how === 'tfl' ? 'Tackle for loss!' : 'Sacked!', detail: `${cap(how)} ${rest}`, but: `${how} ${rest}`, tone: def };
       }
       case 'fumble':
-        S.poss = def; S.pos = MID; S.down = 1;
-        return { ...wonBack(def, pick([`${NAME[def]} ${verb(def, 'recover')} at midfield.`, `Loose ball! ${NAME[def]} ${verb(def, 'fall')} on it.`])), head: 'Fumble!', tone: def };
+        S.poss = def; S.pos = 1;
+        return { head: 'Fumble!', detail: pick([`${NAME[def]} ${verb(def, 'recover')} at midfield.`, `Loose ball! ${NAME[def]} ${verb(def, 'fall')} on it.`]), tone: def };
       case 'pick6':
         score(def, 7);
         return { head: 'Pick Six!', detail: `${pick(['Picked off!', 'Pick and gone!', 'All the way back!'])} ${NAME[def]} ${verb(def, 'score')} 7.`, tone: def };
@@ -1035,7 +977,6 @@
 
   function snap() {
     if (!ready()) return;
-    if (S.sel.play === 'fg') { kickFG('you'); render(); return; }
     const you = { play: S.sel.play, card: S.sel.special };
     const cpu = cpuPick();
     for (const [w, c] of [['you', you], ['cpu', cpu]]) {
@@ -1074,7 +1015,7 @@
     S.move = S.phase !== 'over' && S.poss === off && S.pos !== pos0 ? { from: pos0, to: S.pos } : null;
     S.snaps++;
     S.last = { you, cpu, ...out, n: S.snaps, off, guessed: PLAYS[d.play].stops === o.play };
-    addLog({ n: S.snaps, head: out.head, text: out.but ? `${text.slice(0, -1)}, but ${out.but}` : `${text} ${out.log || out.detail}`, tone: out.tone });
+    addLog({ n: S.snaps, head: out.head, text: out.but ? `${text.slice(0, -1)}, but ${out.but}` : `${text} ${out.detail}`, tone: out.tone });
     S.sel = { play: null, special: null };
     S.showLast = true; S.flip = true;
     render();
@@ -1087,20 +1028,17 @@
     S.last = { fg: true, head: 'Field goal', detail, tone: who, n: S.snaps };
     addLog({ n: S.snaps, head: 'Field goal', text: detail, tone: who });
     S.sel = { play: null, special: null };
-    // The stage keeps showing the kick until the next pick.
-    S.showLast = true; S.move = null;
+    S.showLast = false; S.move = null;
     const before = S.score[who];
     score(who, 3);
     celebrate(who, 'field-goal', `Field goal! ${NAME[who]} ${verb(who, 'score')} 3`, before);
   }
 
-  // In the Red Zone the CPU goes for the touchdown first, and kicks once it's down to its last down
-  // (or when 3 points wins the game).
   function afterChange() {
-    if (S.phase !== 'pick' || S.poss !== 'cpu' || S.pos !== RED) return;
-    const kick = S.target - S.score.cpu <= 3 || S.down === DOWNS;
+    if (S.phase !== 'pick' || S.poss !== 'cpu' || S.pos !== 2) return;
+    const kick = TARGET - S.score.cpu <= 3 || Math.random() < 0.45;
     if (!kick) return;
-    S.phase = 'busy'; S.flip = true;
+    S.phase = 'busy';
     render();
     const game = S;  // a New game during the wait cancels the kick
     setTimeout(() => { if (S !== game || S.phase !== 'busy') return; S.phase = 'pick'; kickFG('cpu'); render(); }, 1100);
@@ -1108,29 +1046,26 @@
 
   // ---------- Drawing ----------
   // The finished card. Its rules are printed on it, so the alt text repeats them.
-  const cardSrc = (key) => `${PLAYS[key] ? '../downs/cards/' : CARDS}${ART[key]}.webp`;
-  const art = (key, alt) => `<img src="${cardSrc(key)}" alt="${alt}" width="600" height="840" decoding="sync">`;
-  const kickInner = () => `<span class="cv"><img src="${CARDS}kick-field-goal.webp" alt="Kick Field Goal. ${KICK}." width="600" height="840" decoding="sync"></span>`;
+  const art = (key, alt) => `<img src="../full-cards/cards/${ART[key]}.webp" alt="${alt}" width="600" height="840" decoding="sync">`;
   // `miss` names the outcome that didn't happen ('win' or 'lose'), faded on the stage after the reveal.
   function faceInner(key, miss) {
     const p = PLAYS[key];
-    return `<span class="cv">${art(key, `${p.name}. ✓ ${p.win}. ✕ ${p.lose}.`)}${miss === 'both' ? '<span class="veil win"></span><span class="veil lose"></span>' : miss ? `<span class="veil ${miss}"></span>` : ''}</span>`;
+    return `<span class="cv">${art(key, `${p.name}. ✓ ${p.win}. ✕ ${p.lose}.`)}${miss ? `<span class="veil ${miss}"></span>` : ''}</span>`;
   }
   const spInner = (key, alt) => `<span class="cv">${art(key, `${alt}. ${SPECIALS[key].when} → ${SPECIALS[key].then}.`)}</span>`;
   function faceBlock(c, owner, flip, L) {
     const key = c.play || 'deep';
     const s = c.card && SPECIALS[c.card.key];
-    const tuck = s ? `<span class="tuck" data-st="${c.status || ''}"><img src="${CARDS}${ART[c.card.key]}.webp" alt="with ${s.name}" width="600" height="840" decoding="sync"></span>` : '';
+    const tuck = s ? `<span class="tuck" data-st="${c.status || ''}"><img src="../full-cards/cards/${ART[c.card.key]}.webp" alt="with ${s.name}" width="600" height="840" decoding="sync"></span>` : '';
     const tag = s && c.status ? `<span class="tag" data-st="${c.status}">${STATUS[c.status]}</span>` : '';
     // A defense card wins when the play was stopped; an offense card wins when it wasn't.
-    const miss = L ? (L.once ? 'both' : (PLAYS[key].side === 'def') === L.guessed ? 'lose' : 'win') : null;
+    const miss = L ? ((PLAYS[key].side === 'def') === L.guessed ? 'lose' : 'win') : null;
     return `<div class="card ${PLAYS[key].side} ${owner}${flip ? ' flip' : ''}">${faceInner(key, miss)}${tuck}${tag}</div>`;
   }
-  const BACK = `<div class="card back"><span class="cv"><img src="${CARDS}card-back.webp" alt="CPU card, face down" width="600" height="840" decoding="sync"></span></div>`;
-  const NO_SNAP = '<div class="card empty"><span class="cv">No snap</span></div>';
-  // Center of field card k, in the 6-column row with 6px gaps.
-  const zoneX = (k) => `calc((100% - 30px) * ${(2 * k + 1) / 12} + ${6 * k}px)`;
-  const zoneSpan = (n) => `calc((100% - 30px) * ${n / 6} + ${6 * n}px)`;
+  const BACK = '<div class="card back"><span class="cv"><img src="../full-cards/cards/card-back.webp" alt="CPU card, face down" width="600" height="840" decoding="sync"></span></div>';
+  // Center of field card k, in the 4-column row with 6px gaps.
+  const zoneX = (k) => `calc((100% - 18px) * ${(2 * k + 1) / 8} + ${6 * k}px)`;
+  const zoneSpan = (n) => `calc((100% - 18px) * ${n / 4} + ${6 * n}px)`;
 
   // Show the newest 5 plays; older ones scroll. On wide screens a short window shows down to 3 so the game never needs page scrolling.
   function fitLog() {
@@ -1152,24 +1087,15 @@
     $('#tYou').classList.toggle('has-ball', S.poss === 'you');
     $('#tCpu').classList.toggle('has-ball', S.poss === 'cpu');
     $('#lvlTag').hidden = S.level !== 'hard';
-    $('#targetNum').textContent = S.target;
     $('#cpuPips').innerHTML = S.hands.cpu.map(() => '<i></i>').join('');
 
     // Status
-    const left = ZONES - S.pos;
+    const left = 3 - S.pos;
     const toGo = `${left} zone${left > 1 ? 's' : ''} to score`;
-    const last = S.down === DOWNS;   // already stopped once in this zone
     if (S.phase === 'over') { $('#status').textContent = 'Final'; $('#hint').textContent = ''; }
     else if (S.phase === 'busy') { $('#status').textContent = 'CPU lines up a field goal'; $('#hint').textContent = 'From the Red Zone, 3 points.'; }
-    else if (S.poss === 'you') {
-      $('#status').textContent = last ? 'Your ball: stopped once' : 'Your ball';
-      $('#hint').textContent = S.pos === RED
-        ? (last ? 'Stopped once: kick a field goal for 3, or go for the touchdown.' : 'Red Zone: go for the touchdown, or kick a field goal for 3.')
-        : last ? `${toGo}. Stopped again here and the CPU gets the ball.` : `${toGo}. If the CPU guesses your play, you get one more try.`;
-    } else {
-      $('#status').textContent = last ? 'CPU ball: stopped once' : 'CPU ball';
-      $('#hint').textContent = last ? `${toGo} for the CPU. Stop them again to get the ball.` : `${toGo} for the CPU. Stop them twice here to get the ball.`;
-    }
+    else if (S.poss === 'you') { $('#status').textContent = `Your ball: ${toGo}`; $('#hint').textContent = S.pos === 2 ? 'Pick a play, or kick a field goal for 3.' : 'Pick a play. The CPU will try to guess it.'; }
+    else { $('#status').textContent = `CPU ball: ${toGo}`; $('#hint').textContent = 'Guess their play. Guess right and you get the ball.'; }
 
     // Field
     const field = $('#field');
@@ -1177,7 +1103,6 @@
     field.querySelectorAll('.zone[data-z]').forEach((z) => z.classList.toggle('here', +z.dataset.z === S.pos));
     $('#ezTeam').textContent = NAME[other(S.poss)];
     $('#ball').style.left = zoneX(S.pos);
-    $('#ball').classList.toggle('last', last && S.phase !== 'over');
     const m = S.move;
     if (m && S.showLast) {
       const a = Math.min(m.from, m.to), b = Math.max(m.from, m.to), d = m.to - m.from;
@@ -1187,23 +1112,14 @@
     // Stage
     const medal = $('#medal');
     const L = S.last;
-    const kicker = S.phase === 'busy' ? 'cpu' : S.showLast && L && L.fg ? L.tone : null;
-    if (kicker) {
-      const kick = `<div class="card off ${kicker}${S.flip ? ' flip' : ''}">${kickInner()}</div>`;
-      $('#slotYou').innerHTML = kicker === 'you' ? kick : NO_SNAP;
-      $('#slotCpu').innerHTML = kicker === 'cpu' ? kick : NO_SNAP;
-      if (S.phase === 'busy') { medal.className = 'medal'; medal.style.removeProperty('--tone'); medal.textContent = 'Kick'; }
-      else { medal.className = 'medal hit'; medal.style.setProperty('--tone', `var(--${kicker})`); medal.textContent = '+3'; }
-    } else if (S.showLast && L) {
+    if (S.showLast && L && !L.fg) {
       $('#slotYou').innerHTML = faceBlock(L.you, 'you', false, L);
       $('#slotCpu').innerHTML = faceBlock(L.cpu, 'cpu', S.flip, L);
       medal.className = 'medal hit' + (S.flip ? ' pop' : '');
       medal.style.setProperty('--tone', `var(--${L.guessed ? other(L.off) : L.off})`);
-      medal.innerHTML = !L.guessed ? 'Not<br>stopped' : L.once ? 'Stopped<br>once' : L.twice ? 'Stopped<br>twice' : 'Stopped';
+      medal.innerHTML = L.guessed ? 'Stopped' : 'Not<br>stopped';
     } else {
-      $('#slotYou').innerHTML = S.sel.play === 'fg'
-        ? `<div class="card off you">${kickInner()}</div>`
-        : S.sel.play
+      $('#slotYou').innerHTML = S.sel.play
         ? faceBlock({ play: S.sel.play, card: S.sel.special }, 'you', false)
         : '<div class="card empty"><span class="cv">Pick a card below. Hold one to see it big.</span></div>';
       $('#slotCpu').innerHTML = BACK;
@@ -1213,7 +1129,7 @@
 
     // Result
     const res = $('#result');
-    const R = L || { head: 'Kickoff', detail: 'You start at your own 20. Pick a play, then snap.', tone: 'you', n: 0 };
+    const R = L || { head: 'Kickoff', detail: 'You start at your own 25. Pick a play, then snap.', tone: 'you', n: 0 };
     res.style.setProperty('--tone', `var(--${R.tone})`);
     res.innerHTML = `<span class="head">${R.head}</span><span class="detail">${R.detail}</span>`;
     res.classList.remove('pop');
@@ -1221,17 +1137,12 @@
     shownResult = R.n;
 
     // Hand
-    const keys = S.poss === 'you' ? (S.pos === RED ? [...OFF, 'fg'] : OFF) : DEF;
-    $('#hand').classList.toggle('four', keys.length === 4);
+    const keys = S.poss === 'you' ? OFF : DEF;
     $('#handLabel').textContent = S.poss === 'you' ? 'Your play (offense)' : 'Your guess (defense)';
-    $('#handHint').textContent = S.poss === 'you'
-      ? (last ? 'If the CPU guesses it, they get the ball' : 'If the CPU guesses it, you get one more try')
-      : (last ? 'Guess right to get the ball' : 'Guess right twice to get the ball');
+    $('#handHint').textContent = S.poss === 'you' ? 'If the CPU guesses it, they get the ball' : 'Guess right to get the ball';
     $('#hand').innerHTML = keys.map((k) => {
       const on = S.sel.play === k;
-      const off = S.phase !== 'pick' ? ' disabled' : '';
-      if (k === 'fg') return `<button type="button" class="card off kick${on ? ' on' : ''}" data-play="fg" aria-pressed="${on}"${off}>${kickInner()}</button>`;
-      return `<button type="button" class="card ${PLAYS[k].side}${on ? ' on' : ''}" data-play="${k}" aria-pressed="${on}"${off}>${faceInner(k)}</button>`;
+      return `<button type="button" class="card ${PLAYS[k].side}${on ? ' on' : ''}" data-play="${k}" aria-pressed="${on}"${S.phase !== 'pick' ? ' disabled' : ''}>${faceInner(k)}</button>`;
     }).join('');
 
     // Specials
@@ -1250,7 +1161,8 @@
 
     // Actions
     $('#snap').disabled = !ready();
-    $('#snap').textContent = S.sel.play === 'fg' ? 'Kick for 3' : S.poss === 'you' ? 'Snap' : 'Defend';
+    $('#snap').textContent = S.poss === 'you' ? 'Snap' : 'Defend';
+    $('#fg').hidden = !(S.phase === 'pick' && S.poss === 'you' && S.pos === 2);
 
     // Play by play
     $('#log').innerHTML = S.log.map((e) => `<li class="t-${e.tone}"><span class="n">${e.n || 'KO'}</span><span><b>${e.head || ''}</b>${e.text}</span></li>`).join('');
@@ -1343,21 +1255,15 @@
   document.addEventListener('contextmenu', (e) => { if (cardImgAt(e.clientX, e.clientY)) e.preventDefault(); });
 
   $('#snap').addEventListener('click', snap);
+  $('#fg').addEventListener('click', () => { if (S.phase === 'pick' && S.poss === 'you' && S.pos === 2) { kickFG('you'); render(); } });
   // New game and Play again ask Normal or Hard; the level you're playing now is ready to pick again.
-  let lenPick = 21;
-  function setLen(t) {
-    lenPick = t;
-    for (const b of document.querySelectorAll('.len button')) b.setAttribute('aria-checked', String(+b.dataset.target === t));
-  }
   function askLevel() {
-    setLen(S.target);
     $('#level').showModal();
     $(`.lvl-pick[data-level="${S.level || 'normal'}"]`).focus();
   }
-  for (const b of document.querySelectorAll('.len button')) b.addEventListener('click', () => setLen(+b.dataset.target));
   $('#newGame').addEventListener('click', askLevel);
   $('#again').addEventListener('click', askLevel);
-  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', () => { $('#level').close(); newGame(b.dataset.level, lenPick); });
+  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', () => { $('#level').close(); newGame(b.dataset.level); });
   $('#closeLevel').addEventListener('click', () => $('#level').close());
   $('#level').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   $('#cele').addEventListener('click', endCelebrate);
@@ -1366,8 +1272,7 @@
   $('#rules').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   window.addEventListener('resize', fitLog);
   // Fetch every card up front so the first reveal never waits on an image.
-  for (const k of Object.keys(ART)) new Image().src = cardSrc(k);
-  for (const f of ['card-back', 'touchdown', 'field-goal', 'kick-field-goal']) new Image().src = `${CARDS}${f}.webp`;
+  for (const f of [...Object.values(ART), 'card-back', 'touchdown', 'field-goal']) new Image().src = `../full-cards/cards/${f}.webp`;
 
   // Keep the game going across live updates of this page.
   if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ S, uid }));
