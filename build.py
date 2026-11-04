@@ -60,6 +60,7 @@ build(HERE, "Snap Call")
 build(HERE / "preview", "Snap Call: card art preview")
 build(HERE / "full-cards", "Snap Call")
 build(HERE / "downs", "Snap Call: downs test")
+build(HERE / "look", "Snap Call: new look preview")
 
 args = sys.argv[1:]
 if "--netlify" in args:

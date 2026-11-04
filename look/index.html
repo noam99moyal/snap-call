@@ -1,0 +1,1385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Snap Call: new look preview</title>
+<meta name="description" content="A quick family football card game. Secretly call a play, the defense tries to guess it, first to 21 wins.">
+<meta property="og:title" content="Snap Call: new look preview">
+<meta property="og:description" content="A quick family football card game. Secretly call a play, the defense tries to guess it, first to 21 wins.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0a2c1d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%230f3d29'/%3E%3Cellipse cx='20' cy='20' rx='15' ry='9' fill='%238b4a29'/%3E%3Cpath d='M13 20h14M16 17.5v5M19 17.5v5M22 17.5v5M25 17.5v5' stroke='%23ecf3e8' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Graduate&display=swap">
+<style>
+  /* Snap Call with the finished cards: the same game, played with the printed cards, rules and all.
+     Layout: one narrow column on phones (scoreboard → field → snap stage → hand → specials → play-by-play).
+     On wide screens a whole snap fits on one screen: the field cards run across the top, the stage and its history sit left, your cards right.
+     The cards are the printed cards: blue frames are offense, red defense, yellow specials. What happens either way is printed on each card's cream panel.
+     Team colors (you orange, CPU teal) stay off the frames so they never read as offense or defense.
+     The one loud moment is the stage: the CPU's card flips over and a referee-style medal says whether the play was stopped.
+     New look preview: the scoreboard is the only box. The snap is played on the turf itself, with the two cards facing
+     each other across a chalk line of scrimmage, and labels are set in plain case instead of spaced-out capitals. */
+  :root {
+    --turf: #0f3d29;
+    --turf-2: #13492f;
+    --turf-deep: #0a2c1d;
+    --turf-deep-2: #0c3121;
+    --board: #08150f;
+    --slate: #0b241a;
+    --line: rgba(236, 243, 232, 0.2);
+    --chalk: #ecf3e8;
+    --chalk-dim: rgba(236, 243, 232, 0.7);
+    --chalk-faint: rgba(236, 243, 232, 0.34);
+    --you: #ff8a3d;
+    --cpu: #3fdcc4;
+    --flag: #ffd447;
+    --ink: #15201a;
+    --leather: #8b4a29;
+
+    --display: 'Graduate', 'Rockwell', 'Courier New', serif;
+    --ui: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
+    --body: 'Barlow', system-ui, -apple-system, sans-serif;
+    color-scheme: dark;
+  }
+
+  [hidden] { display: none !important; }
+
+  body {
+    background: repeating-linear-gradient(180deg, var(--turf-deep) 0 72px, var(--turf-deep-2) 72px 144px);
+    color: var(--chalk);
+    font-family: var(--body);
+    font-size: 15px;
+    margin: 0;
+  }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding-block: 14px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: grid;
+    grid-template-columns: minmax(0, 480px);
+    justify-content: center;
+    gap: 12px;
+  }
+  .wrap > * { min-width: 0; }
+  .play { display: flex; flex-direction: column; gap: 10px; }
+  .log-box { margin-top: 10px; }
+
+  /* Header */
+  /* The title never squeezes under the buttons: on the narrowest screens the buttons move to their own row. */
+  .top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+  .brand { flex: 1 1 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+  .brand h1 { margin: 0; font: 400 24px/1 var(--display); letter-spacing: 0.02em; white-space: nowrap; }
+  .chip { font: 600 13px/1 var(--ui); letter-spacing: 0.04em; color: var(--chalk-dim); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; white-space: nowrap; }
+  .ghost {
+    font: 600 15px/1 var(--ui); letter-spacing: 0.03em;
+    color: var(--chalk); background: transparent; border: 1px solid var(--chalk-faint);
+    border-radius: 6px; padding: 8px 12px; cursor: pointer;
+  }
+  .ghost:hover { border-color: var(--chalk); }
+  .top-actions { display: flex; gap: 8px; flex: none; margin-left: auto; }
+  .top-actions .short { display: none; }
+  @media (max-width: 430px) {
+    .top-actions .long { display: none; }
+    .top-actions .short { display: inline; }
+  }
+  /* Small phones: a slightly smaller title keeps title and buttons on one row down to about 310px. */
+  @media (max-width: 340px) {
+    .brand h1 { font-size: 21px; }
+  }
+
+  /* Scoreboard */
+  .board {
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
+    background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px;
+  }
+  .team { display: flex; align-items: center; gap: 12px; }
+  .team.you { justify-content: flex-end; text-align: right; }
+  .team .who { display: grid; gap: 4px; }
+  .team.you .who { justify-items: end; }
+  .team.cpu .who { justify-items: start; }
+  .team .label { font: 700 19px/1 var(--ui); letter-spacing: 0.01em; }
+  .team.you .label { color: var(--you); }
+  .team.cpu .label { color: var(--cpu); }
+  .team .score { font: 400 40px/1 var(--display); font-variant-numeric: tabular-nums; min-width: 1.4em; }
+  .team.you .score { text-align: right; }
+  .poss { font: 600 12px/1 var(--ui); letter-spacing: 0.06em; color: var(--chalk); display: flex; align-items: center; gap: 4px; visibility: hidden; }
+  .poss svg { width: 18px; height: 11px; }
+  .has-ball .poss { visibility: visible; }
+  .target { text-align: center; font: 600 12px/1.2 var(--ui); color: var(--chalk-dim); }
+  .target b { display: block; font: 400 18px/1 var(--display); color: var(--chalk); }
+  .pips { display: flex; gap: 4px; }
+  /* The narrowest screens (folding phones' outer screens are about 280px): tighter spacing and slightly smaller scores keep the board on screen. */
+  @media (max-width: 340px) {
+    .board { gap: 6px; padding-inline: 10px; }
+    .team { gap: 6px; }
+    .team .score { font-size: 34px; }
+  }
+  /* The CPU's specials: one tiny card back per card it holds. */
+  .pips i { width: 13px; height: 18px; border-radius: 2px; background: url(../full-cards/cards/card-back.webp) center / cover; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+
+  /* Status */
+  .scoreline { display: grid; gap: 12px; }
+  .status { display: grid; gap: 2px; }
+  .status strong { font: 700 21px/1.1 var(--ui); letter-spacing: 0.02em; }
+  .status span { color: var(--chalk-dim); }
+
+  /* Field: the six field cards in a row, always from the offense's side, attacking to the right.
+     The ball sits on the card of the zone it's in, like the ball card placed on the field cards on a table. */
+  .field { position: relative; }
+  .field[data-off="you"] { --offc: var(--you); --defc: var(--cpu); }
+  .field[data-off="cpu"] { --offc: var(--cpu); --defc: var(--you); }
+  .zones { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+  .zone { position: relative; container-type: inline-size; }
+  .zone img {
+    display: block; width: 100%; height: auto; border-radius: 4.5cqi;
+    filter: brightness(0.5) saturate(0.6); transition: filter 0.3s;
+  }
+  .zone.here img { filter: none; outline: 2px solid var(--offc); outline-offset: 2px; }
+  .zone.ez img { filter: brightness(0.85); }
+  /* On the end zone card: whose end zone it is. */
+  .who-ez {
+    position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%);
+    font: 700 13px/1 var(--ui); white-space: nowrap;
+    color: var(--defc); background: rgba(8, 21, 15, 0.88); border-radius: 4px; padding: 3px 6px;
+  }
+  .ball {
+    position: absolute; top: 79%; left: 12.5%; transform: translate(-50%, -50%); z-index: 2;
+    width: 36px; height: 22px; transition: left 0.55s cubic-bezier(0.3, 0.7, 0.3, 1);
+    filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 6px var(--offc));
+  }
+  .ball svg { width: 100%; height: 100%; display: block; transition: rotate 0.3s; }
+  /* Last down: the ball turns sideways, like turning the ball card at the table. */
+  .ball.last svg { rotate: 90deg; }
+  #trail { position: absolute; }
+  .trail {
+    top: 79%; height: 6px; transform: translateY(-50%); border-radius: 3px;
+    background: color-mix(in srgb, var(--offc) 75%, transparent);
+    animation: grow 0.55s cubic-bezier(0.3, 0.7, 0.3, 1) both; transform-origin: left center;
+  }
+  .trail.loss { background: repeating-linear-gradient(90deg, var(--defc) 0 6px, transparent 6px 11px); transform-origin: right center; }
+  .trail b {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font: 700 15px/1 var(--ui); color: var(--offc); background: var(--board); border-radius: 4px; padding: 2px 6px;
+  }
+  .trail.loss b { color: var(--defc); }
+  @keyframes grow { from { scale: 0 1; } to { scale: 1 1; } }
+
+  /* Stage: the snap, revealed */
+  .stage {
+    background: radial-gradient(ellipse 60% 55% at 50% 42%, rgba(236, 243, 232, 0.09), transparent 72%);
+    padding: 6px 0 4px;
+    display: grid; gap: 12px;
+  }
+  .table { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: 8px; }
+  /* The line of scrimmage: offense on one side, defense on the other. */
+  .table::before {
+    content: ''; position: absolute; left: 50%; top: 22px; bottom: -4px; width: 2px; margin-left: -1px;
+    background: repeating-linear-gradient(180deg, var(--chalk-faint) 0 9px, transparent 9px 16px);
+  }
+  .slot { display: flex; flex-direction: column; align-items: center; gap: 6px; perspective: 700px; min-width: 0; }
+  .slot-label { font: 700 17px/1 var(--ui); letter-spacing: 0.01em; }
+  .slot-label.you { color: var(--you); }
+  .slot-label.cpu { color: var(--cpu); }
+  /* The top padding is the room a tucked special's name banner shows in. */
+  .slot-body { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: calc(min(132px, 100%) * 0.235); }
+  .slot .card { width: min(132px, 100%); perspective: 700px; }
+  .medal {
+    --tone: var(--chalk-faint);
+    position: relative; align-self: center; margin-top: 18px; width: 66px; height: 66px; border-radius: 50%;
+    display: grid; place-items: center; text-align: center;
+    background: var(--turf-deep); border: 2px solid var(--tone); color: var(--chalk-faint);
+    font: 400 12px/1.1 var(--display);
+  }
+  .medal.hit { background: var(--tone); color: var(--ink); box-shadow: 0 0 0 4px color-mix(in srgb, var(--tone) 30%, transparent), 0 0 24px color-mix(in srgb, var(--tone) 45%, transparent); }
+  .medal.pop { animation: stamp 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+  @keyframes stamp { from { transform: scale(1.8) rotate(-12deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+
+  /* A special played with a card is tucked behind it, its name banner showing above,
+     like laying it under your play card at the table. After the snap, a stamp on the play card says what it did. */
+  .slot .card { position: relative; }
+  .tuck {
+    position: absolute; z-index: -1; left: 0; right: 0; top: 0;
+    transform: translateY(-21cqi) rotate(3deg); transform-origin: 50% 100%;
+  }
+  .card.cpu .tuck { transform: translateY(-21cqi) rotate(-3deg); }
+  .tuck img { display: block; width: 100%; height: auto; filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.5)); }
+  .tuck[data-st="worked"] img { filter: drop-shadow(0 0 3px var(--flag)) drop-shadow(0 0 10px rgba(255, 212, 71, 0.7)); }
+  .tuck[data-st="wasted"] img { filter: grayscale(0.9) brightness(0.55); }
+  .tuck[data-st="back"] img { opacity: 0.6; }
+  .card.flip .tuck { animation: tuck-in 0.35s 0.3s ease-out both; }
+  @keyframes tuck-in { from { transform: none; } }
+  .tag {
+    position: absolute; left: 50%; top: calc(110.6cqi - 4px); transform: translate(-50%, -100%);
+    background: var(--flag); color: var(--ink); font: 700 13px/1 var(--ui); letter-spacing: 0.02em; white-space: nowrap;
+    border-radius: 5px; padding: 5px 8px;
+  }
+  .tag[data-st="worked"] { box-shadow: 0 0 0 2px var(--chalk), 0 0 18px rgba(255, 212, 71, 0.55); }
+  .tag[data-st="wasted"] { background: rgba(8, 21, 15, 0.9); color: var(--chalk-dim); box-shadow: inset 0 0 0 1px var(--chalk-faint); }
+  .tag[data-st="back"] { background: rgba(8, 21, 15, 0.9); color: var(--flag); box-shadow: inset 0 0 0 1px var(--flag); }
+
+  .result { display: grid; gap: 4px; text-align: center; min-height: 54px; align-content: center; }
+  .result .head { font: 400 27px/1 var(--display); color: var(--tone, var(--chalk)); text-wrap: balance; }
+  .result .detail { color: var(--chalk-dim); text-wrap: balance; line-height: 1.35; }
+  .result.pop .head { animation: pop 0.4s ease-out; }
+  @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+
+  /* Cards: each one is the finished printed card, rules included, so the text always fits the frame. */
+  .card {
+    container-type: inline-size;
+    display: block; width: 100%; padding: 0; border: 0; background: none;
+    font: inherit; color: var(--ink); text-align: left;
+  }
+  .cv {
+    display: flex; flex-direction: column; border-radius: 4.5cqi;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s, filter 0.15s;
+  }
+  .cv > img { display: block; width: 100%; height: auto; }
+  /* On the stage, the outcome that didn't happen fades: a cream veil over its printed line.
+     Every play card prints ✓ on the first line and ✕ on the second, in the same place. After a first stop, both fade. */
+  .cv { position: relative; }
+  .veil { position: absolute; left: 6%; right: 6%; height: 6.2%; border-radius: 1cqi; background: rgba(252, 245, 231, 0.74); }
+  .veil.win { top: 81.8%; }
+  .veil.lose { top: 88.1%; }
+
+  button.card { cursor: pointer; }
+  button.card:hover:not(:disabled) .cv { transform: translateY(-3px); }
+  .card.on .cv { transform: translateY(-8px); box-shadow: 0 0 0 3px var(--chalk), 0 12px 24px rgba(0, 0, 0, 0.5); }
+  .card:disabled { cursor: default; }
+  .card:disabled .cv { opacity: 0.45; filter: saturate(0.4); }
+  .card:focus-visible { outline: none; }
+  .card:focus-visible .cv { outline: 3px solid var(--flag); outline-offset: 3px; }
+  .card.flip .cv { animation: flip 0.38s ease-out; }
+  @keyframes flip { from { transform: rotateY(90deg); } to { transform: rotateY(0deg); } }
+  .card.empty .cv {
+    aspect-ratio: 1060 / 1484; align-items: center; justify-content: center; text-align: center; padding: 10cqi;
+    border: 2px dashed var(--chalk-faint); color: var(--chalk-dim); font: 600 13px/1.25 var(--ui); box-shadow: none;
+  }
+
+  /* Hand */
+  .section-label { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 10px; }
+  .section-label > span:first-child { font: 700 16px/1 var(--ui); letter-spacing: 0.02em; }
+  .section-label > span + span { font-size: 13px; color: var(--chalk-dim); }
+  .hand, .specials { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: start; }
+  /* In the Red Zone the Kick Field Goal card joins your plays, four in the row. */
+  .hand.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+
+  /* Specials: the name, Save / Bonus, side and rule are all printed on the card. */
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--chalk-dim); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .badge { font: 700 11px/1 var(--ui); letter-spacing: 0.06em; padding: 3px 5px; border-radius: 3px; font-style: normal; }
+  .badge.save { background: var(--flag); color: var(--ink); }
+  .badge.bonus { color: var(--flag); box-shadow: inset 0 0 0 1.5px var(--flag); }
+  @media (max-width: 899px) {
+    .specials { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .specials .card.empty { grid-column: 1 / -1; }
+    .specials .card.empty .cv { aspect-ratio: auto; min-height: 44px; padding: 10px; }
+    .specials .card.empty + .card.empty { display: none; }
+    /* The Save / Bonus legend takes its own line and stays on one line on most phones: its text shrinks a little before it wraps. */
+    .section-label .legend { flex-basis: 100%; container-type: inline-size; column-gap: 10px; }
+    .legend span { font-size: clamp(11px, (100cqi - 94px) * 0.0535, 13px); }
+  }
+
+  .actions {
+    position: sticky; bottom: 0; z-index: 5; display: flex; gap: 10px;
+    padding-block: 10px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to bottom, transparent, var(--turf-deep) 30%);
+  }
+  .snap {
+    flex: 1; height: 54px; border: 0; border-radius: 10px; cursor: pointer;
+    background: var(--you); color: var(--ink); font: 400 22px/1 var(--display); letter-spacing: 0.04em;
+  }
+  .snap:disabled { opacity: 0.35; cursor: default; }
+
+  button:focus-visible, summary:focus-visible { outline: 3px solid var(--flag); outline-offset: 2px; }
+
+  /* Play by play: the newest 5 show, older ones scroll. */
+  .box { border-top: 2px solid var(--line); padding: 14px 0 0; display: grid; gap: 10px; min-width: 0; }
+  .box h2 { margin: 0; font: 400 17px/1 var(--display); }
+  .log { list-style: none; margin: 0; padding: 0 4px 0 0; display: grid; gap: 9px; position: relative; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--chalk-faint) transparent; }
+  /* Sized so every play-by-play line fits in two lines, on phones too. */
+  .log li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; align-items: baseline; color: var(--chalk-dim); font-size: 13px; line-height: 1.3; }
+  .log li .n { font: 600 13px/1 var(--ui); color: var(--chalk-faint); font-variant-numeric: tabular-nums; }
+  .log li b { font: 700 15px/1 var(--ui); color: var(--tone); margin-right: 4px; }
+  .log li.t-you { --tone: var(--you); }
+  .log li.t-cpu { --tone: var(--cpu); }
+  .log li.t-you .n, .log li.t-cpu .n { color: var(--tone); }
+  /* Phones: scrollbars float over the text, so no gutter, and the text shrinks a little on narrow phones so the longest line still takes two lines. */
+  @media (max-width: 899px) {
+    .log { padding-right: 0; container-type: inline-size; }
+    .log li { font-size: clamp(12px, (100cqi - 28px) * 0.0473, 13px); }
+  }
+  .more { margin: 0; font-size: 12.5px; color: var(--chalk-faint); }
+
+  /* How to play: a dialog from the header, so the cards get the room */
+  .rules {
+    background: var(--board); color: var(--chalk); border: 1px solid var(--line); border-radius: 12px;
+    padding: 0; width: min(600px, calc(100% - 32px)); max-height: calc(100dvh - 48px); overflow: auto;
+  }
+  .rules::backdrop { background: rgba(5, 14, 10, 0.75); }
+  .rules .head {
+    position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 14px; background: var(--board);
+  }
+  .rules .head h2 { margin: 0; font: 400 20px/1 var(--display); }
+  .rules .body { padding: 0 14px 18px; display: grid; gap: 14px; }
+  .rules h3 { margin: 0; font: 700 16px/1 var(--ui); letter-spacing: 0.02em; color: var(--chalk); }
+  .rules ul, .rules ol { margin: 0; padding-left: 18px; display: grid; gap: 7px; line-height: 1.45; max-width: 65ch; }
+  .rules p { margin: 0; line-height: 1.5; color: var(--chalk-dim); max-width: 65ch; }
+  .rules dl { margin: 0; display: grid; gap: 8px; }
+  .rules dt { font: 700 15px/1.1 var(--ui); color: var(--flag); }
+  .rules dt span { color: var(--chalk-faint); font-weight: 600; }
+  .rules dd { margin: 2px 0 0; color: var(--chalk-dim); line-height: 1.4; }
+
+  /* New game: pick the length and how the computer plays. Hard shows under "First to 21" for the whole game. */
+  .level { width: min(420px, calc(100% - 32px)); }
+  .level .body { gap: 10px; }
+  .lvl-pick {
+    display: grid; gap: 6px; text-align: left; cursor: pointer; padding: 14px 16px;
+    background: transparent; color: var(--chalk); border: 1px solid var(--chalk-faint); border-radius: 10px;
+  }
+  .lvl-pick:hover { border-color: var(--chalk); }
+  .lvl-pick b { font: 400 22px/1 var(--display); letter-spacing: 0.03em; }
+  .lvl-pick[data-level="hard"] b { color: var(--flag); }
+  .lvl-pick span { font: 400 14px/1.35 var(--ui); color: var(--chalk-dim); }
+  .len { display: flex; align-items: center; gap: 8px; }
+  .len > span { font: 600 15px/1 var(--ui); color: var(--chalk-dim); margin-right: 4px; }
+  .len button {
+    flex: 1; height: 44px; cursor: pointer; border-radius: 8px;
+    background: transparent; color: var(--chalk); border: 1px solid var(--chalk-faint); font: 400 20px/1 var(--display);
+  }
+  .len button[aria-checked="true"] { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
+  .lvl-tag { display: block; margin-top: 4px; font: 700 14px/1 var(--ui); color: var(--flag); }
+
+  /* Scoring: the Touchdown or Field Goal card takes the screen for a moment, then the points go on the board. */
+  .cele {
+    position: fixed; inset: 0; z-index: 15; display: grid; place-items: center; padding: 16px;
+    background: rgba(5, 14, 10, 0.62); cursor: pointer;
+  }
+  .cele-in { display: grid; justify-items: center; gap: 14px; }
+  .cele-cards { display: flex; align-items: center; justify-content: center; gap: 16px; }
+  .cele-cards > *, .cele p { animation: deal 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+  .cele-score {
+    display: block; width: min(250px, 60vw, (100dvh - 150px) / 1.4); height: auto; border-radius: 4.5% / 3.2%;
+    box-shadow: 0 0 0 3px var(--tone), 0 0 40px color-mix(in srgb, var(--tone) 55%, transparent), 0 18px 40px rgba(0, 0, 0, 0.5);
+  }
+  .cele.pair .cele-score, .cele-sp { width: min(200px, 42vw, (100dvh - 150px) / 1.5); }
+  .cele.pair .cele-score, .cele.pair p { animation-delay: 0.35s; }
+  .cele-sp { rotate: -4deg; }
+  .cele-sp .cv { box-shadow: 0 0 0 3px var(--flag), 0 0 30px rgba(255, 212, 71, 0.45), 0 18px 40px rgba(0, 0, 0, 0.5); }
+  .cele p { margin: 0; font: 400 min(24px, (100vw - 40px) / 14.5)/1.1 var(--display); color: var(--tone); text-align: center; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
+  @keyframes deal { from { transform: translateY(50px) scale(0.55) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  .score.bump { animation: bump 0.6s ease-out; }
+  @keyframes bump { from { transform: scale(1.7); color: var(--flag); } to { transform: scale(1); } }
+
+  /* Press and hold any card to see it big, until the next tap: on phone-sized cards the printed rules are small.
+     No image menu, drag or text selection gets in the way of the hold. */
+  .card, .zone { -webkit-user-select: none; user-select: none; }
+  .card img, .zone img { -webkit-touch-callout: none; -webkit-user-drag: none; }
+  /* A card you can't play right now still takes a hold, so you can read it. */
+  button.card:disabled { pointer-events: none; }
+  .zoom {
+    position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 16px;
+    background: rgba(5, 14, 10, 0.72); pointer-events: none;
+  }
+  .zoom img {
+    display: block; width: min(380px, 100%, (100dvh - 32px) / 1.4); height: auto; border-radius: 4.5% / 3.2%;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6); animation: zoom-in 0.15s ease-out;
+  }
+  @keyframes zoom-in { from { transform: scale(0.85); opacity: 0; } }
+
+  /* Game over */
+  .over {
+    position: fixed; inset: 0; display: grid; place-items: center; z-index: 20;
+    background: rgba(5, 14, 10, 0.78);
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .over .panel {
+    background: var(--board); border: 2px solid var(--tone, var(--chalk)); border-radius: 14px;
+    padding: 26px 24px; display: grid; gap: 12px; text-align: center; width: min(340px, 100%);
+  }
+  .over h2 { margin: 0; font: 400 32px/1 var(--display); color: var(--tone, var(--chalk)); }
+  .over p { margin: 0; font: 400 22px/1 var(--display); font-variant-numeric: tabular-nums; }
+
+  /* Wide screens: one screen, no scrolling. Comes last so it overrides the phone layout above. */
+  @media (min-width: 900px) {
+    .wrap {
+      padding-block: 10px 12px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+      grid-template-areas:
+        "top    top"
+        "score  score"
+        "status status"
+        "stage  play"
+        "log    play"
+        "log    act";
+      /* The last row is flexible so the tall log only stretches it, keeping Snap right under the specials. */
+      grid-template-rows: repeat(5, auto) 1fr;
+      align-items: start;
+      gap: 10px 24px;
+    }
+    .top { grid-area: top; }
+    /* Scoreboard and field share one row: your score left, the field cards in the middle, the CPU's score right. */
+    .scoreline {
+      grid-area: score; display: grid; grid-template-columns: 1fr auto 1fr;
+      grid-template-areas: "you field cpu" "you target cpu"; align-items: center; gap: 4px 32px;
+      background: var(--board); border: 1px solid var(--line); border-radius: 10px; padding: 8px 24px 6px;
+    }
+    .board { display: contents; }
+    #tYou { grid-area: you; }
+    #tCpu { grid-area: cpu; }
+    .target { grid-area: target; display: flex; align-items: baseline; justify-content: center; gap: 6px; }
+    .target b { display: inline; font-size: 16px; }
+    .field { grid-area: field; }
+    .zones { grid-template-columns: repeat(6, clamp(58px, 6.2vw, 84px)); gap: 6px; }
+    .team { gap: 16px; }
+    .team .label { font-size: 19px; }
+    .team .score { font-size: 48px; }
+    .status { grid-area: status; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; }
+    .stage { grid-area: stage; }
+    .log { gap: 7px; }
+    .play { grid-area: play; }
+    /* Hand and specials are full cards, so their width also follows the window's height: both rows and Snap fit on one screen.
+       Never under 128px, where every line of card text still fits on one line; very short windows scroll instead. */
+    .hand, .specials { grid-template-columns: repeat(3, min((100% - 20px) / 3, max(128px, (100dvh - 400px) / 2.8))); }
+    .hand.four { grid-template-columns: repeat(4, min((100% - 24px) / 4, max(128px, (100dvh - 400px) / 2.8))); }
+    .actions { grid-area: act; position: static; padding: 0; background: none; }
+    .log-box { grid-area: log; margin-top: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="football" viewBox="0 0 40 24">
+      <ellipse cx="20" cy="12" rx="18" ry="10" style="fill: var(--leather)"></ellipse>
+      <path d="M13 12h14M16 9.5v5M19 9.5v5M22 9.5v5M25 9.5v5" style="stroke: var(--chalk); stroke-width: 1.6; stroke-linecap: round; fill: none"></path>
+    </symbol>
+  </defs>
+</svg>
+
+<main class="wrap">
+    <header class="top">
+      <div class="brand"><h1>Snap Call</h1><span class="chip">New look preview</span></div>
+      <div class="top-actions">
+        <button class="ghost" id="howTo" type="button"><span class="long">How to play</span><span class="short">Rules</span></button>
+        <button class="ghost" id="newGame" type="button">New game</button>
+      </div>
+    </header>
+
+    <div class="scoreline">
+    <div class="board">
+      <div class="team you" id="tYou">
+        <span class="who">
+          <span class="label">You</span>
+          <span class="poss"><svg aria-hidden="true"><use href="#football"></use></svg>Ball</span>
+        </span>
+        <span class="score" id="sYou">0</span>
+      </div>
+      <div class="target">First to<b id="targetNum">21</b><span class="lvl-tag" id="lvlTag" hidden>Hard</span></div>
+      <div class="team cpu" id="tCpu">
+        <span class="score" id="sCpu">0</span>
+        <span class="who">
+          <span class="label">CPU</span>
+          <span class="poss"><svg aria-hidden="true"><use href="#football"></use></svg>Ball</span>
+          <span class="pips" id="cpuPips" title="CPU special cards"></span>
+        </span>
+      </div>
+    </div>
+
+    <div class="field" id="field" data-off="you">
+      <div class="zones">
+        <div class="zone" data-z="0"><img src="../downs/cards/own-20.webp" alt="Own 20" width="600" height="840"></div>
+        <div class="zone" data-z="1"><img src="../downs/cards/own-35.webp" alt="Own 35" width="600" height="840"></div>
+        <div class="zone" data-z="2"><img src="../full-cards/cards/midfield.webp" alt="Midfield" width="600" height="840"></div>
+        <div class="zone" data-z="3"><img src="../downs/cards/their-35.webp" alt="Their 35" width="600" height="840"></div>
+        <div class="zone" data-z="4"><img src="../full-cards/cards/red-zone.webp" alt="Red Zone" width="600" height="840"></div>
+        <div class="zone ez"><img src="../full-cards/cards/end-zone.webp" alt="End zone" width="600" height="840"><span class="who-ez" id="ezTeam"></span></div>
+      </div>
+      <div id="trail"></div>
+      <div class="ball" id="ball"><svg aria-hidden="true"><use href="#football"></use></svg></div>
+    </div>
+    </div>
+
+    <div class="status" aria-live="polite"><strong id="status"></strong><span id="hint"></span></div>
+
+    <section class="stage" aria-label="Snap">
+      <div class="table">
+        <div class="slot"><span class="slot-label you">You</span><div class="slot-body" id="slotYou"></div></div>
+        <div class="medal" id="medal">vs</div>
+        <div class="slot"><span class="slot-label cpu">CPU</span><div class="slot-body" id="slotCpu"></div></div>
+      </div>
+      <div class="result" id="result" aria-live="polite"></div>
+    </section>
+
+    <section class="play" aria-label="Your cards">
+      <div class="section-label"><span id="handLabel">Your play</span><span id="handHint"></span></div>
+      <div class="hand" id="hand"></div>
+
+      <div class="section-label">
+        <span>Your specials</span>
+        <span class="legend">
+          <span><i class="badge save">Save</i>works if you lose the snap</span>
+          <span><i class="badge bonus">Bonus</i>works if you win it</span>
+        </span>
+      </div>
+      <div class="specials" id="specials"></div>
+    </section>
+
+    <div class="actions">
+      <button class="snap" id="snap" type="button">Snap</button>
+    </div>
+
+    <section class="box log-box" aria-label="Play by play">
+      <h2>Play by play</h2>
+      <ol class="log" id="log"></ol>
+      <p class="more" id="more" hidden>Scroll for older plays</p>
+    </section>
+
+    <dialog class="rules" id="rules" aria-labelledby="rulesHead">
+      <div class="head"><h2 id="rulesHead">How to play</h2><button class="ghost" id="closeRules" type="button">Close</button></div>
+      <div class="body">
+        <p>Each snap, the offense secretly picks a play and the defense tries to guess it. Both cards flip at once. A wrong guess moves the ball. A right guess stops the play.</p>
+
+        <h3>One drive, snap by snap</h3>
+        <ol>
+          <li>You start at your own 20 and call Run. The CPU guesses Stop Short. Wrong guess, so you gain a zone.</li>
+          <li>At your own 35 you call Deep Pass, and the CPU guesses Stop Deep. You’re stopped once. You keep the ball, and the ball turns sideways as a reminder.</li>
+          <li>You call Short Pass and the CPU guesses Stop Run. You gain a zone to midfield, and the new zone starts the count over.</li>
+          <li>Two more zones take you into the Red Zone. Score a touchdown for 7, or play the Kick Field Goal card for 3.</li>
+        </ol>
+        <p>Run and Short Pass gain 1 zone, and Deep Pass gains 2. If you’re stopped twice in the same zone, the CPU takes the ball at its own 20. When that second stop comes on a Deep Pass, it’s intercepted, and the CPU starts at midfield.</p>
+        <p>First to 21 wins, or pick 28 or 35 at New game for a longer one. Press and hold any card to see it big.</p>
+
+        <h3>Specials: losers save, winners score</h3>
+        <p>Every special is a Save or a Bonus. You play it with your card, before the cards are shown. A Save only works if you lose the snap, with any play. A Bonus only works if you win it. Only one special can work per snap, and a played special is used up either way.</p>
+        <p>You start with 2 specials, or 3 if you get the ball second. You draw one when you’re scored on and when you win the ball back with a stop, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>
+        <dl>
+          <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If they guess your play, it doesn’t count as a stop, and you still gain 1 zone.</dd>
+          <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd>If you guess wrong, they gain nothing and go back 1 zone (never behind their own 20). They keep the ball.</dd>
+          <dt>Challenge Flag <span>either side, save</span></dt><dd>If you lose the snap, cancel it and both sides pick again. Any other special played on it goes back to its owner.</dd>
+          <dt>Breakaway <span>offense bonus</span></dt><dd>If you run and they guess wrong, it goes all the way for a touchdown.</dd>
+          <dt>Hail Mary <span>offense bonus</span></dt><dd>If you throw deep and they guess wrong, it goes all the way for a touchdown.</dd>
+          <dt>Pick Six <span>defense bonus</span></dt><dd>If you guess their pass right (Stop Short or Stop Deep), you score 7.</dd>
+          <dt>Forced Fumble <span>defense bonus</span></dt><dd>If you guess their run right, you recover the ball at midfield.</dd>
+        </dl>
+
+        <h3>The computer</h3>
+        <p>It remembers which plays you call and which ones you guess, and leans on your habits. Mix it up.</p>
+        <p>On Hard it also notices when you try to trick it, and remembers your last few games on this device.</p>
+      </div>
+    </dialog>
+
+    <dialog class="rules level" id="level" aria-labelledby="levelHead">
+      <div class="head"><h2 id="levelHead">New game</h2><button class="ghost" id="closeLevel" type="button">Close</button></div>
+      <div class="body">
+        <div class="len" role="radiogroup" aria-label="Game length">
+          <span>First to</span>
+          <button type="button" role="radio" data-target="21" aria-checked="true">21</button>
+          <button type="button" role="radio" data-target="28" aria-checked="false">28</button>
+          <button type="button" role="radio" data-target="35" aria-checked="false">35</button>
+        </div>
+        <button class="lvl-pick" type="button" data-level="normal"><b>Normal</b><span>Learns your habits as you play.</span></button>
+        <button class="lvl-pick" type="button" data-level="hard"><b>Hard</b><span>Reads you closely and remembers your last few games.</span></button>
+      </div>
+    </dialog>
+</main>
+
+<div class="cele" id="cele" hidden>
+  <div class="cele-in"><div class="cele-cards" id="celeCards"></div><p id="celeText"></p></div>
+</div>
+
+<div class="zoom" id="zoom" hidden><img id="zoomImg" alt="" width="600" height="840"></div>
+
+<div class="over" id="over" hidden>
+  <div class="panel">
+    <h2 id="overHead"></h2>
+    <p id="overScore"></p>
+    <button class="snap" id="again" type="button">Play again</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const other = (w) => (w === 'you' ? 'cpu' : 'you');
+  const NAME = { you: 'You', cpu: 'CPU' };
+  const verb = (who, base) => (who === 'you' ? base : base + 's');
+  // Downs test: 5 zones to the end zone, and 2 downs to get out of each one.
+  const ZONES = 5, RED = 4, MID = 2, DOWNS = 2;
+  const TARGETS = [21, 28, 35];
+  // The stand-in field cards (Own 20, Own 35, Their 35) and the 6 play cards reprinted with "Stopped twice"
+  // come from downs/cards/; every other card comes from full-cards/.
+  const CARDS = '../full-cards/cards/';
+  const KICK = 'From the Red Zone → Score 3';
+
+  // win: what happens when the play beats the guess (offense) or the guess is right (defense). lose: the other way.
+  const PLAYS = {
+    run:    { side: 'off', name: 'Run', gain: 1, win: 'Not stopped: +1 zone', lose: 'Stopped twice: their ball' },
+    short:  { side: 'off', name: 'Short Pass', gain: 1, win: 'Not stopped: +1 zone', lose: 'Stopped twice: their ball' },
+    deep:   { side: 'off', name: 'Deep Pass', gain: 2, win: 'Not stopped: +2 zones', lose: 'Stopped twice: intercepted' },
+    runD:   { side: 'def', name: 'Stop Run', stops: 'run', win: 'Stopped twice: your ball', lose: 'Not stopped: they gain' },
+    shortD: { side: 'def', name: 'Stop Short', stops: 'short', win: 'Stopped twice: your ball', lose: 'Not stopped: they gain' },
+    deepD:  { side: 'def', name: 'Stop Deep', stops: 'deep', win: 'Stopped twice: interception', lose: 'Not stopped: they gain' },
+  };
+  const OFF = ['run', 'short', 'deep'];
+  const DEF = ['runD', 'shortD', 'deepD'];
+
+  // A Save only works if you lose the snap; a Bonus only works if you win it.
+  // Saves work with any play, so they never decide what you pick. Same-effect pairs keep two names for variety.
+  const SPECIALS = {
+    juke:      { name: 'Juke', side: 'off', kind: 'save', count: 2, when: 'If your play is stopped', then: 'Still gain 1 zone' },
+    grab:      { name: 'Spectacular Catch', side: 'off', kind: 'save', count: 2, when: 'If your play is stopped', then: 'Still gain 1 zone' },
+    sack:      { name: 'Sack', side: 'def', kind: 'save', count: 2, when: "If you don’t stop the play", then: 'They go back 1 zone' },
+    tfl:       { name: 'Tackle for Loss', side: 'def', kind: 'save', count: 2, when: "If you don’t stop the play", then: 'They go back 1 zone' },
+    flag:      { name: 'Challenge Flag', side: 'any', kind: 'save', count: 2, when: 'If you lose the snap', then: 'Replay it' },
+    breakaway: { name: 'Breakaway', side: 'off', kind: 'bonus', count: 2, needs: ['run'], when: "If your Run isn’t stopped", then: 'Touchdown' },
+    hail:      { name: 'Hail Mary', side: 'off', kind: 'bonus', count: 2, needs: ['deep'], when: "If your Deep Pass isn’t stopped", then: 'Touchdown' },
+    picksix:   { name: 'Pick Six', side: 'def', kind: 'bonus', count: 2, needs: ['shortD', 'deepD'], when: 'If you stop a pass', then: 'You score 7' },
+    fumble:    { name: 'Forced Fumble', side: 'def', kind: 'bonus', count: 2, needs: ['runD'], when: 'If you stop a Run', then: 'Your ball at midfield' },
+  };
+  const RULES_VERSION = 6;
+  const SIDE_LABEL = { off: 'Offense', def: 'Defense', any: 'Either side' };
+  const STATUS = { worked: 'Worked', wasted: 'No effect', back: 'Back to hand' };
+  // Card images in cards/: "<name>.webp" is the finished card, made from the PNGs in ../artwork/cards/.
+  const ART = {
+    run: 'run', short: 'short-pass', deep: 'deep-pass', runD: 'stop-run', shortD: 'stop-short', deepD: 'stop-deep',
+    juke: 'juke', grab: 'spectacular-catch', sack: 'sack', tfl: 'tackle-for-loss', flag: 'challenge-flag',
+    breakaway: 'breakaway', hail: 'hail-mary', picksix: 'pick-six', fumble: 'forced-fumble',
+  };
+
+  const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const weighted = (w) => {
+    const ks = Object.keys(w); let r = Math.random() * ks.reduce((s, k) => s + w[k], 0);
+    for (const k of ks) { r -= w[k]; if (r <= 0) return k; }
+    return ks[ks.length - 1];
+  };
+
+  let S;
+  let uid = 0;
+  let shownResult = -1;
+  // A score being shown: its card is on screen and the board still shows the points from before.
+  let cele = null;
+
+  // `sp` is the special that made the score, if any: it comes in first, then the score card.
+  function celebrate(who, card, line, before, sp) {
+    if (cele) clearTimeout(cele.timer);
+    cele = { who, before, timer: setTimeout(endCelebrate, sp ? 2600 : 2000) };
+    const box = $('#cele');
+    box.style.setProperty('--tone', `var(--${who})`);
+    box.classList.toggle('pair', !!sp);
+    $('#celeCards').innerHTML = (sp ? `<div class="card sp cele-sp">${spInner(sp, SPECIALS[sp].name)}</div>` : '')
+      + `<img class="cele-score" src="${CARDS}${card}.webp" alt="${card === 'touchdown' ? 'Touchdown card' : 'Field goal card'}" width="600" height="840">`;
+    const text = $('#celeText');
+    text.textContent = line;
+    text.style.animation = 'none'; void text.offsetWidth; text.style.animation = '';
+    box.hidden = false;
+  }
+  function endCelebrate() {
+    if (!cele) return;
+    clearTimeout(cele.timer);
+    const who = cele.who;
+    cele = null;
+    $('#cele').hidden = true;
+    render();
+    const el = who === 'you' ? $('#sYou') : $('#sCpu');
+    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  }
+
+  // The level picked last time on this device starts the next game.
+  const LEVEL_KEY = 'snap-call-level';
+  function savedLevel() {
+    try { return localStorage.getItem(LEVEL_KEY) === 'hard' ? 'hard' : 'normal'; } catch (e) { return 'normal'; }
+  }
+  // So is the game length, on this test page.
+  const TARGET_KEY = 'snap-call-downs-target';
+  function savedTarget() {
+    try { const t = +localStorage.getItem(TARGET_KEY); return TARGETS.includes(t) ? t : 21; } catch (e) { return 21; }
+  }
+
+  function newGame(level, target = savedTarget()) {
+    if (cele) { clearTimeout(cele.timer); cele = null; $('#cele').hidden = true; }
+    const deck = [];
+    for (const [k, s] of Object.entries(SPECIALS)) for (let i = 0; i < s.count; i++) deck.push(k);
+    S = {
+      v: RULES_VERSION, level, target,
+      score: { you: 0, cpu: 0 }, poss: 'you', pos: 0, down: 1,
+      hands: { you: [], cpu: [] }, deck: shuffle(deck), discard: [],
+      sel: { play: null, special: null },
+      phase: 'pick', last: null, move: null, showLast: false, flip: false, log: [], snaps: 0,
+      offHist: { run: 2, short: 2, deep: 2 },   // what you call on offense
+      defHist: { run: 2, short: 2, deep: 2 },   // what you guess on defense
+    };
+    if (level === 'hard') {
+      S.hard = loadHard();
+      foldGame(S.hard.off);
+      foldGame(S.hard.dfn);
+      saveHard();
+    }
+    try { localStorage.setItem(LEVEL_KEY, level); localStorage.setItem(TARGET_KEY, target); } catch (e) { /* the next visit starts on Normal, first to 21 */ }
+    for (let i = 0; i < 2; i++) { draw('you'); draw('cpu'); }
+    // The team that gets the ball second starts with one more special.
+    draw('cpu');
+    S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first, so the CPU starts with 3 specials.', tone: 'you' });
+    render();
+  }
+
+  function draw(w) {
+    if (S.hands[w].length >= 3) return;
+    if (!S.deck.length) { S.deck = shuffle(S.discard); S.discard = []; }
+    if (S.deck.length) S.hands[w].push({ id: ++uid, key: S.deck.pop() });
+  }
+
+  const side = () => (S.poss === 'you' ? 'off' : 'def');
+  // Whether a special can go with this play on this side right now. The card face already says which side and play it needs.
+  function fits(key, play, sd) {
+    if (play === 'fg') return false;   // a kick isn't a snap, so no special goes with it
+    const s = SPECIALS[key];
+    if (s.side !== 'any' && s.side !== sd) return false;
+    return !(s.needs && play && !s.needs.includes(play));
+  }
+  const ready = () => S.phase === 'pick' && !!S.sel.play;
+
+  // ---------- Computer ----------
+  // Normal leans on how often you've called and guessed each play this game. Hard reads you (see below).
+  // Both play their special cards the same way. `seen` is what Hard expected, so it can score its hunches after the snap.
+  function cpuPick() {
+    const hand = S.hands.cpu;
+    const has = (k) => hand.find((c) => c.key === k) || null;
+    const hard = S.level === 'hard';
+    if (S.poss === 'cpu') {
+      const read = hard ? hardCall() : null;
+      const seen = read && read.seen;
+      const behind = S.score.you - S.score.cpu;
+      const h = has('hail');
+      if (h && S.pos + 2 < ZONES && behind >= 7 && Math.random() < 0.5) return { play: 'deep', card: h, seen };
+      const g = S.defHist;
+      const play = read ? read.play : weighted({ run: 1 / g.run, short: 1 / g.short, deep: (S.pos === RED ? 0.35 : 0.8) / g.deep });
+      let card = null;
+      const b = has('breakaway'), j = has('juke'), c = has('grab'), f = has('flag');
+      if (play === 'deep' && h && S.pos + 2 < ZONES && Math.random() < 0.6) card = h;
+      else if (play === 'run' && b && S.pos + 1 < ZONES && Math.random() < 0.6) card = b;
+      else if ((j || c) && Math.random() < (play === 'deep' ? 0.5 : 0.35)) card = j || c;
+      else if (f && Math.random() < 0.2) card = f;
+      return { play, card, seen };
+    }
+    const read = hard ? hardGuess() : null;
+    const h = S.offHist;
+    const tot = h.run + h.short + h.deep;
+    const w = {};
+    for (const p of OFF) w[p] = 0.25 / 3 + 0.75 * (h[p] / tot);
+    if (S.pos === RED) w.deep *= 0.5;
+    const guess = read ? read.play : weighted(w);
+    let card = null;
+    const tl = has('tfl'), sk = has('sack'), p6 = has('picksix'), ff = has('fumble'), f = has('flag');
+    if (p6 && guess !== 'run' && Math.random() < 0.5) card = p6;
+    else if (ff && guess === 'run' && Math.random() < 0.6) card = ff;
+    else if ((tl || sk) && Math.random() < 0.4) card = tl || sk;
+    else if (f && Math.random() < 0.2) card = f;
+    return { play: guess + 'D', card, seen: read && read.seen };
+  }
+
+  // ---------- Hard computer ----------
+  // Several hunches about how you play run at once: your favorite play, your last few calls, what you call in this zone,
+  // what you call after each play, repeating, evening out, and reading the computer back. Each is scored on how well it
+  // would have guessed lately. Hard starts from the calls and guesses nobody can read, even knowing its odds, and leans
+  // on the hunches only as far as they have been working. Tuned by simulating thousands of games (tools/cpu-sim).
+  // It remembers your last few games on this device: the last one counts half, the one before a quarter, and so on.
+  // Its own memory, apart from the 3-zone game's: zones mean different spots here.
+  const HARD_KEY = 'snap-call-downs-hard';
+  const HUNCHES = ['even', 'all', 'recent', 'zone', 'after', 'repeat', 'balance', 'counter'];
+  const EVEN = [1 / 3, 1 / 3, 1 / 3];
+  const norm = (v) => { const s = v[0] + v[1] + v[2]; return v.map((x) => x / s); };
+  const peak = (i) => [0, 1, 2].map((j) => (j === i ? 0.6 : 0.2));
+  const pickBy = (v, better) => {
+    const best = v.reduce((m, x) => (better(x, m) ? x : m));
+    const ties = [0, 1, 2].filter((i) => Math.abs(v[i] - best) < 1e-9);
+    return ties[Math.floor(Math.random() * ties.length)];
+  };
+  const lowest = (v) => pickBy(v, (a, b) => a < b);
+  const highest = (v) => pickBy(v, (a, b) => a > b);
+  const sample = (v) => { let r = Math.random(); for (let i = 0; i < 2; i++) { r -= v[i]; if (r <= 0) return i; } return 2; };
+
+  // One tracker for your calls on offense, one for your guesses on defense.
+  // Rows are [zone, your previous pick, your pick, weight]; this game's rows have no weight yet.
+  const newTracker = () => ({ past: [], game: [], prev: null, score: Object.fromEntries(HUNCHES.map((k) => [k, 0])), mix: 0 });
+  function loadHard() {
+    try {
+      const m = JSON.parse(localStorage.getItem(HARD_KEY));
+      if (m && m.off && m.dfn) {
+        for (const t of [m.off, m.dfn]) {
+          if (!Array.isArray(t.past) || !Array.isArray(t.game)) throw new Error('bad memory');
+          t.score = { ...newTracker().score, ...t.score };
+          t.mix = Number(t.mix) || 0;
+        }
+        return m;
+      }
+    } catch (e) { /* nothing usable saved: start fresh */ }
+    return { off: newTracker(), dfn: newTracker() };
+  }
+  function saveHard() {
+    try { localStorage.setItem(HARD_KEY, JSON.stringify(S.hard)); } catch (e) { /* this device just won't remember */ }
+  }
+  // A new game: every earlier game counts half as much as before, and very old ones drop out.
+  function foldGame(t) {
+    t.prev = null;
+    if (!t.game.length) return;
+    t.past = [...t.past, ...t.game.map((r) => [...r, 1])].map(([z, p, c, w]) => [z, p, c, w / 2]).filter((r) => r[3] > 0.05);
+    for (const k of HUNCHES) t.score[k] /= 2;
+    t.mix /= 2;
+    t.game = [];
+  }
+
+  const share = (rows) => { const n = [1, 1, 1]; for (const r of rows) n[OFF.indexOf(r[2])] += r[3]; return norm(n); };
+  // `counterOf(first guess)` is the pick of a player reading the computer back.
+  function predict(t, pos, counterOf) {
+    const now = t.game.map((r) => [...r, 1]);
+    const rows = [...t.past, ...now];
+    const e = { even: EVEN, all: share(rows), recent: share(now.slice(-5)), zone: share(rows.filter((r) => r[0] === pos)) };
+    e.after = t.prev ? share(rows.filter((r) => r[1] === t.prev)) : e.all;
+    e.repeat = t.prev ? peak(OFF.indexOf(t.prev)) : EVEN;
+    e.balance = peak(lowest(share(now)));
+    const w = Object.fromEntries(HUNCHES.map((k) => [k, Math.exp(t.score[k])]));
+    const blend = () => norm([0, 1, 2].map((i) => Object.keys(e).reduce((s, k) => s + w[k] * e[k][i], 0)));
+    e.counter = peak(counterOf(blend()));
+    const full = blend();
+    return { full, seen: { pos, e, full } };
+  }
+  function learn(t, seen, pick) {
+    const i = OFF.indexOf(pick);
+    for (const k of Object.keys(seen.e)) t.score[k] = 0.9 * t.score[k] + Math.log(3 * seen.e[k][i]);
+    t.mix = 0.9 * t.mix + Math.log(3 * seen.full[i]);
+    t.game.push([seen.pos, t.prev, pick]);
+    t.prev = pick;
+  }
+
+  // What each play is worth to the offense here: zones gained (reaching the end zone counts extra), and what a stop costs.
+  // A first stop only costs a try; a second one costs the ball, and a Deep Pass is intercepted.
+  // Not re-tuned for downs yet: the tools/cpu-sim numbers are for the 3-zone game.
+  function stakes(pos) {
+    const gain = OFF.map((p) => Math.min(PLAYS[p].gain, ZONES - pos) + (pos + PLAYS[p].gain >= ZONES ? 1 : 0));
+    const loss = OFF.map((p) => (S.down < DOWNS ? 0.5 : p === 'deep' ? 1.8 : 1.2));
+    return { gain, loss };
+  }
+  // The calls and guesses nobody can read: each side leaves the other nothing to gain by switching.
+  function safeMix(pos) {
+    const { gain, loss } = stakes(pos);
+    const inv = [0, 1, 2].map((i) => 1 / (gain[i] + loss[i]));
+    const v = (inv.reduce((s, x, i) => s + gain[i] * x, 0) - 1) / (inv[0] + inv[1] + inv[2]);
+    return { calls: norm(inv), guesses: norm([0, 1, 2].map((i) => Math.max(0, (gain[i] - v) * inv[i]))) };
+  }
+  // 0 plays the safe mix, 1 plays fully into the read; never more than 80% on one play.
+  function lean(safe, read, t) {
+    const c = Math.max(0, Math.min(1, t.mix / 0.5));
+    const q = [0, 1, 2].map((i) => (1 - c) * safe[i] + c * read[i]);
+    const hi = Math.max(...q);
+    const s = hi > 0.8 ? (hi - 0.8) / (hi - 1 / 3) : 0;
+    return q.map((x) => (1 - s) * x + s / 3);
+  }
+  function guessOdds(P, pos) {
+    const { gain, loss } = stakes(pos);
+    // What your offense expects to get if Hard guesses x.
+    const payoff = [0, 1, 2].map((x) => [0, 1, 2].reduce((s, y) => s + (y === x ? -P[x] * loss[x] : P[y] * gain[y]), 0));
+    const lo = Math.min(...payoff);
+    return lean(safeMix(pos).guesses, norm(payoff.map((x) => Math.exp(-(x - lo) / 0.3))), S.hard.off);
+  }
+  function callOdds(G, pos) {
+    const { gain, loss } = stakes(pos);
+    const ev = [0, 1, 2].map((i) => (1 - G[i]) * gain[i] - G[i] * loss[i]);
+    const top = Math.max(...ev);
+    return lean(safeMix(pos).calls, norm(ev.map((x) => Math.exp((x - top) / 0.3))), S.hard.dfn);
+  }
+  function hardGuess() {
+    const pos = S.pos;
+    // Someone reading Hard back calls the play it is least likely to guess.
+    const { full, seen } = predict(S.hard.off, pos, (first) => lowest(guessOdds(first, pos)));
+    return { play: OFF[sample(guessOdds(full, pos))], seen };
+  }
+  function hardCall() {
+    const pos = S.pos;
+    // ...and guesses the play it is most likely to call.
+    const { full, seen } = predict(S.hard.dfn, pos, (first) => highest(callOdds(first, pos)));
+    return { play: OFF[sample(callOdds(full, pos))], seen };
+  }
+
+  // ---------- Rules ----------
+  // Losers save, winners score: the plain result first, then the loser's Save, then the winner's Bonus.
+  // `sp` names the side whose special worked; at most one does.
+  function resolve(o, d) {
+    const pass = o.play !== 'run';
+    if (PLAYS[d.play].stops === o.play) {
+      // The offense lost the snap.
+      if (o.sp === 'flag') return { kind: 'replay', sp: 'off' };
+      if (o.sp === 'juke' || o.sp === 'grab') return { kind: 'gain', zones: 1, how: o.sp, sp: 'off' };
+      if (pass && d.sp === 'picksix') return { kind: 'pick6', sp: 'def' };
+      if (!pass && d.sp === 'fumble') return { kind: 'fumble', sp: 'def' };
+      return { kind: o.play === 'deep' ? 'int' : 'stop' };
+    }
+    // The defense lost the snap.
+    if (d.sp === 'flag') return { kind: 'replay', sp: 'def' };
+    if (d.sp === 'sack' || d.sp === 'tfl') return { kind: 'sack', how: d.sp, sp: 'def' };
+    if (o.play === 'deep' && o.sp === 'hail') return { kind: 'td', how: 'hail', sp: 'off' };
+    if (o.play === 'run' && o.sp === 'breakaway') return { kind: 'td', how: 'breakaway', sp: 'off' };
+    return { kind: 'gain', zones: PLAYS[o.play].gain, play: o.play };
+  }
+
+  function callText(offWho, o, d) {
+    const oc = o.sp === 'hail' ? 'threw a Hail Mary' : 'called ' + PLAYS[o.play].name;
+    const dc = 'called ' + PLAYS[d.play].name;
+    return `${NAME[offWho]} ${oc}. ${NAME[other(offWho)]} ${dc}.`;
+  }
+
+  // Where the ball is, said from the side of `who`, the team with the ball.
+  const zoneName = (pos, who) => [
+    who === 'you' ? 'your own 20' : 'their own 20',
+    who === 'you' ? 'your own 35' : 'their own 35',
+    'midfield',
+    who === 'you' ? 'the CPU’s 35' : 'your 35',
+    'the Red Zone',
+  ][pos];
+  const cap = (s) => s[0].toUpperCase() + s.slice(1);
+  // Commentary: each result has a few lines, picked at random, so the play-by-play doesn't repeat itself.
+  // Every line stays short so a play-by-play entry still fits two lines on phones.
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const ballAt = (pos, who) => (pos === RED ? 'Ball in the Red Zone.' : `Ball at ${zoneName(pos, who)}.`);
+  const GAIN_SAYS = {
+    run: ['Good gain.', 'Found a gap.', 'Room to run.'],
+    short: ['Good gain.', 'Easy catch.', 'Moving the chains.'],
+    deep: ['Over the top!', 'Wide open!', 'Deep ball, caught!'],
+  };
+
+  // Winning the ball back with a stop draws a special, if there's room in the hand. The result says so;
+  // the play-by-play leaves it out so every line still fits two lines on phones.
+  function wonBack(who, text) {
+    const n = S.hands[who].length;
+    draw(who);
+    if (S.hands[who].length === n) return { detail: text, log: text };
+    // "CPU recovers at midfield and draws a special." or "Jumped the route. Ball at midfield. CPU draws a special."
+    const detail = text.startsWith(`${NAME[who]} `) && !text.slice(0, -1).includes('.')
+      ? `${text.slice(0, -1)} and ${verb(who, 'draw')} a special.` : `${text} ${NAME[who]} ${verb(who, 'draw')} a special.`;
+    return { detail, log: text };
+  }
+  function kickoff(receiver) { S.poss = receiver; S.pos = 0; S.down = 1; draw(receiver); }
+  function won(who) { if (S.score[who] >= S.target) { S.phase = 'over'; return true; } return false; }
+  function score(who, pts) { S.score[who] += pts; if (!won(who)) kickoff(other(who)); }
+
+  function apply(r, off) {
+    const def = other(off);
+    switch (r.kind) {
+      case 'replay':
+        return { head: 'Flag! Replay', detail: pick([`${NAME[r.by]} threw the flag. Snap again.`, `Flag on the play. Snap again.`]), tone: r.by };
+      case 'gain': {
+        // Every new zone starts the count over.
+        const play = r.play;
+        S.pos += r.zones; S.down = 1;
+        const td = S.pos >= ZONES;
+        if (td) score(off, 7);
+        const rest = td ? `${pick(['Into the end zone!', 'All the way!', 'Nobody touches it!'])} ${NAME[off]} ${verb(off, 'score')} 7.`
+          : r.how ? '+1 zone.' : `${pick(GAIN_SAYS[play])} ${ballAt(S.pos, off)}`;
+        const head = td ? 'Touchdown!' : r.how === 'juke' ? 'Juke!' : r.how === 'grab' ? 'What a catch!' : `+${r.zones} zone${r.zones > 1 ? 's' : ''}`;
+        if (!r.how) return { head, detail: rest, tone: off };
+        // A Save turns a stop into a gain, so the log joins it to the picks with "but".
+        const save = r.how === 'juke' ? pick(['the juke breaks free.', 'one cut and through.', 'a quick juke and gone.'])
+          : pick(['what a catch!', 'a one-handed grab!', 'hauled in anyway!']);
+        return { head, detail: `${cap(save)} ${rest}`, but: `${save} ${rest}`, tone: off };
+      }
+      case 'td': {
+        const lead = r.how === 'hail' ? pick(['Caught! ', 'Up for grabs, and caught! ', 'Hail Mary, caught! '])
+          : r.how === 'breakaway' ? pick(['Breakaway! ', 'Gone! ', 'Untouched! ']) : '';
+        score(off, 7);
+        return { head: 'Touchdown!', detail: `${lead}${NAME[off]} ${verb(off, 'score')} 7.`, tone: off };
+      }
+      // Stopped once, the offense tries again. Stopped twice in the same zone, the defense gets the ball at its own 20,
+      // or at midfield when the second stop is a Deep Pass: intercepted.
+      case 'stop':
+      case 'int':
+        if (S.down < DOWNS) {
+          S.down++;
+          return { head: 'Stopped once', detail: pick(['One more try.', 'Stuffed. One more try.', 'Read it. One more try.', 'No room. One more try.']), tone: def, once: true };
+        }
+        S.poss = def; S.down = 1;
+        if (r.kind === 'int') {
+          S.pos = MID;
+          return { ...wonBack(def, pick([`${NAME[def]} ${verb(def, 'start')} at midfield.`, 'Jumped the route. Ball at midfield.', 'Read it all the way. Ball at midfield.'])), head: 'Intercepted!', tone: def, twice: true };
+        }
+        S.pos = 0;
+        return { ...wonBack(def, pick([`${NAME[def]} ${verb(def, 'take')} over at ${def === 'you' ? 'your' : 'their'} own 20.`, `Held again. ${NAME[def]} ${verb(def, 'take')} over.`, `Two stops. ${NAME[def]} ${verb(def, 'take')} over.`])), head: 'Stopped twice', tone: def, twice: true };
+      case 'sack': {
+        const was = S.pos;
+        S.pos = Math.max(0, S.pos - 1);
+        if (S.pos !== was) S.down = 1;
+        const rest = was === 0 ? 'No gain.' : 'Back 1 zone.';
+        const how = pick(['the defense got through.', 'brought down behind the line.', 'swarmed in the backfield.']);
+        return { head: r.how === 'tfl' ? 'Tackle for loss!' : 'Sacked!', detail: `${cap(how)} ${rest}`, but: `${how} ${rest}`, tone: def };
+      }
+      case 'fumble':
+        S.poss = def; S.pos = MID; S.down = 1;
+        return { ...wonBack(def, pick([`${NAME[def]} ${verb(def, 'recover')} at midfield.`, `Loose ball! ${NAME[def]} ${verb(def, 'fall')} on it.`])), head: 'Fumble!', tone: def };
+      case 'pick6':
+        score(def, 7);
+        return { head: 'Pick Six!', detail: `${pick(['Picked off!', 'Pick and gone!', 'All the way back!'])} ${NAME[def]} ${verb(def, 'score')} 7.`, tone: def };
+    }
+  }
+
+  function addLog(e) { S.log.unshift(e); if (S.log.length > 80) S.log.length = 80; }
+
+  function snap() {
+    if (!ready()) return;
+    if (S.sel.play === 'fg') { kickFG('you'); render(); return; }
+    const you = { play: S.sel.play, card: S.sel.special };
+    const cpu = cpuPick();
+    for (const [w, c] of [['you', you], ['cpu', cpu]]) {
+      if (c.card) S.hands[w] = S.hands[w].filter((x) => x.id !== c.card.id);
+    }
+    const off = S.poss, def = other(off);
+    if (off === 'you') { if (you.play) S.offHist[you.play]++; } else S.defHist[PLAYS[you.play].stops]++;
+    if (cpu.seen) {
+      learn(off === 'you' ? S.hard.off : S.hard.dfn, cpu.seen, off === 'you' ? you.play : PLAYS[you.play].stops);
+      delete cpu.seen;
+      saveHard();
+    }
+
+    const O = off === 'you' ? you : cpu, D = off === 'you' ? cpu : you;
+    const o = { play: O.play, sp: O.card ? O.card.key : null };
+    const d = { play: D.play, sp: D.card ? D.card.key : null };
+    const r = resolve(o, d);
+    const firedBy = r.sp ? (r.sp === 'off' ? off : def) : null;
+    if (r.kind === 'replay') r.by = firedBy;
+    // Played specials are used up, except that a replayed snap hands the other side's special back.
+    for (const [w, c] of [['you', you], ['cpu', cpu]]) {
+      if (!c.card) continue;
+      if (r.kind === 'replay' && w !== firedBy) { S.hands[w].push(c.card); c.status = 'back'; }
+      else { S.discard.push(c.card.key); c.status = w === firedBy ? 'worked' : 'wasted'; }
+    }
+
+    const text = callText(off, o, d);
+    const pos0 = S.pos;
+    const before = { ...S.score };
+    const out = apply(r, off);
+    for (const w of ['you', 'cpu']) {
+      const sp = firedBy === w ? (w === 'you' ? you : cpu).card.key : null;
+      if (S.score[w] > before[w]) celebrate(w, 'touchdown', `${out.head} ${NAME[w]} ${verb(w, 'score')} 7`, before[w], sp);
+    }
+    // Show the ball's path on the field when the same team keeps it.
+    S.move = S.phase !== 'over' && S.poss === off && S.pos !== pos0 ? { from: pos0, to: S.pos } : null;
+    S.snaps++;
+    S.last = { you, cpu, ...out, n: S.snaps, off, guessed: PLAYS[d.play].stops === o.play };
+    addLog({ n: S.snaps, head: out.head, text: out.but ? `${text.slice(0, -1)}, but ${out.but}` : `${text} ${out.log || out.detail}`, tone: out.tone });
+    S.sel = { play: null, special: null };
+    S.showLast = true; S.flip = true;
+    render();
+    afterChange();
+  }
+
+  function kickFG(who) {
+    S.snaps++;
+    const detail = pick([`${NAME[who]} ${verb(who, 'kick')} it through. 3 points.`, 'Right down the middle. 3 points.', 'It’s good! 3 points.']);
+    S.last = { fg: true, head: 'Field goal', detail, tone: who, n: S.snaps };
+    addLog({ n: S.snaps, head: 'Field goal', text: detail, tone: who });
+    S.sel = { play: null, special: null };
+    // The stage keeps showing the kick until the next pick.
+    S.showLast = true; S.move = null;
+    const before = S.score[who];
+    score(who, 3);
+    celebrate(who, 'field-goal', `Field goal! ${NAME[who]} ${verb(who, 'score')} 3`, before);
+  }
+
+  // In the Red Zone the CPU goes for the touchdown first, and kicks once it's down to its last down
+  // (or when 3 points wins the game).
+  function afterChange() {
+    if (S.phase !== 'pick' || S.poss !== 'cpu' || S.pos !== RED) return;
+    const kick = S.target - S.score.cpu <= 3 || S.down === DOWNS;
+    if (!kick) return;
+    S.phase = 'busy'; S.flip = true;
+    render();
+    const game = S;  // a New game during the wait cancels the kick
+    setTimeout(() => { if (S !== game || S.phase !== 'busy') return; S.phase = 'pick'; kickFG('cpu'); render(); }, 1100);
+  }
+
+  // ---------- Drawing ----------
+  // The finished card. Its rules are printed on it, so the alt text repeats them.
+  const cardSrc = (key) => `${PLAYS[key] ? '../downs/cards/' : CARDS}${ART[key]}.webp`;
+  const art = (key, alt) => `<img src="${cardSrc(key)}" alt="${alt}" width="600" height="840" decoding="sync">`;
+  const kickInner = () => `<span class="cv"><img src="${CARDS}kick-field-goal.webp" alt="Kick Field Goal. ${KICK}." width="600" height="840" decoding="sync"></span>`;
+  // `miss` names the outcome that didn't happen ('win' or 'lose'), faded on the stage after the reveal.
+  function faceInner(key, miss) {
+    const p = PLAYS[key];
+    return `<span class="cv">${art(key, `${p.name}. ✓ ${p.win}. ✕ ${p.lose}.`)}${miss === 'both' ? '<span class="veil win"></span><span class="veil lose"></span>' : miss ? `<span class="veil ${miss}"></span>` : ''}</span>`;
+  }
+  const spInner = (key, alt) => `<span class="cv">${art(key, `${alt}. ${SPECIALS[key].when} → ${SPECIALS[key].then}.`)}</span>`;
+  function faceBlock(c, owner, flip, L) {
+    const key = c.play || 'deep';
+    const s = c.card && SPECIALS[c.card.key];
+    const tuck = s ? `<span class="tuck" data-st="${c.status || ''}"><img src="${CARDS}${ART[c.card.key]}.webp" alt="with ${s.name}" width="600" height="840" decoding="sync"></span>` : '';
+    const tag = s && c.status ? `<span class="tag" data-st="${c.status}">${STATUS[c.status]}</span>` : '';
+    // A defense card wins when the play was stopped; an offense card wins when it wasn't.
+    const miss = L ? (L.once ? 'both' : (PLAYS[key].side === 'def') === L.guessed ? 'lose' : 'win') : null;
+    return `<div class="card ${PLAYS[key].side} ${owner}${flip ? ' flip' : ''}">${faceInner(key, miss)}${tuck}${tag}</div>`;
+  }
+  const BACK = `<div class="card back"><span class="cv"><img src="${CARDS}card-back.webp" alt="CPU card, face down" width="600" height="840" decoding="sync"></span></div>`;
+  const NO_SNAP = '<div class="card empty"><span class="cv">No snap</span></div>';
+  // Center of field card k, in the 6-column row with 6px gaps.
+  const zoneX = (k) => `calc((100% - 30px) * ${(2 * k + 1) / 12} + ${6 * k}px)`;
+  const zoneSpan = (n) => `calc((100% - 30px) * ${n / 6} + ${6 * n}px)`;
+
+  // Show the newest 5 plays; older ones scroll. On wide screens a short window shows down to 3 so the game never needs page scrolling.
+  function fitLog() {
+    const log = $('#log'), li = log.children;
+    const bottom = (n) => li[n - 1].offsetTop + li[n - 1].offsetHeight;
+    let rows = 5;
+    if (matchMedia('(min-width: 900px)').matches) {
+      const room = innerHeight - (log.getBoundingClientRect().top + scrollY) - 56;
+      while (rows > 3 && li.length >= rows && bottom(rows) > room) rows--;
+    }
+    log.style.maxHeight = li.length > rows ? `${bottom(rows)}px` : '';
+    $('#more').hidden = li.length <= rows;
+  }
+
+  function render() {
+    // Scoreboard
+    $('#sYou').textContent = cele && cele.who === 'you' ? cele.before : S.score.you;
+    $('#sCpu').textContent = cele && cele.who === 'cpu' ? cele.before : S.score.cpu;
+    $('#tYou').classList.toggle('has-ball', S.poss === 'you');
+    $('#tCpu').classList.toggle('has-ball', S.poss === 'cpu');
+    $('#lvlTag').hidden = S.level !== 'hard';
+    $('#targetNum').textContent = S.target;
+    $('#cpuPips').innerHTML = S.hands.cpu.map(() => '<i></i>').join('');
+
+    // Status
+    const left = ZONES - S.pos;
+    const toGo = `${left} zone${left > 1 ? 's' : ''} to score`;
+    const last = S.down === DOWNS;   // already stopped once in this zone
+    if (S.phase === 'over') { $('#status').textContent = 'Final'; $('#hint').textContent = ''; }
+    else if (S.phase === 'busy') { $('#status').textContent = 'CPU lines up a field goal'; $('#hint').textContent = 'From the Red Zone, 3 points.'; }
+    else if (S.poss === 'you') {
+      $('#status').textContent = last ? 'Your ball: stopped once' : 'Your ball';
+      $('#hint').textContent = S.pos === RED
+        ? (last ? 'Stopped once: kick a field goal for 3, or go for the touchdown.' : 'Red Zone: go for the touchdown, or kick a field goal for 3.')
+        : last ? `${toGo}. Stopped again here and the CPU gets the ball.` : `${toGo}. If the CPU guesses your play, you get one more try.`;
+    } else {
+      $('#status').textContent = last ? 'CPU ball: stopped once' : 'CPU ball';
+      $('#hint').textContent = last ? `${toGo} for the CPU. Stop them again to get the ball.` : `${toGo} for the CPU. Stop them twice here to get the ball.`;
+    }
+
+    // Field
+    const field = $('#field');
+    field.dataset.off = S.poss;
+    field.querySelectorAll('.zone[data-z]').forEach((z) => z.classList.toggle('here', +z.dataset.z === S.pos));
+    $('#ezTeam').textContent = NAME[other(S.poss)];
+    $('#ball').style.left = zoneX(S.pos);
+    $('#ball').classList.toggle('last', last && S.phase !== 'over');
+    const m = S.move;
+    if (m && S.showLast) {
+      const a = Math.min(m.from, m.to), b = Math.max(m.from, m.to), d = m.to - m.from;
+      $('#trail').outerHTML = `<div id="trail" class="trail${d < 0 ? ' loss' : ''}" style="left:${zoneX(a)};width:${zoneSpan(b - a)}"><b>${d > 0 ? '+' : '−'}${Math.abs(d)}</b></div>`;
+    } else $('#trail').outerHTML = '<div id="trail"></div>';
+
+    // Stage
+    const medal = $('#medal');
+    const L = S.last;
+    const kicker = S.phase === 'busy' ? 'cpu' : S.showLast && L && L.fg ? L.tone : null;
+    if (kicker) {
+      const kick = `<div class="card off ${kicker}${S.flip ? ' flip' : ''}">${kickInner()}</div>`;
+      $('#slotYou').innerHTML = kicker === 'you' ? kick : NO_SNAP;
+      $('#slotCpu').innerHTML = kicker === 'cpu' ? kick : NO_SNAP;
+      if (S.phase === 'busy') { medal.className = 'medal'; medal.style.removeProperty('--tone'); medal.textContent = 'Kick'; }
+      else { medal.className = 'medal hit'; medal.style.setProperty('--tone', `var(--${kicker})`); medal.textContent = '+3'; }
+    } else if (S.showLast && L) {
+      $('#slotYou').innerHTML = faceBlock(L.you, 'you', false, L);
+      $('#slotCpu').innerHTML = faceBlock(L.cpu, 'cpu', S.flip, L);
+      medal.className = 'medal hit' + (S.flip ? ' pop' : '');
+      medal.style.setProperty('--tone', `var(--${L.guessed ? other(L.off) : L.off})`);
+      medal.innerHTML = !L.guessed ? 'Not<br>stopped' : L.once ? 'Stopped<br>once' : L.twice ? 'Stopped<br>twice' : 'Stopped';
+    } else {
+      $('#slotYou').innerHTML = S.sel.play === 'fg'
+        ? `<div class="card off you">${kickInner()}</div>`
+        : S.sel.play
+        ? faceBlock({ play: S.sel.play, card: S.sel.special }, 'you', false)
+        : '<div class="card empty"><span class="cv">Pick a card below. Hold one to see it big.</span></div>';
+      $('#slotCpu').innerHTML = BACK;
+      medal.className = 'medal'; medal.style.removeProperty('--tone'); medal.textContent = 'vs';
+    }
+    S.flip = false;
+
+    // Result
+    const res = $('#result');
+    const R = L || { head: 'Kickoff', detail: 'You start at your own 20. Pick a play, then snap.', tone: 'you', n: 0 };
+    res.style.setProperty('--tone', `var(--${R.tone})`);
+    res.innerHTML = `<span class="head">${R.head}</span><span class="detail">${R.detail}</span>`;
+    res.classList.remove('pop');
+    if (R.n !== shownResult && R.n > 0) { void res.offsetWidth; res.classList.add('pop'); $('#log').scrollTop = 0; }
+    shownResult = R.n;
+
+    // Hand
+    const keys = S.poss === 'you' ? (S.pos === RED ? [...OFF, 'fg'] : OFF) : DEF;
+    $('#hand').classList.toggle('four', keys.length === 4);
+    $('#handLabel').textContent = S.poss === 'you' ? 'Your play (offense)' : 'Your guess (defense)';
+    $('#handHint').textContent = S.poss === 'you'
+      ? (last ? 'If the CPU guesses it, they get the ball' : 'If the CPU guesses it, you get one more try')
+      : (last ? 'Guess right to get the ball' : 'Guess right twice to get the ball');
+    $('#hand').innerHTML = keys.map((k) => {
+      const on = S.sel.play === k;
+      const off = S.phase !== 'pick' ? ' disabled' : '';
+      if (k === 'fg') return `<button type="button" class="card off kick${on ? ' on' : ''}" data-play="fg" aria-pressed="${on}"${off}>${kickInner()}</button>`;
+      return `<button type="button" class="card ${PLAYS[k].side}${on ? ' on' : ''}" data-play="${k}" aria-pressed="${on}"${off}>${faceInner(k)}</button>`;
+    }).join('');
+
+    // Specials
+    const sd = side();
+    const sp = S.hands.you.map((c) => {
+      const s = SPECIALS[c.key];
+      const on = S.sel.special && S.sel.special.id === c.id;
+      const ok = S.phase === 'pick' && fits(c.key, S.sel.play, sd);
+      const alt = `${s.name}, ${s.kind === 'save' ? 'Save' : 'Bonus'}, ${SIDE_LABEL[s.side]}`;
+      return `<button type="button" class="card sp${on ? ' on' : ''}" data-sp="${c.id}" aria-pressed="${!!on}"${ok || on ? '' : ' disabled'}>`
+        + spInner(c.key, alt)
+        + '</button>';
+    });
+    while (sp.length < 3) sp.push('<div class="card empty"><span class="cv">Empty slot. You draw one when you get scored on.</span></div>');
+    $('#specials').innerHTML = sp.join('');
+
+    // Actions
+    $('#snap').disabled = !ready();
+    $('#snap').textContent = S.sel.play === 'fg' ? 'Kick for 3' : S.poss === 'you' ? 'Snap' : 'Defend';
+
+    // Play by play
+    $('#log').innerHTML = S.log.map((e) => `<li class="t-${e.tone}"><span class="n">${e.n || 'KO'}</span><span><b>${e.head || ''}</b>${e.text}</span></li>`).join('');
+    fitLog();
+
+    // Game over
+    const over = $('#over');
+    over.hidden = S.phase !== 'over' || !!cele;
+    if (S.phase === 'over') {
+      const w = S.score.you > S.score.cpu ? 'you' : 'cpu';
+      over.querySelector('.panel').style.setProperty('--tone', `var(--${w})`);
+      $('#overHead').textContent = w === 'you' ? 'You win' : 'CPU wins';
+      $('#overScore').textContent = `${S.score.you} – ${S.score.cpu}`;
+    }
+  }
+
+  // ---------- Input ----------
+  $('#hand').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-play]');
+    if (!b || S.phase !== 'pick') return;
+    const k = b.dataset.play;
+    S.sel.play = S.sel.play === k ? null : k;
+    const s = S.sel.special;
+    if (s && S.sel.play && !fits(s.key, S.sel.play, side())) S.sel.special = null;
+    S.showLast = false;
+    render();
+  });
+  $('#specials').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sp]');
+    if (!b || S.phase !== 'pick') return;
+    const card = S.hands.you.find((c) => c.id === +b.dataset.sp);
+    if (!card) return;
+    if (S.sel.special && S.sel.special.id === card.id) S.sel.special = null;
+    else {
+      S.sel.special = card;
+      // A special that only works with one play picks that play for you.
+      const needs = SPECIALS[card.key].needs;
+      if (!S.sel.play && needs && needs.length === 1) S.sel.play = needs[0];
+    }
+    S.showLast = false;
+    render();
+  });
+  // Press and hold a card to see it big; it stays open until the next tap. A quick tap still picks the card.
+  // Cards are found by position, since a disabled card ignores the pointer.
+  const ZOOMABLE = '.hand .card, .specials .card:not(.empty), .slot .card:not(.back):not(.empty), .tuck, .zone';
+  let hold = null, zoomed = false, swallowClick = false;
+  function cardImgAt(x, y) {
+    const hits = [...document.querySelectorAll(ZOOMABLE)].filter((el) => {
+      const r = el.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    });
+    // A tucked special sits behind its play card, so the play card wins where they overlap.
+    const el = hits.find((h) => !h.classList.contains('tuck')) || hits[0];
+    return el ? el.querySelector('img') : null;
+  }
+  function showZoom(img) {
+    hold = null; zoomed = true; swallowClick = true;
+    $('#zoomImg').src = img.currentSrc || img.src;
+    $('#zoomImg').alt = img.alt;
+    $('#zoom').hidden = false;
+  }
+  function closeZoom() { zoomed = false; $('#zoom').hidden = true; }
+  function cancelHold() {
+    if (!hold) return;
+    clearTimeout(hold.timer);
+    hold = null;
+  }
+  document.addEventListener('pointerdown', (e) => {
+    swallowClick = false;
+    cancelHold();
+    // The tap that closes the big card does nothing else.
+    if (zoomed) { closeZoom(); swallowClick = true; return; }
+    if (e.button !== 0 || e.target.closest('dialog, .cele, .over')) return;
+    const img = cardImgAt(e.clientX, e.clientY);
+    if (img) hold = { x: e.clientX, y: e.clientY, timer: setTimeout(() => showZoom(img), 400) };
+  });
+  // Moving the finger before the card opens means scrolling, not holding.
+  document.addEventListener('pointermove', (e) => {
+    if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 10) cancelHold();
+  });
+  document.addEventListener('pointerup', cancelHold);
+  document.addEventListener('pointercancel', cancelHold);
+  document.addEventListener('keydown', (e) => { if (zoomed && e.key === 'Escape') closeZoom(); });
+  // Letting go after a hold, or the tap that closes the big card, must not pick or drop a card.
+  document.addEventListener('click', (e) => {
+    if (!swallowClick) return;
+    swallowClick = false;
+    e.preventDefault(); e.stopPropagation();
+  }, true);
+  document.addEventListener('contextmenu', (e) => { if (cardImgAt(e.clientX, e.clientY)) e.preventDefault(); });
+
+  $('#snap').addEventListener('click', snap);
+  // New game and Play again ask Normal or Hard; the level you're playing now is ready to pick again.
+  let lenPick = 21;
+  function setLen(t) {
+    lenPick = t;
+    for (const b of document.querySelectorAll('.len button')) b.setAttribute('aria-checked', String(+b.dataset.target === t));
+  }
+  function askLevel() {
+    setLen(S.target);
+    $('#level').showModal();
+    $(`.lvl-pick[data-level="${S.level || 'normal'}"]`).focus();
+  }
+  for (const b of document.querySelectorAll('.len button')) b.addEventListener('click', () => setLen(+b.dataset.target));
+  $('#newGame').addEventListener('click', askLevel);
+  $('#again').addEventListener('click', askLevel);
+  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', () => { $('#level').close(); newGame(b.dataset.level, lenPick); });
+  $('#closeLevel').addEventListener('click', () => $('#level').close());
+  $('#level').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+  $('#cele').addEventListener('click', endCelebrate);
+  $('#howTo').addEventListener('click', () => $('#rules').showModal());
+  $('#closeRules').addEventListener('click', () => $('#rules').close());
+  $('#rules').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+  window.addEventListener('resize', fitLog);
+  // Fetch every card up front so the first reveal never waits on an image.
+  for (const k of Object.keys(ART)) new Image().src = cardSrc(k);
+  for (const f of ['card-back', 'touchdown', 'field-goal', 'kick-field-goal']) new Image().src = `${CARDS}${f}.webp`;
+
+  // Keep the game going across live updates of this page.
+  if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ S, uid }));
+  function start(data) {
+    if (data && data.S && data.S.v === RULES_VERSION) {
+      S = data.S; uid = data.uid || 0;
+      if (S.phase === 'busy') S.phase = 'pick';
+      render(); afterChange();
+    } else newGame(savedLevel());
+  }
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>
