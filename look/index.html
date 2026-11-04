@@ -88,6 +88,12 @@
     .top-actions .long { display: none; }
     .top-actions .short { display: inline; }
   }
+  /* Phones: the title and the buttons don't fit on one row, so both rows are centered. */
+  @media (max-width: 500px) {
+    .top { flex-direction: column; align-items: center; gap: 10px; }
+    .brand { flex: none; justify-content: center; }
+    .top-actions { margin-left: 0; }
+  }
   /* Small phones: a slightly smaller title keeps title and buttons on one row down to about 310px. */
   @media (max-width: 340px) {
     .brand h1 { font-size: 21px; }
