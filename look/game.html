@@ -11,9 +11,10 @@
      Team colors (you orange, CPU teal) stay off the frames so they never read as offense or defense.
      The one loud moment is the stage: the CPU's card flips over and a referee-style medal says whether the play was stopped.
      Look preview: the Old look / New look switch in the header flips this page between the current design (Old,
-     the same as full-../full-cards/cards/) and a proposed one (New): the scoreboard is the only box, the snap is played on the
+     the same as full-cards/) and a proposed one (New): the scoreboard is the only box, the snap is played on the
      turf with the two cards facing each other across a chalk line of scrimmage, labels are in plain case instead
-     of spaced-out capitals, the announcer has a few lines per result, and How to play walks through one drive. */
+     of spaced-out capitals, the announcer has a few lines per result, and How to play walks through one drive.
+     New game also has the rules choice: Stopped once (look/) or Stopped twice (look/downs/). */
   :root {
     --turf: #0f3d29;
     --turf-2: #13492f;
@@ -446,6 +447,15 @@
   .look-pick button[aria-pressed="true"] { background: var(--chalk); color: var(--turf-deep); }
   .look-pick button:focus-visible { outline: 2px solid var(--chalk); outline-offset: -2px; }
   .new-look .old-only, html:not(.new-look) .new-only { display: none; }
+  /* The rules choice in New game. */
+  .rule-set { display: grid; gap: 8px; }
+  .rule-set .opts { display: flex; gap: 8px; }
+  .rule-set button {
+    flex: 1; min-height: 44px; cursor: pointer; border-radius: 8px; padding: 6px 8px;
+    background: transparent; color: var(--chalk); border: 1px solid var(--chalk-faint); font: 700 17px/1.1 var(--ui);
+  }
+  .rule-set button[aria-checked="true"] { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
+  .rule-set p { margin: 0; font: 400 14px/1.35 var(--ui); color: var(--chalk-dim); }
 
   /* New look: everything below only applies when the switch is on New. */
   .new-look .team .label { font: 700 19px/1 var(--ui); letter-spacing: 0.01em; text-transform: none; }
@@ -609,6 +619,13 @@
     <dialog class="rules level" id="level" aria-labelledby="levelHead">
       <div class="head"><h2 id="levelHead">New game</h2><button class="ghost" id="closeLevel" type="button">Close</button></div>
       <div class="body">
+        <div class="rule-set">
+          <div class="opts" role="radiogroup" aria-label="Rules">
+            <button type="button" role="radio" data-rules="once" aria-checked="true">Stopped once</button>
+            <button type="button" role="radio" data-rules="twice" aria-checked="false">Stopped twice</button>
+          </div>
+          <p>Today’s rules: one right guess and the defense gets the ball.</p>
+        </div>
         <button class="lvl-pick" type="button" data-level="normal"><b>Normal</b><span>Learns your habits as you play.</span></button>
         <button class="lvl-pick" type="button" data-level="hard"><b>Hard</b><span>Reads you closely and remembers your last few games.</span></button>
       </div>
@@ -1309,6 +1326,10 @@
   }
   setLook(newLook);
   for (const b of document.querySelectorAll('.look-pick button')) b.addEventListener('click', () => { setLook(b.dataset.look === 'new'); render(); });
+  // The rules choice in New game opens the other rule set's page, with New game showing.
+  for (const b of document.querySelectorAll('.rule-set button')) b.addEventListener('click', () => {
+    if (b.getAttribute('aria-checked') !== 'true') location.href = 'downs/?new';
+  });
   for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', () => { $('#level').close(); newGame(b.dataset.level); });
   $('#closeLevel').addEventListener('click', () => $('#level').close());
   $('#level').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
@@ -1330,5 +1351,7 @@
     } else newGame(savedLevel());
   }
   window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  // Arriving from the other rule set: ask Normal or Hard right away.
+  if (new URLSearchParams(location.search).has('new')) { history.replaceState(null, '', location.pathname); if (S) askLevel(); }
 })();
 </script>

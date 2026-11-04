@@ -1,28 +1,34 @@
 # Run: python3 tools/look/make.py, then python3 build.py.
-# Builds look/game.html from full-cards/game.html: the current design ("Old look") plus the proposed one
-# ("New look"), switched in the header. Old look = full-cards exactly; New look = scoped CSS + new wording.
+# Builds the two look preview pages from the real games, so the "Old look" is always exactly today's page:
+#   look/game.html        from full-cards/game.html  (stopped once: one right guess and the defense gets the ball)
+#   look/downs/game.html  from downs/game.html       (stopped twice: the longer field being tested)
+# Each page gets the Old look / New look switch in its header (New = scoped CSS + new wording) and a rules
+# choice in New game that opens the other page.
 import re, sys
 from pathlib import Path
-root = Path.home() / "Desktop/snap-call"
-s = (root / "full-cards/game.html").read_text()
 
-def rep(old, new):
-    global s
-    n = s.count(old)
-    if n != 1:
-        sys.exit(f"expected 1 match, got {n}: {old[:70]!r}")
-    s = s.replace(old, new)
+ROOT = Path(__file__).resolve().parents[2]
 
-rep("""says whether the play was stopped. */""",
-"""says whether the play was stopped.
+
+class Page:
+    def __init__(self, src):
+        self.s = (ROOT / src).read_text()
+
+    def rep(self, old, new):
+        n = self.s.count(old)
+        if n != 1:
+            sys.exit(f"expected 1 match, got {n}: {old[:70]!r}")
+        self.s = self.s.replace(old, new)
+
+
+NOTE = """says whether the play was stopped.
      Look preview: the Old look / New look switch in the header flips this page between the current design (Old,
-     the same as full-cards/) and a proposed one (New): the scoreboard is the only box, the snap is played on the
+     the same as {src}) and a proposed one (New): the scoreboard is the only box, the snap is played on the
      turf with the two cards facing each other across a chalk line of scrimmage, labels are in plain case instead
-     of spaced-out capitals, the announcer has a few lines per result, and How to play walks through one drive. */""")
+     of spaced-out capitals, the announcer has a few lines per result, and How to play walks through one drive.
+     New game also has the rules choice: Stopped once (look/) or Stopped twice (look/downs/). */"""
 
-rep("  .rules ul { margin:", "  .rules ul, .rules ol { margin:")
-
-rep("</style>", """
+CSS = """
   /* ---------- Look preview ---------- */
   .look-pick { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
   .look-pick button {
@@ -32,6 +38,15 @@ rep("</style>", """
   .look-pick button[aria-pressed="true"] { background: var(--chalk); color: var(--turf-deep); }
   .look-pick button:focus-visible { outline: 2px solid var(--chalk); outline-offset: -2px; }
   .new-look .old-only, html:not(.new-look) .new-only { display: none; }
+  /* The rules choice in New game. */
+  .rule-set { display: grid; gap: 8px; }
+  .rule-set .opts { display: flex; gap: 8px; }
+  .rule-set button {
+    flex: 1; min-height: 44px; cursor: pointer; border-radius: 8px; padding: 6px 8px;
+    background: transparent; color: var(--chalk); border: 1px solid var(--chalk-faint); font: 700 17px/1.1 var(--ui);
+  }
+  .rule-set button[aria-checked="true"] { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
+  .rule-set p { margin: 0; font: 400 14px/1.35 var(--ui); color: var(--chalk-dim); }
 
   /* New look: everything below only applies when the switch is on New. */
   .new-look .team .label { font: 700 19px/1 var(--ui); letter-spacing: 0.01em; text-transform: none; }
@@ -59,19 +74,112 @@ rep("</style>", """
     .new-look .brand { flex: none; justify-content: center; }
     .new-look .top-actions { margin-left: 0; }
   }
-</style>""")
+</style>"""
 
-rep('<span class="chip">Finished cards</span>',
-    '<div class="look-pick" role="group" aria-label="Screen design">'
-    '<button type="button" data-look="old" aria-pressed="false">Old look</button>'
-    '<button type="button" data-look="new" aria-pressed="true">New look</button></div>')
+SWITCH_HTML = ('<div class="look-pick" role="group" aria-label="Screen design">'
+               '<button type="button" data-look="old" aria-pressed="false">Old look</button>'
+               '<button type="button" data-look="new" aria-pressed="true">New look</button></div>')
 
-rep("$('#snap').textContent = S.poss === 'you' ? 'Snap' : 'Snap · Defend';",
-    "$('#snap').textContent = S.poss === 'you' ? 'Snap' : newLook ? 'Defend' : 'Snap · Defend';")
 
-# ---- How to play: the current bullets (Old) and the one-drive version (New)
-rep("        <ul>\n          <li>The field has 3 zones", "        <ul class=\"old-only\">\n          <li>The field has 3 zones")
-rep("""          <li>Press and hold any card to see it big.</li>
+def rule_set(current, note):
+    once, twice = ("true", "false") if current == "once" else ("false", "true")
+    return f"""        <div class="rule-set">
+          <div class="opts" role="radiogroup" aria-label="Rules">
+            <button type="button" role="radio" data-rules="once" aria-checked="{once}">Stopped once</button>
+            <button type="button" role="radio" data-rules="twice" aria-checked="{twice}">Stopped twice</button>
+          </div>
+          <p>{note}</p>
+        </div>
+"""
+
+
+STATE_JS = """  let S;
+  // Look preview: which design is showing (the switch in the header). Remembered on this device.
+  const LOOK_KEY = 'snap-call-look-style';
+  let newLook = true;
+  try { newLook = localStorage.getItem(LOOK_KEY) !== 'old'; } catch (e) { /* New look */ }
+"""
+
+
+def say_js(red):
+    return f"""  const cap = (s) => s[0].toUpperCase() + s.slice(1);
+  // New look: each result has a few announcer lines, picked at random, so the play-by-play doesn't repeat itself.
+  // Old look: the current line (the first one, unless given). Every line stays short enough for two lines on phones.
+  const say = (lines, old = lines[0]) => (newLook ? lines[Math.floor(Math.random() * lines.length)] : old);
+  const ballAt = (pos, who) => (newLook && pos === {red} ? 'Ball in the Red Zone.' : `Ball at ${{zoneName(pos, who)}}.`);
+  const GAIN_SAYS = {{
+    run: ['Good gain. ', 'Found a gap. ', 'Room to run. '],
+    short: ['Good gain. ', 'Easy catch. ', 'Moving the chains. '],
+    deep: ['Over the top! ', 'Wide open! ', 'Deep ball, caught! '],
+  }};"""
+
+
+def switch_js(other):
+    return f"""  function setLook(on) {{
+    newLook = on;
+    document.documentElement.classList.toggle('new-look', on);
+    for (const b of document.querySelectorAll('.look-pick button')) b.setAttribute('aria-pressed', String((b.dataset.look === 'new') === on));
+    try {{ localStorage.setItem(LOOK_KEY, on ? 'new' : 'old'); }} catch (e) {{ /* this device just won't remember */ }}
+  }}
+  setLook(newLook);
+  for (const b of document.querySelectorAll('.look-pick button')) b.addEventListener('click', () => {{ setLook(b.dataset.look === 'new'); render(); }});
+  // The rules choice in New game opens the other rule set's page, with New game showing.
+  for (const b of document.querySelectorAll('.rule-set button')) b.addEventListener('click', () => {{
+    if (b.getAttribute('aria-checked') !== 'true') location.href = '{other}?new';
+  }});
+  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener("""
+
+
+START = "  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});\n"
+OPEN_JS = START + """  // Arriving from the other rule set: ask Normal or Hard right away.
+  if (new URLSearchParams(location.search).has('new')) { history.replaceState(null, '', location.pathname); if (S) askLevel(); }
+"""
+
+
+def common(p, src, red, other):
+    """Everything both pages share: switch, styles, announcer lines for the results both rule sets have."""
+    p.rep("says whether the play was stopped. */", NOTE.format(src=src))
+    p.rep("  .rules ul { margin:", "  .rules ul, .rules ol { margin:")
+    p.rep("</style>", CSS)
+    p.rep("  let S;\n", STATE_JS)
+    p.rep("  const cap = (s) => s[0].toUpperCase() + s.slice(1);", say_js(red))
+    p.rep("  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener(", switch_js(other))
+    p.rep(START, OPEN_JS)
+    p.rep("    return { kind: 'gain', zones: PLAYS[o.play].gain };",
+          "    return { kind: 'gain', zones: PLAYS[o.play].gain, play: o.play };")
+    p.rep("detail: `${NAME[r.by]} threw the flag: snap again.`",
+          "detail: say([`${NAME[r.by]} threw the flag. Snap again.`, 'Flag on the play. Snap again.'], `${NAME[r.by]} threw the flag: snap again.`)")
+    p.rep("const rest = td ? `${NAME[off]} ${verb(off, 'score')} 7.` : r.how ? '+1 zone.' : `Ball at ${zoneName(S.pos, off)}.`;",
+          "const rest = td ? `${say(['Into the end zone! ', 'All the way! ', 'Nobody touches it! '], '')}${NAME[off]} ${verb(off, 'score')} 7.`\n"
+          "          : r.how ? '+1 zone.' : `${say(GAIN_SAYS[r.play], '')}${ballAt(S.pos, off)}`;")
+    p.rep("const save = r.how === 'juke' ? 'the juke breaks free.' : 'what a catch!';",
+          "const save = r.how === 'juke' ? say(['the juke breaks free.', 'one cut and through.', 'a quick juke and gone.'])\n"
+          "          : say(['what a catch!', 'a one-handed grab!', 'hauled in anyway!']);")
+    p.rep("const lead = r.how === 'hail' ? 'Caught! ' : r.how === 'breakaway' ? 'Breakaway! ' : '';",
+          "const lead = r.how === 'hail' ? say(['Caught! ', 'Up for grabs, and caught! ', 'Hail Mary, caught! '])\n"
+          "          : r.how === 'breakaway' ? say(['Breakaway! ', 'Gone! ', 'Untouched! ']) : '';")
+    p.rep("return { head: r.how === 'tfl' ? 'Tackle for loss!' : 'Sacked!', detail: `The defense got through. ${rest}`, but: `got through. ${rest}`, tone: def };",
+          "const how = say(['the defense got through.', 'brought down behind the line.', 'swarmed in the backfield.']);\n"
+          "        return { head: r.how === 'tfl' ? 'Tackle for loss!' : 'Sacked!', detail: `${cap(how)} ${rest}`, but: newLook ? `${how} ${rest}` : `got through. ${rest}`, tone: def };")
+    p.rep("detail: `Picked off! ${NAME[def]} ${verb(def, 'score')} 7.`",
+          "detail: `${say(['Picked off!', 'Pick and gone!', 'All the way back!'])} ${NAME[def]} ${verb(def, 'score')} 7.`")
+    p.rep("const detail = `${NAME[who]} ${verb(who, 'kick')} it through. 3 points.`;",
+          "const detail = say([`${NAME[who]} ${verb(who, 'kick')} it through. 3 points.`, 'Right down the middle. 3 points.', 'It’s good! 3 points.']);")
+
+
+SPECIALS_P = "Only one special can work per snap, and a played special is used up either way.</p>"
+
+# ======================= look/: stopped once (from full-cards/) =======================
+p = Page("full-cards/game.html")
+common(p, "full-cards/", "ZONES.length - 1", "downs/")
+p.rep('<span class="chip">Finished cards</span>', SWITCH_HTML)
+p.rep("$('#snap').textContent = S.poss === 'you' ? 'Snap' : 'Snap · Defend';",
+      "$('#snap').textContent = S.poss === 'you' ? 'Snap' : newLook ? 'Defend' : 'Snap · Defend';")
+p.rep('        <button class="lvl-pick" type="button" data-level="normal">',
+      rule_set("once", "Today’s rules: one right guess and the defense gets the ball.")
+      + '        <button class="lvl-pick" type="button" data-level="normal">')
+p.rep("        <ul>\n          <li>The field has 3 zones", "        <ul class=\"old-only\">\n          <li>The field has 3 zones")
+p.rep("""          <li>Press and hold any card to see it big.</li>
         </ul>
 """, """          <li>Press and hold any card to see it big.</li>
         </ul>
@@ -87,77 +195,76 @@ rep("""          <li>Press and hold any card to see it big.</li>
         <p class="new-only">Run and Short Pass gain 1 zone, and Deep Pass gains 2. A guessed Deep Pass is intercepted, and the defense starts at midfield.</p>
         <p class="new-only">First to 21 wins. Press and hold any card to see it big.</p>
 """)
-rep("""Only one special can work per snap, and a played special is used up either way.</p>""",
-"""Only one special can work per snap, and a played special is used up either way.</p>
+p.rep(SPECIALS_P, SPECIALS_P + """
         <p class="new-only">You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>""")
-
-# ---- Announcer: New look picks one of a few lines; Old look keeps the current line
-rep("  let S;\n", """  let S;
-  // Look preview: which design is showing (the switch in the header). Remembered on this device.
-  const LOOK_KEY = 'snap-call-look-style';
-  let newLook = true;
-  try { newLook = localStorage.getItem(LOOK_KEY) !== 'old'; } catch (e) { /* New look */ }
-""")
-rep("  const cap = (s) => s[0].toUpperCase() + s.slice(1);",
-"""  const cap = (s) => s[0].toUpperCase() + s.slice(1);
-  // New look: each result has a few announcer lines, picked at random, so the play-by-play doesn't repeat itself.
-  // Old look: the current line (the first one, unless given). Every line stays short enough for two lines on phones.
-  const say = (lines, old = lines[0]) => (newLook ? lines[Math.floor(Math.random() * lines.length)] : old);
-  const ballAt = (pos, who) => (newLook && pos === ZONES.length - 1 ? 'Ball in the Red Zone.' : `Ball at ${zoneName(pos, who)}.`);
-  const GAIN_SAYS = {
-    run: ['Good gain. ', 'Found a gap. ', 'Room to run. '],
-    short: ['Good gain. ', 'Easy catch. ', 'Moving the chains. '],
-    deep: ['Over the top! ', 'Wide open! ', 'Deep ball, caught! '],
-  };""")
-rep("    return { kind: 'gain', zones: PLAYS[o.play].gain };",
-    "    return { kind: 'gain', zones: PLAYS[o.play].gain, play: o.play };")
-rep("detail: `${NAME[r.by]} threw the flag: snap again.`",
-    "detail: say([`${NAME[r.by]} threw the flag. Snap again.`, 'Flag on the play. Snap again.'], `${NAME[r.by]} threw the flag: snap again.`)")
-rep("const rest = td ? `${NAME[off]} ${verb(off, 'score')} 7.` : r.how ? '+1 zone.' : `Ball at ${zoneName(S.pos, off)}.`;",
-    "const rest = td ? `${say(['Into the end zone! ', 'All the way! ', 'Nobody touches it! '], '')}${NAME[off]} ${verb(off, 'score')} 7.`\n"
-    "          : r.how ? '+1 zone.' : `${say(GAIN_SAYS[r.play], '')}${ballAt(S.pos, off)}`;")
-rep("const save = r.how === 'juke' ? 'the juke breaks free.' : 'what a catch!';",
-    "const save = r.how === 'juke' ? say(['the juke breaks free.', 'one cut and through.', 'a quick juke and gone.'])\n"
-    "          : say(['what a catch!', 'a one-handed grab!', 'hauled in anyway!']);")
-rep("const lead = r.how === 'hail' ? 'Caught! ' : r.how === 'breakaway' ? 'Breakaway! ' : '';",
-    "const lead = r.how === 'hail' ? say(['Caught! ', 'Up for grabs, and caught! ', 'Hail Mary, caught! '])\n"
-    "          : r.how === 'breakaway' ? say(['Breakaway! ', 'Gone! ', 'Untouched! ']) : '';")
-rep("""      case 'stop':
+p.rep("""      case 'stop':
         S.poss = def; S.pos = 0;
         return { head: 'Stopped', detail: `${NAME[def]} ${verb(def, 'take')} over at ${def === 'you' ? 'your' : 'their'} 25.`, tone: def };""",
-"""      case 'stop': {
+      """      case 'stop': {
         S.poss = def; S.pos = 0;
         const at = `${NAME[def]} ${verb(def, 'take')} over at ${def === 'you' ? 'your' : 'their'} 25.`;
         return { head: 'Stopped', detail: say([at, `Stuffed. ${at}`, `Read it. ${at}`]), tone: def };
       }""")
-rep("return { head: 'Intercepted!', detail: `${NAME[def]} ${verb(def, 'start')} at midfield.`, tone: def };",
-    "return { head: 'Intercepted!', detail: say([`${NAME[def]} ${verb(def, 'start')} at midfield.`, 'Jumped the route. Ball at midfield.', 'Read it all the way. Ball at midfield.']), tone: def };")
-rep("return { head: r.how === 'tfl' ? 'Tackle for loss!' : 'Sacked!', detail: `The defense got through. ${rest}`, but: `got through. ${rest}`, tone: def };",
-    "const how = say(['the defense got through.', 'brought down behind the line.', 'swarmed in the backfield.']);\n"
-    "        return { head: r.how === 'tfl' ? 'Tackle for loss!' : 'Sacked!', detail: `${cap(how)} ${rest}`, but: newLook ? `${how} ${rest}` : `got through. ${rest}`, tone: def };")
-rep("return { head: 'Fumble!', detail: `${NAME[def]} ${verb(def, 'recover')} at midfield.`, tone: def };",
-    "return { head: 'Fumble!', detail: say([`${NAME[def]} ${verb(def, 'recover')} at midfield.`, `Loose ball! ${NAME[def]} ${verb(def, 'fall')} on it.`]), tone: def };")
-rep("detail: `Picked off! ${NAME[def]} ${verb(def, 'score')} 7.`",
-    "detail: `${say(['Picked off!', 'Pick and gone!', 'All the way back!'])} ${NAME[def]} ${verb(def, 'score')} 7.`")
-rep("const detail = `${NAME[who]} ${verb(who, 'kick')} it through. 3 points.`;",
-    "const detail = say([`${NAME[who]} ${verb(who, 'kick')} it through. 3 points.`, 'Right down the middle. 3 points.', 'It’s good! 3 points.']);")
+p.rep("return { head: 'Intercepted!', detail: `${NAME[def]} ${verb(def, 'start')} at midfield.`, tone: def };",
+      "return { head: 'Intercepted!', detail: say([`${NAME[def]} ${verb(def, 'start')} at midfield.`, 'Jumped the route. Ball at midfield.', 'Read it all the way. Ball at midfield.']), tone: def };")
+p.rep("return { head: 'Fumble!', detail: `${NAME[def]} ${verb(def, 'recover')} at midfield.`, tone: def };",
+      "return { head: 'Fumble!', detail: say([`${NAME[def]} ${verb(def, 'recover')} at midfield.`, `Loose ball! ${NAME[def]} ${verb(def, 'fall')} on it.`]), tone: def };")
+p.rep("const HARD_KEY = 'snap-call-hard';", "const HARD_KEY = 'snap-call-look-hard';")
+p.s = re.sub(r"(?<![\w/.\-])cards/", "../full-cards/cards/", p.s)
+(ROOT / "look/game.html").write_text(p.s)
 
-# ---- The switch
-rep("  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener(",
-"""  function setLook(on) {
-    newLook = on;
-    document.documentElement.classList.toggle('new-look', on);
-    for (const b of document.querySelectorAll('.look-pick button')) b.setAttribute('aria-pressed', String((b.dataset.look === 'new') === on));
-    try { localStorage.setItem(LOOK_KEY, on ? 'new' : 'old'); } catch (e) { /* this device just won't remember */ }
-  }
-  setLook(newLook);
-  for (const b of document.querySelectorAll('.look-pick button')) b.addEventListener('click', () => { setLook(b.dataset.look === 'new'); render(); });
-  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener(""")
+# ======================= look/downs/: stopped twice (from downs/) =======================
+p = Page("downs/game.html")
+common(p, "downs/", "RED", "../")
+p.rep('<span class="chip">Downs test</span>', SWITCH_HTML)
+p.rep("S.poss === 'you' ? 'Snap' : 'Snap · Defend';", "S.poss === 'you' ? 'Snap' : newLook ? 'Defend' : 'Snap · Defend';")
+p.rep('        <div class="len" role="radiogroup"',
+      rule_set("twice", "Being tested: a longer field, and one more try in each zone.")
+      + '        <div class="len" role="radiogroup"')
+p.rep("        <p>This page tests a longer field where you get two chances in each zone.</p>\n        <ul>",
+      "        <p class=\"old-only\">This page tests a longer field where you get two chances in each zone.</p>\n        <ul class=\"old-only\">")
+p.rep("""          <li>Press and hold any card to see it big.</li>
+        </ul>
+""", """          <li>Press and hold any card to see it big.</li>
+        </ul>
 
-# ---- Own Hard memory, so the preview doesn't change the main game's
-rep("const HARD_KEY = 'snap-call-hard';", "const HARD_KEY = 'snap-call-look-hard';")
-
-# ---- Card images come from full-cards/
-s = re.sub(r"(?<![\w/.])cards/", "../full-cards/cards/", s)
-(root / "look/game.html").write_text(s)
-print("ok")
+        <p class="new-only">Each snap, the offense secretly picks a play and the defense tries to guess it. Both cards flip at once. A wrong guess moves the ball. A right guess stops the play.</p>
+        <h3 class="new-only">One drive, snap by snap</h3>
+        <ol class="new-only">
+          <li>You start at your own 20 and call Run. The CPU guesses Stop Short. Wrong guess, so you gain a zone.</li>
+          <li>At your own 35 you call Deep Pass, and the CPU guesses Stop Deep. You’re stopped once. You keep the ball, and the ball turns sideways as a reminder.</li>
+          <li>You call Short Pass and the CPU guesses Stop Run. You gain a zone to midfield, and the new zone starts the count over.</li>
+          <li>Two more zones take you into the Red Zone. Score a touchdown for 7, or play the Kick Field Goal card for 3.</li>
+        </ol>
+        <p class="new-only">Run and Short Pass gain 1 zone, and Deep Pass gains 2. If you’re stopped twice in the same zone, the CPU takes the ball at its own 20. When that second stop comes on a Deep Pass, it’s intercepted, and the CPU starts at midfield.</p>
+        <p class="new-only">First to 21 wins, or pick 28 or 35 at New game for a longer one. Press and hold any card to see it big.</p>
+""")
+p.rep(SPECIALS_P, SPECIALS_P + """
+        <p class="new-only">You start with 2 specials, or 3 if you get the ball second. You draw one when you’re scored on and when you win the ball back with a stop, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>""")
+p.rep("<dd>If they guess your play, it doesn’t count as a stop: you still gain 1 zone.</dd>",
+      "<dd><span class=\"old-only\">If they guess your play, it doesn’t count as a stop: you still gain 1 zone.</span>"
+      "<span class=\"new-only\">If they guess your play, it doesn’t count as a stop, and you still gain 1 zone.</span></dd>")
+# Winning the ball back: lines now end with a period, and the draw joins subject-led lines with "and"
+# (the Old look's lines all are, so they read exactly as before).
+p.rep("""    const drew = S.hands[who].length > n ? ` and ${verb(who, 'draw')} a special` : '';
+    return { detail: `${text}${drew}.`, log: `${text}.` };""",
+      """    if (S.hands[who].length === n) return { detail: text, log: text };
+    // "CPU recovers at midfield and draws a special." or "Jumped the route. Ball at midfield. CPU draws a special."
+    const detail = text.startsWith(`${NAME[who]} `) && !text.slice(0, -1).includes('.')
+      ? `${text.slice(0, -1)} and ${verb(who, 'draw')} a special.` : `${text} ${NAME[who]} ${verb(who, 'draw')} a special.`;
+    return { detail, log: text };""")
+p.rep("return { head: 'Stopped once', detail: 'One more try.', tone: def, once: true };",
+      "return { head: 'Stopped once', detail: say(['One more try.', 'Stuffed. One more try.', 'Read it. One more try.', 'No room. One more try.']), tone: def, once: true };")
+p.rep("return { ...wonBack(def, `${NAME[def]} ${verb(def, 'start')} at midfield`), head: 'Intercepted!', tone: def, twice: true };",
+      "return { ...wonBack(def, say([`${NAME[def]} ${verb(def, 'start')} at midfield.`, 'Jumped the route. Ball at midfield.', 'Read it all the way. Ball at midfield.'])), head: 'Intercepted!', tone: def, twice: true };")
+p.rep("return { ...wonBack(def, `${NAME[def]} ${verb(def, 'take')} over at ${def === 'you' ? 'your' : 'their'} own 20`), head: 'Stopped twice', tone: def, twice: true };",
+      "return { ...wonBack(def, say([`${NAME[def]} ${verb(def, 'take')} over at ${def === 'you' ? 'your' : 'their'} own 20.`, `Held again. ${NAME[def]} ${verb(def, 'take')} over.`, `Two stops. ${NAME[def]} ${verb(def, 'take')} over.`])), head: 'Stopped twice', tone: def, twice: true };")
+p.rep("return { ...wonBack(def, `${NAME[def]} ${verb(def, 'recover')} at midfield`), head: 'Fumble!', tone: def };",
+      "return { ...wonBack(def, say([`${NAME[def]} ${verb(def, 'recover')} at midfield.`, `Loose ball! ${NAME[def]} ${verb(def, 'fall')} on it.`])), head: 'Fumble!', tone: def };")
+p.rep("const HARD_KEY = 'snap-call-downs-hard';", "const HARD_KEY = 'snap-call-look-downs-hard';")
+p.rep("const TARGET_KEY = 'snap-call-downs-target';", "const TARGET_KEY = 'snap-call-look-downs-target';")
+p.s = p.s.replace("../full-cards/", "../../full-cards/")
+p.s = re.sub(r"(?<![\w/.\-])cards/", "../../downs/cards/", p.s)
+(ROOT / "look/downs").mkdir(exist_ok=True)
+(ROOT / "look/downs/game.html").write_text(p.s)
+print("built look/ and look/downs/")
