@@ -1295,7 +1295,7 @@
     const keys = S.poss === 'you' ? (S.pos === RED ? [...OFF, 'fg'] : OFF) : DEF;
     $('#hand').classList.toggle('four', keys.length === 4);
     $('#handLabel').textContent = S.poss === 'you' ? 'Your play (offense)' : 'Your guess (defense)';
-    $('#handHint').textContent = S.poss === 'you'
+    $('#handHint').textContent = newLook ? '' : S.poss === 'you'
       ? (last ? 'If the CPU guesses it, they get the ball' : 'If the CPU guesses it, you get one more try')
       : (last ? 'Guess right to get the ball' : 'Guess right twice to get the ball');
     setCards($('#hand'), keys.map((k) => {

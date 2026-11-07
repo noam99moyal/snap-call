@@ -167,6 +167,8 @@ def common(p, src, red, other):
     p.rep("    $('#hand').innerHTML = keys.map((k) => {", "    setCards($('#hand'), keys.map((k) => {")
     p.rep("    }).join('');\n\n    // Specials", "    }).join(''));\n\n    // Specials")
     p.rep("    $('#specials').innerHTML = sp.join('');", "    setCards($('#specials'), sp.join(''));")
+    # New look: no line under the hand saying what a stop does; the status line and How to play cover it.
+    p.rep("    $('#handHint').textContent = S.poss === 'you'", "    $('#handHint').textContent = newLook ? '' : S.poss === 'you'")
     p.rep("    return { kind: 'gain', zones: PLAYS[o.play].gain };",
           "    return { kind: 'gain', zones: PLAYS[o.play].gain, play: o.play };")
     p.rep("detail: `${NAME[r.by]} threw the flag: snap again.`",

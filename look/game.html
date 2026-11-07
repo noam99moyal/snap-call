@@ -1243,7 +1243,7 @@
     const keys = S.poss === 'you' ? (S.pos === 2 ? [...OFF, 'fg'] : OFF) : DEF;
     $('#hand').classList.toggle('four', keys.length === 4);
     $('#handLabel').textContent = S.poss === 'you' ? 'Your play (offense)' : 'Your guess (defense)';
-    $('#handHint').textContent = S.poss === 'you' ? 'If the CPU guesses it, they get the ball' : 'Guess right to get the ball';
+    $('#handHint').textContent = newLook ? '' : S.poss === 'you' ? 'If the CPU guesses it, they get the ball' : 'Guess right to get the ball';
     setCards($('#hand'), keys.map((k) => {
       const on = S.sel.play === k;
       const off = S.phase !== 'pick' ? ' disabled' : '';
