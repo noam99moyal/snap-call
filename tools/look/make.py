@@ -67,20 +67,22 @@ def rule_set(current, note):
 """
 
 
-def state_js(red):
+def state_js():
     return f"""  let S;
   // First-game tips: the helper lines under the field, in the empty card spot and at kickoff. Each one shows until
-  // you've done it once, and none after your first game on this device. Show tips again (How to play) brings them back.
+  // you've done it once (the card spot's until your first snap), and none after your first game on this device.
+  // Show tips again (How to play) brings them back.
   const TIPS_KEY = 'snap-call-look-tips';
-  const FRESH_TIPS = {{ on: true, off: false, def: false, red: false, hold: false }};
+  const FRESH_TIPS = {{ on: true, off: false, def: false, hold: false }};
   let tips = {{ ...FRESH_TIPS }};
   try {{ tips = {{ ...FRESH_TIPS, ...JSON.parse(localStorage.getItem(TIPS_KEY)) }}; }} catch (e) {{ /* tips on */ }}
   const tip = (k) => tips.on && !tips[k];
   function saveTips() {{ try {{ localStorage.setItem(TIPS_KEY, JSON.stringify(tips)); }} catch (e) {{ /* tips come back next visit */ }} }}
   function tipDone(k) {{ if (tip(k)) {{ tips[k] = true; saveTips(); }} }}
-  // A snap teaches the tip for where you are: offense, offense in the Red Zone, or defense.
+  // A snap teaches the tip for your side, and the game has started, so the card spot's tip goes too.
   function markTips() {{
-    if (S.poss === 'you') {{ tipDone('off'); if (S.pos === {red}) tipDone('red'); }} else tipDone('def');
+    tipDone(S.poss === 'you' ? 'off' : 'def');
+    tipDone('hold');
   }}
 """
 
@@ -142,7 +144,7 @@ def common(p, src, red, other):
     """Everything both pages share: styles, tips, announcer lines for the results both rule sets have, Offense / Defense."""
     p.rep("says whether the play was stopped. */", NOTE.format(src=src))
     p.rep("</style>", CSS)
-    p.rep("  let S;\n", state_js(red))
+    p.rep("  let S;\n", state_js())
     p.rep("  const cap = (s) => s[0].toUpperCase() + s.slice(1);", say_js(red))
     p.rep("  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener(", rules_js(other))
     p.rep(START, OPEN_JS)
@@ -231,7 +233,6 @@ def status_block(p, code):
 
 TIPS = {
     'off': 'Pick a play. The CPU will try to stop it.',
-    'red': 'Pick a play, or kick a field goal for 3.',
     'def': 'Pick the Stop card that matches their play.',
 }
 
@@ -356,7 +357,6 @@ status_block(p, f"""    // Status: first-game tips and the CPU's field goal; the
     const kick = S.phase === 'busy';
     const tipLine = S.phase !== 'pick' ? ''
       : S.poss === 'cpu' ? (tip('def') ? '{TIPS['def']}' : '')
-      : S.pos === 2 && tip('red') ? '{TIPS['red']}'
       : tip('off') ? '{TIPS['off']}' : '';
     showStatus(kick ? 'CPU lines up a field goal' : '', kick ? 'From the Red Zone, 3 points.' : tipLine, tips.on);""")
 p.rep("    $('#handHint').textContent = S.poss === 'you' ? 'If the CPU guesses it, they get the ball' : 'Guess right to get the ball';\n", "")
@@ -411,7 +411,6 @@ status_block(p, f"""    // Status: "stopped once" while it's the last try in thi
       line = S.poss === 'you' ? 'Stopped again here and the CPU gets the ball.' : 'Stop them again to get the ball.';
     }} else if (S.phase === 'pick') {{
       line = S.poss === 'cpu' ? (tip('def') ? '{TIPS['def']}' : '')
-        : S.pos === RED && tip('red') ? '{TIPS['red']}'
         : tip('off') ? '{TIPS['off']}' : '';
     }}
     showStatus(head, line, S.phase !== 'over');""")

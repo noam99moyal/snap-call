@@ -693,17 +693,19 @@
 
   let S;
   // First-game tips: the helper lines under the field, in the empty card spot and at kickoff. Each one shows until
-  // you've done it once, and none after your first game on this device. Show tips again (How to play) brings them back.
+  // you've done it once (the card spot's until your first snap), and none after your first game on this device.
+  // Show tips again (How to play) brings them back.
   const TIPS_KEY = 'snap-call-look-tips';
-  const FRESH_TIPS = { on: true, off: false, def: false, red: false, hold: false };
+  const FRESH_TIPS = { on: true, off: false, def: false, hold: false };
   let tips = { ...FRESH_TIPS };
   try { tips = { ...FRESH_TIPS, ...JSON.parse(localStorage.getItem(TIPS_KEY)) }; } catch (e) { /* tips on */ }
   const tip = (k) => tips.on && !tips[k];
   function saveTips() { try { localStorage.setItem(TIPS_KEY, JSON.stringify(tips)); } catch (e) { /* tips come back next visit */ } }
   function tipDone(k) { if (tip(k)) { tips[k] = true; saveTips(); } }
-  // A snap teaches the tip for where you are: offense, offense in the Red Zone, or defense.
+  // A snap teaches the tip for your side, and the game has started, so the card spot's tip goes too.
   function markTips() {
-    if (S.poss === 'you') { tipDone('off'); if (S.pos === RED) tipDone('red'); } else tipDone('def');
+    tipDone(S.poss === 'you' ? 'off' : 'def');
+    tipDone('hold');
   }
   let uid = 0;
   let shownResult = -1;
@@ -1228,7 +1230,6 @@
       line = S.poss === 'you' ? 'Stopped again here and the CPU gets the ball.' : 'Stop them again to get the ball.';
     } else if (S.phase === 'pick') {
       line = S.poss === 'cpu' ? (tip('def') ? 'Pick the Stop card that matches their play.' : '')
-        : S.pos === RED && tip('red') ? 'Pick a play, or kick a field goal for 3.'
         : tip('off') ? 'Pick a play. The CPU will try to stop it.' : '';
     }
     showStatus(head, line, S.phase !== 'over');
