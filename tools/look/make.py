@@ -199,8 +199,10 @@ def both(p, old, new):
     p.rep(old, f'<span class="old-only">{old}</span><span class="new-only">{new}</span>')
 
 
-def cards_words(p, home):
-    """How to play in the cards' own words: stopped / not stopped, not right / wrong guess."""
+def cards_words(p, home, twice=False):
+    """How to play in the cards' own words: stopped / not stopped, not right / wrong guess.
+    With two stops, the defense bonuses say they work on the first stop too."""
+    first = ", even on their first try," if twice else ","
     both(p, f"If you guess wrong, they gain nothing and go back 1 zone (never behind their own {home}). They keep the ball.",
          f"If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own {home}).")
     both(p, "Only one special can work per snap, and a played special is used up either way.",
@@ -211,9 +213,9 @@ def cards_words(p, home):
     both(p, "If you throw deep and they guess wrong, it goes all the way for a touchdown.",
          "If your Deep Pass isn’t stopped, it goes all the way for a touchdown.")
     both(p, "If you guess their pass right (Stop Short or Stop Deep), you score 7.",
-         "If you stop a pass (Stop Short or Stop Deep), you score 7.")
+         f"If you stop a pass (Stop Short or Stop Deep){first} you score 7.")
     both(p, "If you guess their run right, you recover the ball at midfield.",
-         "If you stop a Run, you get the ball at midfield.")
+         f"If you stop a Run{first} you get the ball at midfield.")
     both(p, "It remembers which plays you call and which ones you guess, and leans on your habits. Mix it up.",
          "It remembers which plays you call and which Stop cards you pick, and leans on your habits. Mix it up.")
 
@@ -384,7 +386,7 @@ p.rep(SPECIALS_P, SPECIALS_P + """
 p.rep("<dd>If they guess your play, it doesn’t count as a stop: you still gain 1 zone.</dd>",
       "<dd><span class=\"old-only\">If they guess your play, it doesn’t count as a stop: you still gain 1 zone.</span>"
       "<span class=\"new-only\">If your play is stopped, you still gain 1 zone.</span></dd>")
-cards_words(p, "20")
+cards_words(p, "20", twice=True)
 # Winning the ball back: lines now end with a period, and the draw joins subject-led lines with "and"
 # (the Old look's lines all are, so they read exactly as before).
 p.rep("""    const drew = S.hands[who].length > n ? ` and ${verb(who, 'draw')} a special` : '';
