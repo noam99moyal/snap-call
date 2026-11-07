@@ -25,7 +25,7 @@ NOTE = """says whether the play was stopped.
      Look preview: the Old look / New look switch in the header flips this page between the current design (Old,
      the same as {src}) and a proposed one (New): the scoreboard is the only box, the snap is played on the
      turf with the two cards facing each other across a chalk line of scrimmage, labels are in plain case instead
-     of spaced-out capitals, the announcer has a few lines per result, and How to play walks through one drive.
+     of spaced-out capitals, the announcer has a few lines per result, and How to play is a short list in the cards' words (Stopped / Not stopped).
      New game also has the rules choice: Stopped once (look/) or Stopped twice (look/downs/). */"""
 
 CSS = """
@@ -191,6 +191,27 @@ def common(p, src, red, other):
 
 SPECIALS_P = "Only one special can work per snap, and a played special is used up either way.</p>"
 
+
+def both(p, old, new):
+    """The Old look keeps `old`; the New look says `new` instead."""
+    p.rep(old, f'<span class="old-only">{old}</span><span class="new-only">{new}</span>')
+
+
+def cards_words(p, home):
+    """How to play in the cards' own words: stopped / not stopped, not right / wrong guess."""
+    both(p, f"If you guess wrong, they gain nothing and go back 1 zone (never behind their own {home}). They keep the ball.",
+         f"If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own {home}).")
+    both(p, "If you run and they guess wrong, it goes all the way for a touchdown.",
+         "If your Run isn’t stopped, it goes all the way for a touchdown.")
+    both(p, "If you throw deep and they guess wrong, it goes all the way for a touchdown.",
+         "If your Deep Pass isn’t stopped, it goes all the way for a touchdown.")
+    both(p, "If you guess their pass right (Stop Short or Stop Deep), you score 7.",
+         "If you stop a pass (Stop Short or Stop Deep), you score 7.")
+    both(p, "If you guess their run right, you recover the ball at midfield.",
+         "If you stop a Run, you get the ball at midfield.")
+    both(p, "It remembers which plays you call and which ones you guess, and leans on your habits. Mix it up.",
+         "It remembers which plays you call and which Stop cards you pick, and leans on your habits. Mix it up.")
+
 # ======================= look/: stopped once (from full-cards/) =======================
 p = Page("full-cards/game.html")
 common(p, "full-cards/", "ZONES.length - 1", "downs/")
@@ -300,19 +321,19 @@ p.rep("""          <li>Press and hold any card to see it big.</li>
 """, """          <li>Press and hold any card to see it big.</li>
         </ul>
 
-        <p class="new-only">Each snap, the offense secretly picks a play and the defense tries to guess it. Both cards flip at once. A wrong guess moves the ball. A right guess stops the play, and the defense gets the ball.</p>
-        <h3 class="new-only">One drive, snap by snap</h3>
-        <ol class="new-only">
-          <li>You start at your own 25 and call Run. The CPU guesses Stop Short. Wrong guess, so you gain a zone to midfield.</li>
-          <li>At midfield you call Short Pass, and the CPU guesses Stop Run. Wrong again, and you’re in the Red Zone.</li>
-          <li>In the Red Zone you could play the Kick Field Goal card for 3, but you call Deep Pass and the CPU guesses Stop Short. Touchdown, 7 points.</li>
-          <li>The CPU gets the ball at its own 25 and draws a special. It calls Run, you guess Stop Run, and the ball is yours at your own 25.</li>
-        </ol>
-        <p class="new-only">Run and Short Pass gain 1 zone, and Deep Pass gains 2. A guessed Deep Pass is intercepted, and the defense starts at midfield.</p>
-        <p class="new-only">First to 21 wins, or pick 28 or 35 at New game for a longer one. Press and hold any card to see it big.</p>
+        <ul class="new-only">
+          <li>The field has 3 zones: your own 25, midfield, the Red Zone. Get past the Red Zone for a touchdown, 7 points. In the Red Zone you can also kick a field goal instead of a play, for 3.</li>
+          <li>Each snap, the offense secretly picks a play and the defense secretly picks a Stop card. Both flip at once.</li>
+          <li><strong>Not stopped</strong> (the Stop card doesn’t match the play): the ball moves. Run and Short Pass gain 1 zone, Deep Pass gains 2.</li>
+          <li><strong>Stopped</strong> (it matches): the defense gets the ball at its own 25. A stopped Deep Pass is intercepted, and they start at midfield.</li>
+          <li>First to 21 wins, or pick 28 or 35 at New game.</li>
+        </ul>
 """)
 p.rep(SPECIALS_P, SPECIALS_P + """
         <p class="new-only">You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>""")
+both(p, "If they guess your play, you still gain 1 zone. A guessed Deep Pass gains 1 instead of being intercepted.",
+     "If your play is stopped, you still gain 1 zone. A stopped Deep Pass gains 1 instead of being intercepted.")
+cards_words(p, "25")
 p.rep("""      case 'stop':
         S.poss = def; S.pos = 0;
         return { head: 'Stopped', detail: `${NAME[def]} ${verb(def, 'take')} over at ${def === 'you' ? 'your' : 'their'} 25.`, tone: def };""",
@@ -344,22 +365,21 @@ p.rep("""          <li>Press and hold any card to see it big.</li>
 """, """          <li>Press and hold any card to see it big.</li>
         </ul>
 
-        <p class="new-only">Each snap, the offense secretly picks a play and the defense tries to guess it. Both cards flip at once. A wrong guess moves the ball. A right guess stops the play.</p>
-        <h3 class="new-only">One drive, snap by snap</h3>
-        <ol class="new-only">
-          <li>You start at your own 20 and call Run. The CPU guesses Stop Short. Wrong guess, so you gain a zone.</li>
-          <li>At your own 35 you call Deep Pass, and the CPU guesses Stop Deep. You’re stopped once. You keep the ball, and the ball turns sideways as a reminder.</li>
-          <li>You call Short Pass and the CPU guesses Stop Run. You gain a zone to midfield, and the new zone starts the count over.</li>
-          <li>Two more zones take you into the Red Zone. Score a touchdown for 7, or play the Kick Field Goal card for 3.</li>
-        </ol>
-        <p class="new-only">Run and Short Pass gain 1 zone, and Deep Pass gains 2. If you’re stopped twice in the same zone, the CPU takes the ball at its own 20. When that second stop comes on a Deep Pass, it’s intercepted, and the CPU starts at midfield.</p>
-        <p class="new-only">First to 21 wins, or pick 28 or 35 at New game for a longer one. Press and hold any card to see it big.</p>
+        <ul class="new-only">
+          <li>The field has 5 zones: your own 20, your own 35, midfield, their 35, the Red Zone. Get past the Red Zone for a touchdown, 7 points. In the Red Zone you can also kick a field goal instead of a play, for 3.</li>
+          <li>Each snap, the offense secretly picks a play and the defense secretly picks a Stop card. Both flip at once.</li>
+          <li><strong>Not stopped</strong> (the Stop card doesn’t match the play): the ball moves. Run and Short Pass gain 1 zone, Deep Pass gains 2.</li>
+          <li><strong>Stopped once</strong> (it matches): the offense keeps the ball and tries again, and the ball turns sideways as a reminder. Reaching a new zone starts the count over.</li>
+          <li><strong>Stopped twice</strong> in the same zone: the defense gets the ball at its own 20. If the second stop is on a Deep Pass, it’s intercepted, and they start at midfield.</li>
+          <li>First to 21 wins, or pick 28 or 35 at New game.</li>
+        </ul>
 """)
 p.rep(SPECIALS_P, SPECIALS_P + """
         <p class="new-only">You start with 2 specials, or 3 if you get the ball second. You draw one when you’re scored on and when you win the ball back with a stop, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>""")
 p.rep("<dd>If they guess your play, it doesn’t count as a stop: you still gain 1 zone.</dd>",
       "<dd><span class=\"old-only\">If they guess your play, it doesn’t count as a stop: you still gain 1 zone.</span>"
-      "<span class=\"new-only\">If they guess your play, it doesn’t count as a stop, and you still gain 1 zone.</span></dd>")
+      "<span class=\"new-only\">If your play is stopped, you still gain 1 zone.</span></dd>")
+cards_words(p, "20")
 # Winning the ball back: lines now end with a period, and the draw joins subject-led lines with "and"
 # (the Old look's lines all are, so they read exactly as before).
 p.rep("""    const drew = S.hands[who].length > n ? ` and ${verb(who, 'draw')} a special` : '';

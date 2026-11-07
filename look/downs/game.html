@@ -13,7 +13,7 @@
      Look preview: the Old look / New look switch in the header flips this page between the current design (Old,
      the same as downs/) and a proposed one (New): the scoreboard is the only box, the snap is played on the
      turf with the two cards facing each other across a chalk line of scrimmage, labels are in plain case instead
-     of spaced-out capitals, the announcer has a few lines per result, and How to play walks through one drive.
+     of spaced-out capitals, the announcer has a few lines per result, and How to play is a short list in the cards' words (Stopped / Not stopped).
      New game also has the rules choice: Stopped once (look/) or Stopped twice (look/downs/). */
   :root {
     --turf: #0f3d29;
@@ -598,32 +598,30 @@
           <li>Press and hold any card to see it big.</li>
         </ul>
 
-        <p class="new-only">Each snap, the offense secretly picks a play and the defense tries to guess it. Both cards flip at once. A wrong guess moves the ball. A right guess stops the play.</p>
-        <h3 class="new-only">One drive, snap by snap</h3>
-        <ol class="new-only">
-          <li>You start at your own 20 and call Run. The CPU guesses Stop Short. Wrong guess, so you gain a zone.</li>
-          <li>At your own 35 you call Deep Pass, and the CPU guesses Stop Deep. You’re stopped once. You keep the ball, and the ball turns sideways as a reminder.</li>
-          <li>You call Short Pass and the CPU guesses Stop Run. You gain a zone to midfield, and the new zone starts the count over.</li>
-          <li>Two more zones take you into the Red Zone. Score a touchdown for 7, or play the Kick Field Goal card for 3.</li>
-        </ol>
-        <p class="new-only">Run and Short Pass gain 1 zone, and Deep Pass gains 2. If you’re stopped twice in the same zone, the CPU takes the ball at its own 20. When that second stop comes on a Deep Pass, it’s intercepted, and the CPU starts at midfield.</p>
-        <p class="new-only">First to 21 wins, or pick 28 or 35 at New game for a longer one. Press and hold any card to see it big.</p>
+        <ul class="new-only">
+          <li>The field has 5 zones: your own 20, your own 35, midfield, their 35, the Red Zone. Get past the Red Zone for a touchdown, 7 points. In the Red Zone you can also kick a field goal instead of a play, for 3.</li>
+          <li>Each snap, the offense secretly picks a play and the defense secretly picks a Stop card. Both flip at once.</li>
+          <li><strong>Not stopped</strong> (the Stop card doesn’t match the play): the ball moves. Run and Short Pass gain 1 zone, Deep Pass gains 2.</li>
+          <li><strong>Stopped once</strong> (it matches): the offense keeps the ball and tries again, and the ball turns sideways as a reminder. Reaching a new zone starts the count over.</li>
+          <li><strong>Stopped twice</strong> in the same zone: the defense gets the ball at its own 20. If the second stop is on a Deep Pass, it’s intercepted, and they start at midfield.</li>
+          <li>First to 21 wins, or pick 28 or 35 at New game.</li>
+        </ul>
 
         <h3>Specials: losers save, winners score</h3>
         <p>Every special is a Save or a Bonus. You play it with your card, before the cards are shown. A Save only works if you lose the snap, with any play. A Bonus only works if you win it. Only one special can work per snap, and a played special is used up either way.</p>
         <p class="new-only">You start with 2 specials, or 3 if you get the ball second. You draw one when you’re scored on and when you win the ball back with a stop, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>
         <dl>
-          <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd><span class="old-only">If they guess your play, it doesn’t count as a stop: you still gain 1 zone.</span><span class="new-only">If they guess your play, it doesn’t count as a stop, and you still gain 1 zone.</span></dd>
-          <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd>If you guess wrong, they gain nothing and go back 1 zone (never behind their own 20). They keep the ball.</dd>
+          <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd><span class="old-only">If they guess your play, it doesn’t count as a stop: you still gain 1 zone.</span><span class="new-only">If your play is stopped, you still gain 1 zone.</span></dd>
+          <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd><span class="old-only">If you guess wrong, they gain nothing and go back 1 zone (never behind their own 20). They keep the ball.</span><span class="new-only">If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own 20).</span></dd>
           <dt>Challenge Flag <span>either side, save</span></dt><dd>If you lose the snap, cancel it and both sides pick again. Any other special played on it goes back to its owner.</dd>
-          <dt>Breakaway <span>offense bonus</span></dt><dd>If you run and they guess wrong, it goes all the way for a touchdown.</dd>
-          <dt>Hail Mary <span>offense bonus</span></dt><dd>If you throw deep and they guess wrong, it goes all the way for a touchdown.</dd>
-          <dt>Pick Six <span>defense bonus</span></dt><dd>If you guess their pass right (Stop Short or Stop Deep), you score 7.</dd>
-          <dt>Forced Fumble <span>defense bonus</span></dt><dd>If you guess their run right, you recover the ball at midfield.</dd>
+          <dt>Breakaway <span>offense bonus</span></dt><dd><span class="old-only">If you run and they guess wrong, it goes all the way for a touchdown.</span><span class="new-only">If your Run isn’t stopped, it goes all the way for a touchdown.</span></dd>
+          <dt>Hail Mary <span>offense bonus</span></dt><dd><span class="old-only">If you throw deep and they guess wrong, it goes all the way for a touchdown.</span><span class="new-only">If your Deep Pass isn’t stopped, it goes all the way for a touchdown.</span></dd>
+          <dt>Pick Six <span>defense bonus</span></dt><dd><span class="old-only">If you guess their pass right (Stop Short or Stop Deep), you score 7.</span><span class="new-only">If you stop a pass (Stop Short or Stop Deep), you score 7.</span></dd>
+          <dt>Forced Fumble <span>defense bonus</span></dt><dd><span class="old-only">If you guess their run right, you recover the ball at midfield.</span><span class="new-only">If you stop a Run, you get the ball at midfield.</span></dd>
         </dl>
 
         <h3>The computer</h3>
-        <p>It remembers which plays you call and which ones you guess, and leans on your habits. Mix it up.</p>
+        <p><span class="old-only">It remembers which plays you call and which ones you guess, and leans on your habits. Mix it up.</span><span class="new-only">It remembers which plays you call and which Stop cards you pick, and leans on your habits. Mix it up.</span></p>
         <p>On Hard it also notices when you try to trick it, and remembers your last few games on this device.</p>
       </div>
     </dialog>
