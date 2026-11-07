@@ -208,6 +208,8 @@ def cards_words(p, home, twice=False):
     both(p, "Only one special can work per snap, and a played special is used up either way.",
          "Only one special can work per snap, and a played special is used up either way, except when a Challenge Flag "
          "cancels the snap: then the other side’s special goes back to its hand.")
+    both(p, "If you lose the snap, cancel it and both sides pick again. Any other special played on it goes back to its owner.",
+         "If you lose the snap, cancel it and both sides pick again.")
     both(p, "If you run and they guess wrong, it goes all the way for a touchdown.",
          "If your Run isn’t stopped, it goes all the way for a touchdown.")
     both(p, "If you throw deep and they guess wrong, it goes all the way for a touchdown.",
@@ -376,7 +378,7 @@ p.rep("""          <li>Press and hold any card to see it big.</li>
           <li>The field has 5 zones: your own 20, your own 35, midfield, their 35, the Red Zone. Get past the Red Zone for a touchdown, 7 points. In the Red Zone you can also kick a field goal instead of a play, for 3.</li>
           <li>Each snap, the offense secretly picks a play and the defense secretly picks a Stop card. Both flip at once.</li>
           <li><strong>Not stopped</strong> (the Stop card doesn’t match the play): the ball moves. Run and Short Pass gain 1 zone, Deep Pass gains 2.</li>
-          <li><strong>Stopped once</strong> (it matches): the offense keeps the ball and tries again, and the ball turns sideways as a reminder. Reaching a new zone starts the count over.</li>
+          <li><strong>Stopped once</strong> (it matches): the offense keeps the ball and tries again. Reaching a new zone starts the count over.</li>
           <li><strong>Stopped twice</strong> in the same zone: the defense gets the ball at its own 20. If the second stop is on a Deep Pass, it’s intercepted, and they start at midfield.</li>
           <li>First to 21 wins, or pick 28 or 35 at New game.</li>
         </ul>
@@ -385,7 +387,7 @@ p.rep(SPECIALS_P, SPECIALS_P + """
         <p class="new-only">You start with 2 specials, or 3 if you get the ball second. You draw one when you’re scored on and when you win the ball back with a stop, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>""")
 p.rep("<dd>If they guess your play, it doesn’t count as a stop: you still gain 1 zone.</dd>",
       "<dd><span class=\"old-only\">If they guess your play, it doesn’t count as a stop: you still gain 1 zone.</span>"
-      "<span class=\"new-only\">If your play is stopped, you still gain 1 zone.</span></dd>")
+      "<span class=\"new-only\">If your play is stopped, you still gain 1 zone. A stopped Deep Pass gains 1 instead of being intercepted.</span></dd>")
 cards_words(p, "20", twice=True)
 # Winning the ball back: lines now end with a period, and the draw joins subject-led lines with "and"
 # (the Old look's lines all are, so they read exactly as before).
