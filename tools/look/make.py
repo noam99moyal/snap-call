@@ -203,6 +203,9 @@ def cards_words(p, home):
     """How to play in the cards' own words: stopped / not stopped, not right / wrong guess."""
     both(p, f"If you guess wrong, they gain nothing and go back 1 zone (never behind their own {home}). They keep the ball.",
          f"If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own {home}).")
+    both(p, "Only one special can work per snap, and a played special is used up either way.",
+         "Only one special can work per snap, and a played special is used up either way, except when a Challenge Flag "
+         "cancels the snap: then the other side’s special goes back to its hand.")
     both(p, "If you run and they guess wrong, it goes all the way for a touchdown.",
          "If your Run isn’t stopped, it goes all the way for a touchdown.")
     both(p, "If you throw deep and they guess wrong, it goes all the way for a touchdown.",
