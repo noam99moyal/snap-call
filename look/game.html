@@ -10,11 +10,10 @@
      The cards are the printed cards: blue frames are offense, red defense, yellow specials. What happens either way is printed on each card's cream panel.
      Team colors (you orange, CPU teal) stay off the frames so they never read as offense or defense.
      The one loud moment is the stage: the CPU's card flips over and a referee-style medal says whether the play was stopped.
-     Look preview: the Old look / New look switch in the header flips this page between the current design (Old,
-     the same as full-cards/) and a proposed one (New): the scoreboard is the only box, the snap is played on the
-     turf with the two cards facing each other across a chalk line of scrimmage, labels are in plain case instead
-     of spaced-out capitals, the announcer has a few lines per result, and How to play is a short list in the cards' words (Stopped / Not stopped).
-     New game also has the rules choice: Stopped once (look/) or Stopped twice (look/downs/). */
+     Look preview: today's design (the same as full-cards/) with proposed wording. The announcer has a few lines per result,
+     How to play is a short list in the cards' words (Stopped / Not stopped), the hand says just Offense or Defense, and
+     the helper lines (under the field, in the empty card spot, at kickoff) show only in your first game: How to play has
+     Show tips again. New game also has the rules choice: Stopped once (look/) or Stopped twice (look/downs/). */
   :root {
     --turf: #0f3d29;
     --turf-2: #13492f;
@@ -321,7 +320,7 @@
   .rules .head h2 { margin: 0; font: 400 20px/1 var(--display); }
   .rules .body { padding: 0 14px 18px; display: grid; gap: 14px; }
   .rules h3 { margin: 0; font: 700 16px/1 var(--ui); letter-spacing: 0.02em; color: var(--chalk); }
-  .rules ul, .rules ol { margin: 0; padding-left: 18px; display: grid; gap: 7px; line-height: 1.45; max-width: 65ch; }
+  .rules ul { margin: 0; padding-left: 18px; display: grid; gap: 7px; line-height: 1.45; max-width: 65ch; }
   .rules p { margin: 0; line-height: 1.5; color: var(--chalk-dim); max-width: 65ch; }
   .rules dl { margin: 0; display: grid; gap: 8px; }
   .rules dt { font: 700 15px/1.1 var(--ui); color: var(--flag); }
@@ -449,14 +448,6 @@
   }
 
   /* ---------- Look preview ---------- */
-  .look-pick { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-  .look-pick button {
-    font: 600 13px/1 var(--ui); letter-spacing: 0.02em; color: var(--chalk-dim);
-    background: transparent; border: 0; padding: 5px 8px; cursor: pointer; white-space: nowrap;
-  }
-  .look-pick button[aria-pressed="true"] { background: var(--chalk); color: var(--turf-deep); }
-  .look-pick button:focus-visible { outline: 2px solid var(--chalk); outline-offset: -2px; }
-  .new-look .old-only, html:not(.new-look) .new-only { display: none; }
   /* The rules choice in New game. */
   .rule-set { display: grid; gap: 8px; }
   .rule-set .opts { display: flex; gap: 8px; }
@@ -466,32 +457,17 @@
   }
   .rule-set button[aria-checked="true"] { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
   .rule-set p { margin: 0; font: 400 14px/1.35 var(--ui); color: var(--chalk-dim); }
-
-  /* New look: everything below only applies when the switch is on New. */
-  .new-look .team .label { font: 700 19px/1 var(--ui); letter-spacing: 0.01em; text-transform: none; }
-  .new-look .who-ez { font: 700 13px/1 var(--ui); letter-spacing: 0; text-transform: none; }
-  .new-look .slot-label { font: 700 17px/1 var(--ui); letter-spacing: 0.01em; text-transform: none; }
-  .new-look .lvl-tag { font: 700 14px/1 var(--ui); letter-spacing: 0; text-transform: none; }
-  /* The snap is played on the turf itself: no box, just a soft light. */
-  .new-look .stage {
-    background: radial-gradient(ellipse 60% 55% at 50% 42%, rgba(236, 243, 232, 0.09), transparent 72%);
-    border: 0; border-radius: 0; padding: 6px 0 4px;
-  }
-  /* The line of scrimmage: offense on one side, defense on the other. */
-  .new-look .table { position: relative; }
-  .new-look .table::before {
-    content: ''; position: absolute; left: 50%; top: 22px; bottom: -4px; width: 2px; margin-left: -1px;
-    background: repeating-linear-gradient(180deg, var(--chalk-faint) 0 9px, transparent 9px 16px);
-  }
-  .new-look .medal { position: relative; background: var(--turf-deep); }
-  .new-look .medal.hit { background: var(--tone); }
-  /* The play-by-play loses its box: a chalk rule on top is enough. */
-  .new-look .box { background: none; border: 0; border-top: 2px solid var(--line); border-radius: 0; padding: 14px 0 0; }
-  /* Phones: the title and the buttons don't fit on one row, so both rows are centered. */
+  /* The line under the field only shows when it says something the screen doesn't (see showStatus). While it can
+     come and go between snaps, it keeps its room so the cards below don't jump. */
+  .status[hidden] { display: none; }
+  .status.room { min-height: 48px; }
+  @media (min-width: 900px) { .status.room { min-height: 24px; } }
+  .rules .tips-again { justify-self: start; }
+  /* Phones: the title and the buttons are centered, each on its own row. */
   @media (max-width: 500px) {
-    .new-look .top { flex-direction: column; align-items: center; gap: 10px; }
-    .new-look .brand { flex: none; justify-content: center; }
-    .new-look .top-actions { margin-left: 0; }
+    .top { flex-direction: column; align-items: center; gap: 10px; }
+    .brand { flex: none; justify-content: center; }
+    .top-actions { margin-left: 0; }
   }
 </style>
 
@@ -506,7 +482,7 @@
 
 <main class="wrap">
     <header class="top">
-      <div class="brand"><h1>Snap Call</h1><div class="look-pick" role="group" aria-label="Screen design"><button type="button" data-look="old" aria-pressed="false">Old look</button><button type="button" data-look="new" aria-pressed="true">New look</button></div></div>
+      <div class="brand"><h1>Snap Call</h1></div>
       <div class="top-actions">
         <button class="ghost" id="howTo" type="button"><span class="long">How to play</span><span class="short">Rules</span></button>
         <button class="ghost" id="newGame" type="button">New game</button>
@@ -557,7 +533,7 @@
     </section>
 
     <section class="play" aria-label="Your cards">
-      <div class="section-label"><span id="handLabel">Your play</span><span id="handHint"></span></div>
+      <div class="section-label"><span id="handLabel">Offense</span></div>
       <div class="hand" id="hand"></div>
 
       <div class="section-label">
@@ -583,19 +559,7 @@
     <dialog class="rules" id="rules" aria-labelledby="rulesHead">
       <div class="head"><h2 id="rulesHead">How to play</h2><button class="ghost" id="closeRules" type="button">Close</button></div>
       <div class="body">
-        <ul class="old-only">
-          <li>The field has 3 zones between you and the end zone: Own 25, Midfield, Red Zone.</li>
-          <li>Every snap, the offense secretly picks a play and the defense secretly guesses it. Both cards are shown at once.</li>
-          <li><strong>Wrong guess:</strong> the ball moves. Run and Short Pass move 1 zone. Deep Pass moves 2.</li>
-          <li><strong>Right guess:</strong> the defense takes the ball at its own 25. A guessed Deep Pass is an interception, so they start at midfield instead.</li>
-          <li>Touchdown is 7 points. In the Red Zone, the Kick Field Goal card joins your plays: play it instead of snapping to score 3.</li>
-          <li>After a score, the team that got scored on gets the ball and draws a special card. You can hold 3.</li>
-          <li>The marks under CPU show how many special cards it holds, but not which ones.</li>
-          <li>First to 21 wins. For a longer game, pick 28 or 35 at New game.</li>
-          <li>Press and hold any card to see it big.</li>
-        </ul>
-
-        <ul class="new-only">
+        <ul>
           <li>The field has 3 zones: your own 25, midfield, the Red Zone. Get past the Red Zone for a touchdown, 7 points. In the Red Zone you can also kick a field goal instead of a play, for 3.</li>
           <li>Each snap, the offense secretly picks a play and the defense secretly picks a Stop card. Both flip at once.</li>
           <li><strong>Not stopped</strong> (the Stop card doesn’t match the play): the ball moves. Run and Short Pass gain 1 zone, Deep Pass gains 2.</li>
@@ -604,22 +568,23 @@
         </ul>
 
         <h3>Specials: losers save, winners score</h3>
-        <p>Every special is a Save or a Bonus. You play it with your card, before the cards are shown. A Save only works if you lose the snap, with any play. A Bonus only works if you win it.<span class="old-only"> Only one special can work per snap, and a played special is used up either way.</span></p>
-        <p class="new-only">Only one special can work per snap, and a played special is used up either way, except when a Challenge Flag cancels the snap: then the other side’s special goes back to its hand.</p>
-        <p class="new-only">You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>
+        <p>Every special is a Save or a Bonus. You play it with your card, before the cards are shown. A Save only works if you lose the snap, with any play. A Bonus only works if you win it.</p>
+        <p>Only one special can work per snap, and a played special is used up either way, except when a Challenge Flag cancels the snap: then the other side’s special goes back to its hand.</p>
+        <p>You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>
         <dl>
-          <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd><span class="old-only">If they guess your play, you still gain 1 zone. A guessed Deep Pass gains 1 instead of being intercepted.</span><span class="new-only">If your play is stopped, you still gain 1 zone. A stopped Deep Pass gains 1 instead of being intercepted.</span></dd>
-          <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd><span class="old-only">If you guess wrong, they gain nothing and go back 1 zone (never behind their own 25). They keep the ball.</span><span class="new-only">If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own 25).</span></dd>
-          <dt>Challenge Flag <span>either side, save</span></dt><dd><span class="old-only">If you lose the snap, cancel it and both sides pick again. Any other special played on it goes back to its owner.</span><span class="new-only">If you lose the snap, cancel it and both sides pick again.</span></dd>
-          <dt>Breakaway <span>offense bonus</span></dt><dd><span class="old-only">If you run and they guess wrong, it goes all the way for a touchdown.</span><span class="new-only">If your Run isn’t stopped, it goes all the way for a touchdown.</span></dd>
-          <dt>Hail Mary <span>offense bonus</span></dt><dd><span class="old-only">If you throw deep and they guess wrong, it goes all the way for a touchdown.</span><span class="new-only">If your Deep Pass isn’t stopped, it goes all the way for a touchdown.</span></dd>
-          <dt>Pick Six <span>defense bonus</span></dt><dd><span class="old-only">If you guess their pass right (Stop Short or Stop Deep), you score 7.</span><span class="new-only">If you stop a pass (Stop Short or Stop Deep), you score 7.</span></dd>
-          <dt>Forced Fumble <span>defense bonus</span></dt><dd><span class="old-only">If you guess their run right, you recover the ball at midfield.</span><span class="new-only">If you stop a Run, you get the ball at midfield.</span></dd>
+          <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If your play is stopped, you still gain 1 zone. A stopped Deep Pass gains 1 instead of being intercepted.</dd>
+          <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd>If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own 25).</dd>
+          <dt>Challenge Flag <span>either side, save</span></dt><dd>If you lose the snap, cancel it and both sides pick again.</dd>
+          <dt>Breakaway <span>offense bonus</span></dt><dd>If your Run isn’t stopped, it goes all the way for a touchdown.</dd>
+          <dt>Hail Mary <span>offense bonus</span></dt><dd>If your Deep Pass isn’t stopped, it goes all the way for a touchdown.</dd>
+          <dt>Pick Six <span>defense bonus</span></dt><dd>If you stop a pass (Stop Short or Stop Deep), you score 7.</dd>
+          <dt>Forced Fumble <span>defense bonus</span></dt><dd>If you stop a Run, you get the ball at midfield.</dd>
         </dl>
 
         <h3>The computer</h3>
-        <p><span class="old-only">It remembers which plays you call and which ones you guess, and leans on your habits. Mix it up.</span><span class="new-only">It remembers which plays you call and which Stop cards you pick, and leans on your habits. Mix it up.</span></p>
+        <p>It remembers which plays you call and which Stop cards you pick, and leans on your habits. Mix it up.</p>
         <p>On Hard it also notices when you try to trick it, and remembers your last few games on this device.</p>
+        <button class="ghost tips-again" id="tipsAgain" type="button">Show tips again</button>
       </div>
     </dialog>
 
@@ -712,10 +677,19 @@
   };
 
   let S;
-  // Look preview: which design is showing (the switch in the header). Remembered on this device.
-  const LOOK_KEY = 'snap-call-look-style';
-  let newLook = true;
-  try { newLook = localStorage.getItem(LOOK_KEY) !== 'old'; } catch (e) { /* New look */ }
+  // First-game tips: the helper lines under the field, in the empty card spot and at kickoff. Each one shows until
+  // you've done it once, and none after your first game on this device. Show tips again (How to play) brings them back.
+  const TIPS_KEY = 'snap-call-look-tips';
+  const FRESH_TIPS = { on: true, off: false, def: false, red: false, hold: false };
+  let tips = { ...FRESH_TIPS };
+  try { tips = { ...FRESH_TIPS, ...JSON.parse(localStorage.getItem(TIPS_KEY)) }; } catch (e) { /* tips on */ }
+  const tip = (k) => tips.on && !tips[k];
+  function saveTips() { try { localStorage.setItem(TIPS_KEY, JSON.stringify(tips)); } catch (e) { /* tips come back next visit */ } }
+  function tipDone(k) { if (tip(k)) { tips[k] = true; saveTips(); } }
+  // A snap teaches the tip for where you are: offense, offense in the Red Zone, or defense.
+  function markTips() {
+    if (S.poss === 'you') { tipDone('off'); if (S.pos === ZONES.length - 1) tipDone('red'); } else tipDone('def');
+  }
   let uid = 0;
   let shownResult = -1;
   // A score being shown: its card is on screen and the board still shows the points from before.
@@ -986,10 +960,10 @@
 
   const zoneName = (pos, who) => (pos === 0 ? (who === 'you' ? 'your own 25' : 'their own 25') : ZONES[pos]);
   const cap = (s) => s[0].toUpperCase() + s.slice(1);
-  // New look: each result has a few announcer lines, picked at random, so the play-by-play doesn't repeat itself.
-  // Old look: the current line (the first one, unless given). Every line stays short enough for two lines on phones.
-  const say = (lines, old = lines[0]) => (newLook ? lines[Math.floor(Math.random() * lines.length)] : old);
-  const ballAt = (pos, who) => (newLook && pos === ZONES.length - 1 ? 'Ball in the Red Zone.' : `Ball at ${zoneName(pos, who)}.`);
+  // Each result has a few announcer lines, picked at random, so the play-by-play doesn't repeat itself.
+  // Every line stays short enough for two lines on phones.
+  const say = (lines) => lines[Math.floor(Math.random() * lines.length)];
+  const ballAt = (pos, who) => (pos === ZONES.length - 1 ? 'Ball in the Red Zone.' : `Ball at ${zoneName(pos, who)}.`);
   const GAIN_SAYS = {
     run: ['Good gain. ', 'Found a gap. ', 'Room to run. '],
     short: ['Good gain. ', 'Easy catch. ', 'Moving the chains. '],
@@ -1004,13 +978,13 @@
     const def = other(off);
     switch (r.kind) {
       case 'replay':
-        return { head: 'Flag! Replay', detail: say([`${NAME[r.by]} threw the flag. Snap again.`, 'Flag on the play. Snap again.'], `${NAME[r.by]} threw the flag: snap again.`), tone: r.by };
+        return { head: 'Flag! Replay', detail: say([`${NAME[r.by]} threw the flag. Snap again.`, 'Flag on the play. Snap again.']), tone: r.by };
       case 'gain': {
         S.pos += r.zones;
         const td = S.pos >= 3;
         if (td) score(off, 7);
-        const rest = td ? `${say(['Into the end zone! ', 'All the way! ', 'Nobody touches it! '], '')}${NAME[off]} ${verb(off, 'score')} 7.`
-          : r.how ? '+1 zone.' : `${say(GAIN_SAYS[r.play], '')}${ballAt(S.pos, off)}`;
+        const rest = td ? `${say(['Into the end zone! ', 'All the way! ', 'Nobody touches it! '])}${NAME[off]} ${verb(off, 'score')} 7.`
+          : r.how ? '+1 zone.' : `${say(GAIN_SAYS[r.play])}${ballAt(S.pos, off)}`;
         const head = td ? 'Touchdown!' : r.how === 'juke' ? 'Juke!' : r.how === 'grab' ? 'What a catch!' : `+${r.zones} zone${r.zones > 1 ? 's' : ''}`;
         if (!r.how) return { head, detail: rest, tone: off };
         // A Save turns a stop into a gain, so the log joins it to the picks with "but".
@@ -1037,7 +1011,7 @@
         S.pos = Math.max(0, S.pos - 1);
         const rest = was === 0 ? 'No gain.' : 'Back 1 zone.';
         const how = say(['the defense got through.', 'brought down behind the line.', 'swarmed in the backfield.']);
-        return { head: r.how === 'tfl' ? 'Tackle for loss!' : 'Sacked!', detail: `${cap(how)} ${rest}`, but: newLook ? `${how} ${rest}` : `got through. ${rest}`, tone: def };
+        return { head: r.how === 'tfl' ? 'Tackle for loss!' : 'Sacked!', detail: `${cap(how)} ${rest}`, but: `${how} ${rest}`, tone: def };
       }
       case 'fumble':
         S.poss = def; S.pos = 1;
@@ -1052,6 +1026,7 @@
 
   function snap() {
     if (!ready()) return;
+    markTips();
     if (S.sel.play === 'fg') { kickFG('you'); render(); return; }
     const you = { play: S.sel.play, card: S.sel.special };
     const cpu = cpuPick();
@@ -1137,6 +1112,14 @@
       for (const a of [...n.attributes]) if (c.getAttribute(a.name) !== a.value) c.setAttribute(a.name, a.value);
     });
   }
+  // The line under the field. `room` keeps its space while it can come and go, so the cards below don't jump.
+  function showStatus(head, line, room) {
+    $('#status').textContent = head;
+    $('#hint').textContent = line;
+    const box = $('.status');
+    box.hidden = !room && !head && !line;
+    box.classList.toggle('room', room);
+  }
   // The finished card. Its rules are printed on it, so the alt text repeats them.
   const art = (key, alt) => `<img src="../full-cards/cards/${ART[key]}.webp" alt="${alt}" width="600" height="840" decoding="sync">`;
   const kickInner = () => `<span class="cv"><img src="../full-cards/cards/kick-field-goal.webp" alt="Kick Field Goal. ${KICK}." width="600" height="840" decoding="sync"></span>`;
@@ -1175,6 +1158,7 @@
   }
 
   function render() {
+    if (S.phase === 'over' && tips.on) { tips.on = false; saveTips(); }
     // Scoreboard
     $('#sYou').textContent = cele && cele.who === 'you' ? cele.before : S.score.you;
     $('#sCpu').textContent = cele && cele.who === 'cpu' ? cele.before : S.score.cpu;
@@ -1184,13 +1168,13 @@
     $('#targetNum').textContent = S.target;
     $('#cpuPips').innerHTML = S.hands.cpu.map(() => '<i></i>').join('');
 
-    // Status
-    const left = 3 - S.pos;
-    const toGo = `${left} zone${left > 1 ? 's' : ''} to score`;
-    if (S.phase === 'over') { $('#status').textContent = 'Final'; $('#hint').textContent = ''; }
-    else if (S.phase === 'busy') { $('#status').textContent = 'CPU lines up a field goal'; $('#hint').textContent = 'From the Red Zone, 3 points.'; }
-    else if (S.poss === 'you') { $('#status').textContent = `Your ball: ${toGo}`; $('#hint').textContent = S.pos === 2 ? 'Pick a play, or kick a field goal for 3.' : 'Pick a play. The CPU will try to guess it.'; }
-    else { $('#status').textContent = `CPU ball: ${toGo}`; $('#hint').textContent = 'Guess their play. Guess right and you get the ball.'; }
+    // Status: first-game tips and the CPU's field goal; the scoreboard and the ball on the field show who has the ball and where.
+    const kick = S.phase === 'busy';
+    const tipLine = S.phase !== 'pick' ? ''
+      : S.poss === 'cpu' ? (tip('def') ? 'Pick the Stop card that matches their play.' : '')
+      : S.pos === 2 && tip('red') ? 'Pick a play, or kick a field goal for 3.'
+      : tip('off') ? 'Pick a play. The CPU will try to stop it.' : '';
+    showStatus(kick ? 'CPU lines up a field goal' : '', kick ? 'From the Red Zone, 3 points.' : tipLine, tips.on);
 
     // Field
     const field = $('#field');
@@ -1225,7 +1209,7 @@
         ? `<div class="card off you">${kickInner()}</div>`
         : S.sel.play
         ? faceBlock({ play: S.sel.play, card: S.sel.special }, 'you', false)
-        : '<div class="card empty"><span class="cv">Pick a card below. Hold one to see it big.</span></div>';
+        : `<div class="card empty"><span class="cv">${tip('hold') ? 'Pick a card below. Hold one to see it big.' : ''}</span></div>`;
       $('#slotCpu').innerHTML = BACK;
       medal.className = 'medal'; medal.style.removeProperty('--tone'); medal.textContent = 'vs';
     }
@@ -1233,7 +1217,7 @@
 
     // Result
     const res = $('#result');
-    const R = L || { head: 'Kickoff', detail: 'You start at your own 25. Pick a play, then snap.', tone: 'you', n: 0 };
+    const R = L || { head: 'Kickoff', detail: tips.on ? 'You start at your own 25. Pick a play, then snap.' : '', tone: 'you', n: 0 };
     res.style.setProperty('--tone', `var(--${R.tone})`);
     res.innerHTML = `<span class="head">${R.head}</span><span class="detail">${R.detail}</span>`;
     res.classList.remove('pop');
@@ -1243,8 +1227,7 @@
     // Hand
     const keys = S.poss === 'you' ? (S.pos === 2 ? [...OFF, 'fg'] : OFF) : DEF;
     $('#hand').classList.toggle('four', keys.length === 4);
-    $('#handLabel').textContent = S.poss === 'you' ? 'Your play (offense)' : 'Your guess (defense)';
-    $('#handHint').textContent = newLook ? '' : S.poss === 'you' ? 'If the CPU guesses it, they get the ball' : 'Guess right to get the ball';
+    $('#handLabel').textContent = S.poss === 'you' ? 'Offense' : 'Defense';
     setCards($('#hand'), keys.map((k) => {
       const on = S.sel.play === k;
       const off = S.phase !== 'pick' ? ' disabled' : '';
@@ -1268,7 +1251,7 @@
 
     // Actions
     $('#snap').disabled = !ready();
-    $('#snap').textContent = S.sel.play === 'fg' ? 'Kick for 3' : S.poss === 'you' ? 'Snap' : newLook ? 'Defend' : 'Snap · Defend';
+    $('#snap').textContent = S.sel.play === 'fg' ? 'Kick for 3' : S.poss === 'you' ? 'Snap' : 'Defend';
 
     // Play by play
     $('#log').innerHTML = S.log.map((e) => `<li class="t-${e.tone}"><span class="n">${e.n || 'KO'}</span><span><b>${e.head || ''}</b>${e.text}</span></li>`).join('');
@@ -1325,6 +1308,7 @@
     return el ? el.querySelector('img') : null;
   }
   function showZoom(img) {
+    if (tip('hold')) { tipDone('hold'); render(); }
     hold = null; zoomed = true; swallowClick = true;
     $('#zoomImg').src = img.currentSrc || img.src;
     $('#zoomImg').alt = img.alt;
@@ -1375,14 +1359,6 @@
   }
   $('#newGame').addEventListener('click', askLevel);
   $('#again').addEventListener('click', askLevel);
-  function setLook(on) {
-    newLook = on;
-    document.documentElement.classList.toggle('new-look', on);
-    for (const b of document.querySelectorAll('.look-pick button')) b.setAttribute('aria-pressed', String((b.dataset.look === 'new') === on));
-    try { localStorage.setItem(LOOK_KEY, on ? 'new' : 'old'); } catch (e) { /* this device just won't remember */ }
-  }
-  setLook(newLook);
-  for (const b of document.querySelectorAll('.look-pick button')) b.addEventListener('click', () => { setLook(b.dataset.look === 'new'); render(); });
   // The rules choice in New game opens the other rule set's page, with New game showing.
   for (const b of document.querySelectorAll('.rule-set button')) b.addEventListener('click', () => {
     if (b.getAttribute('aria-checked') !== 'true') location.href = 'downs/?new';
@@ -1393,6 +1369,7 @@
   $('#cele').addEventListener('click', endCelebrate);
   $('#howTo').addEventListener('click', () => $('#rules').showModal());
   $('#closeRules').addEventListener('click', () => $('#rules').close());
+  $('#tipsAgain').addEventListener('click', () => { tips = { ...FRESH_TIPS }; saveTips(); $('#rules').close(); render(); });
   $('#rules').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   window.addEventListener('resize', fitLog);
   // Fetch every card up front so the first reveal never waits on an image.
