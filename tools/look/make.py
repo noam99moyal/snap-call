@@ -130,6 +130,24 @@ def switch_js(other):
   for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener("""
 
 
+SET_CARDS_JS = """  // ---------- Drawing ----------
+  // Picking a card redraws only what changed: a card whose insides are the same keeps its element and image,
+  // and just takes the new class, pressed and disabled state. Redrawing every image made the screen flash on
+  // hosts that have the browser re-check each image before showing it again (Netlify).
+  function setCards(el, html) {
+    const t = document.createElement('template');
+    t.innerHTML = html;
+    const next = [...t.content.children], cur = [...el.children];
+    if (next.length !== cur.length) { el.innerHTML = html; return; }
+    next.forEach((n, i) => {
+      const c = cur[i];
+      if (n.tagName !== c.tagName || n.innerHTML !== c.innerHTML) { c.replaceWith(n); return; }
+      for (const a of [...c.attributes]) if (!n.hasAttribute(a.name)) c.removeAttribute(a.name);
+      for (const a of [...n.attributes]) if (c.getAttribute(a.name) !== a.value) c.setAttribute(a.name, a.value);
+    });
+  }
+"""
+
 START = "  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});\n"
 OPEN_JS = START + """  // Arriving from the other rule set: ask Normal or Hard right away.
   if (new URLSearchParams(location.search).has('new')) { history.replaceState(null, '', location.pathname); if (S) askLevel(); }
@@ -145,6 +163,10 @@ def common(p, src, red, other):
     p.rep("  const cap = (s) => s[0].toUpperCase() + s.slice(1);", say_js(red))
     p.rep("  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener(", switch_js(other))
     p.rep(START, OPEN_JS)
+    p.rep("  // ---------- Drawing ----------\n", SET_CARDS_JS)
+    p.rep("    $('#hand').innerHTML = keys.map((k) => {", "    setCards($('#hand'), keys.map((k) => {")
+    p.rep("    }).join('');\n\n    // Specials", "    }).join(''));\n\n    // Specials")
+    p.rep("    $('#specials').innerHTML = sp.join('');", "    setCards($('#specials'), sp.join(''));")
     p.rep("    return { kind: 'gain', zones: PLAYS[o.play].gain };",
           "    return { kind: 'gain', zones: PLAYS[o.play].gain, play: o.play };")
     p.rep("detail: `${NAME[r.by]} threw the flag: snap again.`",
@@ -174,10 +196,104 @@ p = Page("full-cards/game.html")
 common(p, "full-cards/", "ZONES.length - 1", "downs/")
 p.rep('<span class="chip">Finished cards</span>', SWITCH_HTML)
 p.rep("$('#snap').textContent = S.poss === 'you' ? 'Snap' : 'Snap · Defend';",
-      "$('#snap').textContent = S.poss === 'you' ? 'Snap' : newLook ? 'Defend' : 'Snap · Defend';")
+      "$('#snap').textContent = S.sel.play === 'fg' ? 'Kick for 3' : S.poss === 'you' ? 'Snap' : newLook ? 'Defend' : 'Snap · Defend';")
 p.rep('        <button class="lvl-pick" type="button" data-level="normal">',
       rule_set("once", "Today’s rules: one right guess and the defense gets the ball.")
+      + """        <div class="len" role="radiogroup" aria-label="Game length">
+          <span>First to</span>
+          <button type="button" role="radio" data-target="21" aria-checked="true">21</button>
+          <button type="button" role="radio" data-target="28" aria-checked="false">28</button>
+          <button type="button" role="radio" data-target="35" aria-checked="false">35</button>
+        </div>
+"""
       + '        <button class="lvl-pick" type="button" data-level="normal">')
+
+# ---- From the Stopped twice page: the Kick Field Goal card joins your hand in the Red Zone (no more
+# Kick FG button), the stage shows the kick, and New game picks the length: first to 21, 28 or 35.
+p.rep("  .hand, .specials { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: start; }\n",
+      "  .hand, .specials { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: start; }\n"
+      "  /* In the Red Zone the Kick Field Goal card joins your plays, four in the row. */\n"
+      "  .hand.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }\n")
+p.rep("    .hand, .specials { grid-template-columns: repeat(3, min((100% - 20px) / 3, max(128px, (100dvh - 400px) / 2.8))); }\n",
+      "    .hand, .specials { grid-template-columns: repeat(3, min((100% - 20px) / 3, max(128px, (100dvh - 400px) / 2.8))); }\n"
+      "    .hand.four { grid-template-columns: repeat(4, min((100% - 24px) / 4, max(128px, (100dvh - 400px) / 2.8))); }\n")
+p.rep("  .lvl-pick span { font: 400 14px/1.35 var(--ui); color: var(--chalk-dim); }\n",
+      """  .lvl-pick span { font: 400 14px/1.35 var(--ui); color: var(--chalk-dim); }
+  .len { display: flex; align-items: center; gap: 8px; }
+  .len > span { font: 600 15px/1 var(--ui); color: var(--chalk-dim); margin-right: 4px; }
+  .len button {
+    flex: 1; height: 44px; cursor: pointer; border-radius: 8px;
+    background: transparent; color: var(--chalk); border: 1px solid var(--chalk-faint); font: 400 20px/1 var(--display);
+  }
+  .len button[aria-checked="true"] { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
+""")
+p.rep('<div class="target">First to<b>21</b>', '<div class="target">First to<b id="targetNum">21</b>')
+p.rep('      <button class="fg" id="fg" type="button" hidden>Kick FG +3</button>\n', '')
+p.rep("<li>Touchdown is 7 points. From the Red Zone you can kick a field goal for 3 instead of snapping.</li>",
+      "<li>Touchdown is 7 points. In the Red Zone, the Kick Field Goal card joins your plays: play it instead of snapping to score 3.</li>")
+p.rep("<li>First to 21 wins.</li>", "<li>First to 21 wins. For a longer game, pick 28 or 35 at New game.</li>")
+p.rep("  const TARGET = 21;\n", "  const TARGETS = [21, 28, 35];\n  const KICK = 'From the Red Zone → Score 3';\n")
+p.rep("  const RULES_VERSION = 4;", "  const RULES_VERSION = 5;")
+p.rep("    try { return localStorage.getItem(LEVEL_KEY) === 'hard' ? 'hard' : 'normal'; } catch (e) { return 'normal'; }\n  }\n",
+      """    try { return localStorage.getItem(LEVEL_KEY) === 'hard' ? 'hard' : 'normal'; } catch (e) { return 'normal'; }
+  }
+  // So is the game length.
+  const TARGET_KEY = 'snap-call-look-target';
+  function savedTarget() {
+    try { const t = +localStorage.getItem(TARGET_KEY); return TARGETS.includes(t) ? t : 21; } catch (e) { return 21; }
+  }
+""")
+p.rep("  function newGame(level) {", "  function newGame(level, target = savedTarget()) {")
+p.rep("      v: RULES_VERSION, level,\n", "      v: RULES_VERSION, level, target,\n")
+p.rep("    try { localStorage.setItem(LEVEL_KEY, level); } catch (e) { /* the next visit starts on Normal */ }",
+      "    try { localStorage.setItem(LEVEL_KEY, level); localStorage.setItem(TARGET_KEY, target); } catch (e) { /* the next visit starts on Normal, first to 21 */ }")
+p.rep("  function fits(key, play, sd) {\n",
+      "  function fits(key, play, sd) {\n    if (play === 'fg') return false;   // a kick isn't a snap, so no special goes with it\n")
+p.rep("S.score[who] >= TARGET)", "S.score[who] >= S.target)")
+p.rep("  function snap() {\n    if (!ready()) return;\n",
+      "  function snap() {\n    if (!ready()) return;\n    if (S.sel.play === 'fg') { kickFG('you'); render(); return; }\n")
+p.rep("    S.showLast = false; S.move = null;",
+      "    // The stage keeps showing the kick until the next pick.\n    S.showLast = true; S.move = null;")
+p.rep("const kick = TARGET - S.score.cpu <= 3", "const kick = S.target - S.score.cpu <= 3")
+p.rep("    S.phase = 'busy';\n", "    S.phase = 'busy'; S.flip = true;\n")
+p.rep("""  const art = (key, alt) => `<img src="cards/${ART[key]}.webp" alt="${alt}" width="600" height="840" decoding="sync">`;\n""",
+      """  const art = (key, alt) => `<img src="cards/${ART[key]}.webp" alt="${alt}" width="600" height="840" decoding="sync">`;
+  const kickInner = () => `<span class="cv"><img src="cards/kick-field-goal.webp" alt="Kick Field Goal. ${KICK}." width="600" height="840" decoding="sync"></span>`;
+  const NO_SNAP = '<div class="card empty"><span class="cv">No snap</span></div>';
+""")
+p.rep("    $('#lvlTag').hidden = S.level !== 'hard';\n",
+      "    $('#lvlTag').hidden = S.level !== 'hard';\n    $('#targetNum').textContent = S.target;\n")
+p.rep("    if (S.showLast && L && !L.fg) {\n",
+      """    const kicker = S.phase === 'busy' ? 'cpu' : S.showLast && L && L.fg ? L.tone : null;
+    if (kicker) {
+      const kick = `<div class="card off ${kicker}${S.flip ? ' flip' : ''}">${kickInner()}</div>`;
+      $('#slotYou').innerHTML = kicker === 'you' ? kick : NO_SNAP;
+      $('#slotCpu').innerHTML = kicker === 'cpu' ? kick : NO_SNAP;
+      if (S.phase === 'busy') { medal.className = 'medal'; medal.style.removeProperty('--tone'); medal.textContent = 'Kick'; }
+      else { medal.className = 'medal hit'; medal.style.setProperty('--tone', `var(--${kicker})`); medal.textContent = '+3'; }
+    } else if (S.showLast && L) {
+""")
+p.rep("      $('#slotYou').innerHTML = S.sel.play\n",
+      "      $('#slotYou').innerHTML = S.sel.play === 'fg'\n        ? `<div class=\"card off you\">${kickInner()}</div>`\n        : S.sel.play\n")
+p.rep("    const keys = S.poss === 'you' ? OFF : DEF;\n",
+      "    const keys = S.poss === 'you' ? (S.pos === 2 ? [...OFF, 'fg'] : OFF) : DEF;\n    $('#hand').classList.toggle('four', keys.length === 4);\n")
+p.rep("""      return `<button type="button" class="card ${PLAYS[k].side}${on ? ' on' : ''}" data-play="${k}" aria-pressed="${on}"${S.phase !== 'pick' ? ' disabled' : ''}>${faceInner(k)}</button>`;""",
+      """      const off = S.phase !== 'pick' ? ' disabled' : '';
+      if (k === 'fg') return `<button type="button" class="card off kick${on ? ' on' : ''}" data-play="fg" aria-pressed="${on}"${off}>${kickInner()}</button>`;
+      return `<button type="button" class="card ${PLAYS[k].side}${on ? ' on' : ''}" data-play="${k}" aria-pressed="${on}"${off}>${faceInner(k)}</button>`;""")
+p.rep("    $('#fg').hidden = !(S.phase === 'pick' && S.poss === 'you' && S.pos === 2);\n", "")
+p.rep("  $('#fg').addEventListener('click', () => { if (S.phase === 'pick' && S.poss === 'you' && S.pos === 2) { kickFG('you'); render(); } });\n", "")
+p.rep("  function askLevel() {\n", """  let lenPick = 21;
+  function setLen(t) {
+    lenPick = t;
+    for (const b of document.querySelectorAll('.len button')) b.setAttribute('aria-checked', String(+b.dataset.target === t));
+  }
+  for (const b of document.querySelectorAll('.len button')) b.addEventListener('click', () => setLen(+b.dataset.target));
+  function askLevel() {
+    setLen(S.target);
+""")
+p.rep("newGame(b.dataset.level); });", "newGame(b.dataset.level, lenPick); });")
+p.rep("'card-back', 'touchdown', 'field-goal']) new Image()", "'card-back', 'touchdown', 'field-goal', 'kick-field-goal']) new Image()")
 p.rep("        <ul>\n          <li>The field has 3 zones", "        <ul class=\"old-only\">\n          <li>The field has 3 zones")
 p.rep("""          <li>Press and hold any card to see it big.</li>
         </ul>
@@ -189,11 +305,11 @@ p.rep("""          <li>Press and hold any card to see it big.</li>
         <ol class="new-only">
           <li>You start at your own 25 and call Run. The CPU guesses Stop Short. Wrong guess, so you gain a zone to midfield.</li>
           <li>At midfield you call Short Pass, and the CPU guesses Stop Run. Wrong again, and you’re in the Red Zone.</li>
-          <li>From the Red Zone you could kick a field goal for 3, but you call Deep Pass and the CPU guesses Stop Short. Touchdown, 7 points.</li>
+          <li>In the Red Zone you could play the Kick Field Goal card for 3, but you call Deep Pass and the CPU guesses Stop Short. Touchdown, 7 points.</li>
           <li>The CPU gets the ball at its own 25 and draws a special. It calls Run, you guess Stop Run, and the ball is yours at your own 25.</li>
         </ol>
         <p class="new-only">Run and Short Pass gain 1 zone, and Deep Pass gains 2. A guessed Deep Pass is intercepted, and the defense starts at midfield.</p>
-        <p class="new-only">First to 21 wins. Press and hold any card to see it big.</p>
+        <p class="new-only">First to 21 wins, or pick 28 or 35 at New game for a longer one. Press and hold any card to see it big.</p>
 """)
 p.rep(SPECIALS_P, SPECIALS_P + """
         <p class="new-only">You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>""")

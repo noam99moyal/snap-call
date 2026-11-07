@@ -253,6 +253,8 @@
   .section-label > span:first-child { font: 700 16px/1 var(--ui); letter-spacing: 0.02em; }
   .section-label > span + span { font-size: 13px; color: var(--chalk-dim); }
   .hand, .specials { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: start; }
+  /* In the Red Zone the Kick Field Goal card joins your plays, four in the row. */
+  .hand.four { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 
   /* Specials: the name, Save / Bonus, side and rule are all printed on the card. */
   .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--chalk-dim); }
@@ -337,6 +339,13 @@
   .lvl-pick b { font: 400 22px/1 var(--display); letter-spacing: 0.03em; }
   .lvl-pick[data-level="hard"] b { color: var(--flag); }
   .lvl-pick span { font: 400 14px/1.35 var(--ui); color: var(--chalk-dim); }
+  .len { display: flex; align-items: center; gap: 8px; }
+  .len > span { font: 600 15px/1 var(--ui); color: var(--chalk-dim); margin-right: 4px; }
+  .len button {
+    flex: 1; height: 44px; cursor: pointer; border-radius: 8px;
+    background: transparent; color: var(--chalk); border: 1px solid var(--chalk-faint); font: 400 20px/1 var(--display);
+  }
+  .len button[aria-checked="true"] { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
   .lvl-tag { display: block; margin-top: 4px; font: 700 11px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--flag); }
 
   /* Scoring: the Touchdown or Field Goal card takes the screen for a moment, then the points go on the board. */
@@ -430,6 +439,7 @@
     /* Hand and specials are full cards, so their width also follows the window's height: both rows and Snap fit on one screen.
        Never under 128px, where every line of card text still fits on one line; very short windows scroll instead. */
     .hand, .specials { grid-template-columns: repeat(3, min((100% - 20px) / 3, max(128px, (100dvh - 400px) / 2.8))); }
+    .hand.four { grid-template-columns: repeat(4, min((100% - 24px) / 4, max(128px, (100dvh - 400px) / 2.8))); }
     .actions { grid-area: act; position: static; padding: 0; background: none; }
     .log-box { grid-area: log; margin-top: 0; }
   }
@@ -512,7 +522,7 @@
         </span>
         <span class="score" id="sYou">0</span>
       </div>
-      <div class="target">First to<b>21</b><span class="lvl-tag" id="lvlTag" hidden>Hard</span></div>
+      <div class="target">First to<b id="targetNum">21</b><span class="lvl-tag" id="lvlTag" hidden>Hard</span></div>
       <div class="team cpu" id="tCpu">
         <span class="score" id="sCpu">0</span>
         <span class="who">
@@ -562,7 +572,6 @@
 
     <div class="actions">
       <button class="snap" id="snap" type="button">Snap</button>
-      <button class="fg" id="fg" type="button" hidden>Kick FG +3</button>
     </div>
 
     <section class="box log-box" aria-label="Play by play">
@@ -579,10 +588,10 @@
           <li>Every snap, the offense secretly picks a play and the defense secretly guesses it. Both cards are shown at once.</li>
           <li><strong>Wrong guess:</strong> the ball moves. Run and Short Pass move 1 zone. Deep Pass moves 2.</li>
           <li><strong>Right guess:</strong> the defense takes the ball at its own 25. A guessed Deep Pass is an interception, so they start at midfield instead.</li>
-          <li>Touchdown is 7 points. From the Red Zone you can kick a field goal for 3 instead of snapping.</li>
+          <li>Touchdown is 7 points. In the Red Zone, the Kick Field Goal card joins your plays: play it instead of snapping to score 3.</li>
           <li>After a score, the team that got scored on gets the ball and draws a special card. You can hold 3.</li>
           <li>The marks under CPU show how many special cards it holds, but not which ones.</li>
-          <li>First to 21 wins.</li>
+          <li>First to 21 wins. For a longer game, pick 28 or 35 at New game.</li>
           <li>Press and hold any card to see it big.</li>
         </ul>
 
@@ -591,11 +600,11 @@
         <ol class="new-only">
           <li>You start at your own 25 and call Run. The CPU guesses Stop Short. Wrong guess, so you gain a zone to midfield.</li>
           <li>At midfield you call Short Pass, and the CPU guesses Stop Run. Wrong again, and you’re in the Red Zone.</li>
-          <li>From the Red Zone you could kick a field goal for 3, but you call Deep Pass and the CPU guesses Stop Short. Touchdown, 7 points.</li>
+          <li>In the Red Zone you could play the Kick Field Goal card for 3, but you call Deep Pass and the CPU guesses Stop Short. Touchdown, 7 points.</li>
           <li>The CPU gets the ball at its own 25 and draws a special. It calls Run, you guess Stop Run, and the ball is yours at your own 25.</li>
         </ol>
         <p class="new-only">Run and Short Pass gain 1 zone, and Deep Pass gains 2. A guessed Deep Pass is intercepted, and the defense starts at midfield.</p>
-        <p class="new-only">First to 21 wins. Press and hold any card to see it big.</p>
+        <p class="new-only">First to 21 wins, or pick 28 or 35 at New game for a longer one. Press and hold any card to see it big.</p>
 
         <h3>Specials: losers save, winners score</h3>
         <p>Every special is a Save or a Bonus. You play it with your card, before the cards are shown. A Save only works if you lose the snap, with any play. A Bonus only works if you win it. Only one special can work per snap, and a played special is used up either way.</p>
@@ -626,6 +635,12 @@
           </div>
           <p>Today’s rules: one right guess and the defense gets the ball.</p>
         </div>
+        <div class="len" role="radiogroup" aria-label="Game length">
+          <span>First to</span>
+          <button type="button" role="radio" data-target="21" aria-checked="true">21</button>
+          <button type="button" role="radio" data-target="28" aria-checked="false">28</button>
+          <button type="button" role="radio" data-target="35" aria-checked="false">35</button>
+        </div>
         <button class="lvl-pick" type="button" data-level="normal"><b>Normal</b><span>Learns your habits as you play.</span></button>
         <button class="lvl-pick" type="button" data-level="hard"><b>Hard</b><span>Reads you closely and remembers your last few games.</span></button>
       </div>
@@ -653,7 +668,8 @@
   const NAME = { you: 'You', cpu: 'CPU' };
   const verb = (who, base) => (who === 'you' ? base : base + 's');
   const ZONES = ['your own 25', 'midfield', 'the Red Zone'];
-  const TARGET = 21;
+  const TARGETS = [21, 28, 35];
+  const KICK = 'From the Red Zone → Score 3';
 
   // win: what happens when the play beats the guess (offense) or the guess is right (defense). lose: the other way.
   const PLAYS = {
@@ -680,7 +696,7 @@
     picksix:   { name: 'Pick Six', side: 'def', kind: 'bonus', count: 2, needs: ['shortD', 'deepD'], when: 'If you stop a pass', then: 'You score 7' },
     fumble:    { name: 'Forced Fumble', side: 'def', kind: 'bonus', count: 2, needs: ['runD'], when: 'If you stop a Run', then: 'Your ball at midfield' },
   };
-  const RULES_VERSION = 4;
+  const RULES_VERSION = 5;
   const SIDE_LABEL = { off: 'Offense', def: 'Defense', any: 'Either side' };
   const STATUS = { worked: 'Worked', wasted: 'No effect', back: 'Back to hand' };
   // Card images in ../full-cards/cards/: "<name>.webp" is the finished card, made from the PNGs in ../artwork/cards/.
@@ -737,13 +753,18 @@
   function savedLevel() {
     try { return localStorage.getItem(LEVEL_KEY) === 'hard' ? 'hard' : 'normal'; } catch (e) { return 'normal'; }
   }
+  // So is the game length.
+  const TARGET_KEY = 'snap-call-look-target';
+  function savedTarget() {
+    try { const t = +localStorage.getItem(TARGET_KEY); return TARGETS.includes(t) ? t : 21; } catch (e) { return 21; }
+  }
 
-  function newGame(level) {
+  function newGame(level, target = savedTarget()) {
     if (cele) { clearTimeout(cele.timer); cele = null; $('#cele').hidden = true; }
     const deck = [];
     for (const [k, s] of Object.entries(SPECIALS)) for (let i = 0; i < s.count; i++) deck.push(k);
     S = {
-      v: RULES_VERSION, level,
+      v: RULES_VERSION, level, target,
       score: { you: 0, cpu: 0 }, poss: 'you', pos: 0,
       hands: { you: [], cpu: [] }, deck: shuffle(deck), discard: [],
       sel: { play: null, special: null },
@@ -757,7 +778,7 @@
       foldGame(S.hard.dfn);
       saveHard();
     }
-    try { localStorage.setItem(LEVEL_KEY, level); } catch (e) { /* the next visit starts on Normal */ }
+    try { localStorage.setItem(LEVEL_KEY, level); localStorage.setItem(TARGET_KEY, target); } catch (e) { /* the next visit starts on Normal, first to 21 */ }
     for (let i = 0; i < 2; i++) { draw('you'); draw('cpu'); }
     S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first.', tone: 'you' });
     render();
@@ -772,6 +793,7 @@
   const side = () => (S.poss === 'you' ? 'off' : 'def');
   // Whether a special can go with this play on this side right now. The card face already says which side and play it needs.
   function fits(key, play, sd) {
+    if (play === 'fg') return false;   // a kick isn't a snap, so no special goes with it
     const s = SPECIALS[key];
     if (s.side !== 'any' && s.side !== sd) return false;
     return !(s.needs && play && !s.needs.includes(play));
@@ -977,7 +999,7 @@
   };
 
   function kickoff(receiver) { S.poss = receiver; S.pos = 0; draw(receiver); }
-  function won(who) { if (S.score[who] >= TARGET) { S.phase = 'over'; return true; } return false; }
+  function won(who) { if (S.score[who] >= S.target) { S.phase = 'over'; return true; } return false; }
   function score(who, pts) { S.score[who] += pts; if (!won(who)) kickoff(other(who)); }
 
   function apply(r, off) {
@@ -1032,6 +1054,7 @@
 
   function snap() {
     if (!ready()) return;
+    if (S.sel.play === 'fg') { kickFG('you'); render(); return; }
     const you = { play: S.sel.play, card: S.sel.special };
     const cpu = cpuPick();
     for (const [w, c] of [['you', you], ['cpu', cpu]]) {
@@ -1083,7 +1106,8 @@
     S.last = { fg: true, head: 'Field goal', detail, tone: who, n: S.snaps };
     addLog({ n: S.snaps, head: 'Field goal', text: detail, tone: who });
     S.sel = { play: null, special: null };
-    S.showLast = false; S.move = null;
+    // The stage keeps showing the kick until the next pick.
+    S.showLast = true; S.move = null;
     const before = S.score[who];
     score(who, 3);
     celebrate(who, 'field-goal', `Field goal! ${NAME[who]} ${verb(who, 'score')} 3`, before);
@@ -1091,17 +1115,34 @@
 
   function afterChange() {
     if (S.phase !== 'pick' || S.poss !== 'cpu' || S.pos !== 2) return;
-    const kick = TARGET - S.score.cpu <= 3 || Math.random() < 0.45;
+    const kick = S.target - S.score.cpu <= 3 || Math.random() < 0.45;
     if (!kick) return;
-    S.phase = 'busy';
+    S.phase = 'busy'; S.flip = true;
     render();
     const game = S;  // a New game during the wait cancels the kick
     setTimeout(() => { if (S !== game || S.phase !== 'busy') return; S.phase = 'pick'; kickFG('cpu'); render(); }, 1100);
   }
 
   // ---------- Drawing ----------
+  // Picking a card redraws only what changed: a card whose insides are the same keeps its element and image,
+  // and just takes the new class, pressed and disabled state. Redrawing every image made the screen flash on
+  // hosts that have the browser re-check each image before showing it again (Netlify).
+  function setCards(el, html) {
+    const t = document.createElement('template');
+    t.innerHTML = html;
+    const next = [...t.content.children], cur = [...el.children];
+    if (next.length !== cur.length) { el.innerHTML = html; return; }
+    next.forEach((n, i) => {
+      const c = cur[i];
+      if (n.tagName !== c.tagName || n.innerHTML !== c.innerHTML) { c.replaceWith(n); return; }
+      for (const a of [...c.attributes]) if (!n.hasAttribute(a.name)) c.removeAttribute(a.name);
+      for (const a of [...n.attributes]) if (c.getAttribute(a.name) !== a.value) c.setAttribute(a.name, a.value);
+    });
+  }
   // The finished card. Its rules are printed on it, so the alt text repeats them.
   const art = (key, alt) => `<img src="../full-cards/cards/${ART[key]}.webp" alt="${alt}" width="600" height="840" decoding="sync">`;
+  const kickInner = () => `<span class="cv"><img src="../full-cards/cards/kick-field-goal.webp" alt="Kick Field Goal. ${KICK}." width="600" height="840" decoding="sync"></span>`;
+  const NO_SNAP = '<div class="card empty"><span class="cv">No snap</span></div>';
   // `miss` names the outcome that didn't happen ('win' or 'lose'), faded on the stage after the reveal.
   function faceInner(key, miss) {
     const p = PLAYS[key];
@@ -1142,6 +1183,7 @@
     $('#tYou').classList.toggle('has-ball', S.poss === 'you');
     $('#tCpu').classList.toggle('has-ball', S.poss === 'cpu');
     $('#lvlTag').hidden = S.level !== 'hard';
+    $('#targetNum').textContent = S.target;
     $('#cpuPips').innerHTML = S.hands.cpu.map(() => '<i></i>').join('');
 
     // Status
@@ -1167,14 +1209,23 @@
     // Stage
     const medal = $('#medal');
     const L = S.last;
-    if (S.showLast && L && !L.fg) {
+    const kicker = S.phase === 'busy' ? 'cpu' : S.showLast && L && L.fg ? L.tone : null;
+    if (kicker) {
+      const kick = `<div class="card off ${kicker}${S.flip ? ' flip' : ''}">${kickInner()}</div>`;
+      $('#slotYou').innerHTML = kicker === 'you' ? kick : NO_SNAP;
+      $('#slotCpu').innerHTML = kicker === 'cpu' ? kick : NO_SNAP;
+      if (S.phase === 'busy') { medal.className = 'medal'; medal.style.removeProperty('--tone'); medal.textContent = 'Kick'; }
+      else { medal.className = 'medal hit'; medal.style.setProperty('--tone', `var(--${kicker})`); medal.textContent = '+3'; }
+    } else if (S.showLast && L) {
       $('#slotYou').innerHTML = faceBlock(L.you, 'you', false, L);
       $('#slotCpu').innerHTML = faceBlock(L.cpu, 'cpu', S.flip, L);
       medal.className = 'medal hit' + (S.flip ? ' pop' : '');
       medal.style.setProperty('--tone', `var(--${L.guessed ? other(L.off) : L.off})`);
       medal.innerHTML = L.guessed ? 'Stopped' : 'Not<br>stopped';
     } else {
-      $('#slotYou').innerHTML = S.sel.play
+      $('#slotYou').innerHTML = S.sel.play === 'fg'
+        ? `<div class="card off you">${kickInner()}</div>`
+        : S.sel.play
         ? faceBlock({ play: S.sel.play, card: S.sel.special }, 'you', false)
         : '<div class="card empty"><span class="cv">Pick a card below. Hold one to see it big.</span></div>';
       $('#slotCpu').innerHTML = BACK;
@@ -1192,13 +1243,16 @@
     shownResult = R.n;
 
     // Hand
-    const keys = S.poss === 'you' ? OFF : DEF;
+    const keys = S.poss === 'you' ? (S.pos === 2 ? [...OFF, 'fg'] : OFF) : DEF;
+    $('#hand').classList.toggle('four', keys.length === 4);
     $('#handLabel').textContent = S.poss === 'you' ? 'Your play (offense)' : 'Your guess (defense)';
     $('#handHint').textContent = S.poss === 'you' ? 'If the CPU guesses it, they get the ball' : 'Guess right to get the ball';
-    $('#hand').innerHTML = keys.map((k) => {
+    setCards($('#hand'), keys.map((k) => {
       const on = S.sel.play === k;
-      return `<button type="button" class="card ${PLAYS[k].side}${on ? ' on' : ''}" data-play="${k}" aria-pressed="${on}"${S.phase !== 'pick' ? ' disabled' : ''}>${faceInner(k)}</button>`;
-    }).join('');
+      const off = S.phase !== 'pick' ? ' disabled' : '';
+      if (k === 'fg') return `<button type="button" class="card off kick${on ? ' on' : ''}" data-play="fg" aria-pressed="${on}"${off}>${kickInner()}</button>`;
+      return `<button type="button" class="card ${PLAYS[k].side}${on ? ' on' : ''}" data-play="${k}" aria-pressed="${on}"${off}>${faceInner(k)}</button>`;
+    }).join(''));
 
     // Specials
     const sd = side();
@@ -1212,12 +1266,11 @@
         + '</button>';
     });
     while (sp.length < 3) sp.push('<div class="card empty"><span class="cv">Empty slot. You draw one when you get scored on.</span></div>');
-    $('#specials').innerHTML = sp.join('');
+    setCards($('#specials'), sp.join(''));
 
     // Actions
     $('#snap').disabled = !ready();
-    $('#snap').textContent = S.poss === 'you' ? 'Snap' : newLook ? 'Defend' : 'Snap · Defend';
-    $('#fg').hidden = !(S.phase === 'pick' && S.poss === 'you' && S.pos === 2);
+    $('#snap').textContent = S.sel.play === 'fg' ? 'Kick for 3' : S.poss === 'you' ? 'Snap' : newLook ? 'Defend' : 'Snap · Defend';
 
     // Play by play
     $('#log').innerHTML = S.log.map((e) => `<li class="t-${e.tone}"><span class="n">${e.n || 'KO'}</span><span><b>${e.head || ''}</b>${e.text}</span></li>`).join('');
@@ -1310,9 +1363,15 @@
   document.addEventListener('contextmenu', (e) => { if (cardImgAt(e.clientX, e.clientY)) e.preventDefault(); });
 
   $('#snap').addEventListener('click', snap);
-  $('#fg').addEventListener('click', () => { if (S.phase === 'pick' && S.poss === 'you' && S.pos === 2) { kickFG('you'); render(); } });
   // New game and Play again ask Normal or Hard; the level you're playing now is ready to pick again.
+  let lenPick = 21;
+  function setLen(t) {
+    lenPick = t;
+    for (const b of document.querySelectorAll('.len button')) b.setAttribute('aria-checked', String(+b.dataset.target === t));
+  }
+  for (const b of document.querySelectorAll('.len button')) b.addEventListener('click', () => setLen(+b.dataset.target));
   function askLevel() {
+    setLen(S.target);
     $('#level').showModal();
     $(`.lvl-pick[data-level="${S.level || 'normal'}"]`).focus();
   }
@@ -1330,7 +1389,7 @@
   for (const b of document.querySelectorAll('.rule-set button')) b.addEventListener('click', () => {
     if (b.getAttribute('aria-checked') !== 'true') location.href = 'downs/?new';
   });
-  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', () => { $('#level').close(); newGame(b.dataset.level); });
+  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', () => { $('#level').close(); newGame(b.dataset.level, lenPick); });
   $('#closeLevel').addEventListener('click', () => $('#level').close());
   $('#level').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   $('#cele').addEventListener('click', endCelebrate);
@@ -1339,7 +1398,7 @@
   $('#rules').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   window.addEventListener('resize', fitLog);
   // Fetch every card up front so the first reveal never waits on an image.
-  for (const f of [...Object.values(ART), 'card-back', 'touchdown', 'field-goal']) new Image().src = `../full-cards/cards/${f}.webp`;
+  for (const f of [...Object.values(ART), 'card-back', 'touchdown', 'field-goal', 'kick-field-goal']) new Image().src = `../full-cards/cards/${f}.webp`;
 
   // Keep the game going across live updates of this page.
   if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ S, uid }));

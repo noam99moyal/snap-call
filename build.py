@@ -64,6 +64,14 @@ build(HERE / "downs", "Snap Call: downs test")
 build(HERE / "look", "Snap Call: look preview")
 build(HERE / "look" / "downs", "Snap Call: look preview, stopped twice")
 
+# Netlify tells browsers to re-check every file before using it again. The game redraws cards as you pick them,
+# so on Netlify every card image was re-checked and the screen flashed. Card images may now be kept for a day.
+NETLIFY_HEADERS = """/cards/*
+  Cache-Control: public, max-age=86400
+/downs/cards/*
+  Cache-Control: public, max-age=86400
+"""
+
 args = sys.argv[1:]
 if "--netlify" in args:
     i = args.index("--netlify")
@@ -72,6 +80,7 @@ if "--netlify" in args:
     site = HERE / "full-cards"
     with zipfile.ZipFile(netlify, "w", zipfile.ZIP_DEFLATED) as z:
         z.write(site / "index.html", "index.html")
+        z.writestr("_headers", NETLIFY_HEADERS)
         for f in sorted((site / "cards").glob("*.webp")):
             z.write(f, f"cards/{f.name}")
     print(f"wrote {netlify}")
@@ -85,6 +94,7 @@ if "--netlify-downs" in args:
     page = (HERE / "downs" / "index.html").read_text(encoding="utf-8").replace("../full-cards/cards/", "cards/")
     with zipfile.ZipFile(netlify, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("index.html", page)
+        z.writestr("_headers", NETLIFY_HEADERS)
         for name, f in sorted(cards.items()):
             z.write(f, f"cards/{name}")
     print(f"wrote {netlify}")
@@ -100,6 +110,7 @@ if "--netlify-look" in args:
     with zipfile.ZipFile(netlify, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("index.html", once)
         z.writestr("downs/index.html", twice)
+        z.writestr("_headers", NETLIFY_HEADERS)
         for f in sorted((HERE / "full-cards" / "cards").glob("*.webp")):
             z.write(f, f"cards/{f.name}")
         for f in sorted((HERE / "downs" / "cards").glob("*.webp")):
