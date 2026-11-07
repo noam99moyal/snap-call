@@ -205,9 +205,11 @@ def cards_words(p, home, twice=False):
     first = ", even on their first try," if twice else ","
     both(p, f"If you guess wrong, they gain nothing and go back 1 zone (never behind their own {home}). They keep the ball.",
          f"If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own {home}).")
-    both(p, "Only one special can work per snap, and a played special is used up either way.",
-         "Only one special can work per snap, and a played special is used up either way, except when a Challenge Flag "
-         "cancels the snap: then the other side’s special goes back to its hand.")
+    # New look: the one-special rule gets its own paragraph, with the Challenge Flag exception.
+    p.rep(" Only one special can work per snap, and a played special is used up either way.</p>",
+          '<span class="old-only"> Only one special can work per snap, and a played special is used up either way.</span></p>\n'
+          '        <p class="new-only">Only one special can work per snap, and a played special is used up either way, except when '
+          'a Challenge Flag cancels the snap: then the other side’s special goes back to its hand.</p>')
     both(p, "If you lose the snap, cancel it and both sides pick again. Any other special played on it goes back to its owner.",
          "If you lose the snap, cancel it and both sides pick again.")
     both(p, "If you run and they guess wrong, it goes all the way for a touchdown.",
