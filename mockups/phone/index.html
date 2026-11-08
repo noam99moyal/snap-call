@@ -97,7 +97,7 @@
   .sheet button { justify-self: start; background: var(--you); color: var(--ink); border: 0; border-radius: 10px; padding: 10px 16px; font: 700 16px/1 var(--label); }
 
   /* ---------- Shared pieces inside a phone ---------- */
-  .mock { position: absolute; inset: 0; display: grid; gap: 1cqh; padding: 1.2cqh 8px 1.4cqh; }
+  .mock { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1cqh; padding: 1.2cqh 8px 1.4cqh; }
   .bar { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 4px 0 8px; background: var(--board); border: 1px solid var(--line); border-radius: 12px; }
   .bar .side { display: flex; align-items: center; gap: 6px; font: 700 14px/1 var(--label); letter-spacing: 0.03em; }
   .bar .you { color: var(--you); }
@@ -124,7 +124,7 @@
   .stage { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 0.6cqh; background: rgba(8, 21, 15, 0.7); border: 1px solid var(--line); border-radius: 14px; padding: 0.8cqh 8px 1cqh; }
   .who { display: flex; justify-content: space-between; padding: 0 14%; font: 700 12px/1 var(--label); letter-spacing: 0.08em; }
   .who .y { color: var(--you); } .who .c { color: var(--cpu); }
-  .duel { min-height: 0; height: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .duel { min-height: 0; height: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding-top: 14px; }
   .slot { position: relative; height: min(100%, calc((100cqw - 32px - 76px) / 2 / 0.7143)); aspect-ratio: 600 / 840; display: grid; isolation: isolate; }
   .slot > .card { width: 100%; height: 100%; }
   .slot .tuck { position: absolute; z-index: -1; top: -7%; left: 9%; width: 82%; height: auto; transform: rotate(-4deg); }
