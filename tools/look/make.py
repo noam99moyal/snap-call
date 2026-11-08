@@ -301,14 +301,47 @@ PHONE_CSS = """
     .slot .card { width: var(--cw); }
     .card.empty .cv { box-sizing: border-box; background: rgba(8, 21, 15, 0.6); border-color: rgba(236, 243, 232, 0.45); color: var(--chalk); }
     .medal { width: 60px; height: 60px; margin-top: calc(19px + var(--cw) * 0.235); background: rgba(8, 21, 15, 0.8); }
+    /* Once you've picked, the medal is a raised button with a ring that keeps calling for a tap. The result after
+       the snap is flat, so the two never look alike. */
+    .medal { position: relative; }
     .medal.go {
-      background: var(--you); border-color: var(--you); color: var(--ink); font-size: 12.5px; text-wrap: balance; cursor: pointer;
-      box-shadow: 0 0 0 5px rgba(255, 138, 61, 0.28), 0 8px 20px rgba(0, 0, 0, 0.45);
-      transition: transform 0.1s ease-out;
+      --edge: color-mix(in srgb, var(--you) 55%, #000);
+      background: var(--you); border-color: var(--chalk); color: var(--ink); font-size: 12.5px; text-wrap: balance; cursor: pointer;
+      box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 5px 0 var(--edge), 0 10px 18px rgba(0, 0, 0, 0.55);
+      transition: translate 0.08s ease-out, box-shadow 0.08s ease-out;
     }
-    .medal.go:active { transform: scale(0.94); }
+    .medal.go::after {
+      content: ""; position: absolute; inset: -2px; border-radius: 50%; border: 3px solid var(--you); pointer-events: none;
+      animation: ping 1.8s ease-out 0.5s infinite both;
+    }
+    @keyframes ping { from { scale: 1; opacity: 0.9; } 70%, to { scale: 1.5; opacity: 0; } }
+    .medal.go:active { translate: 0 4px; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 1px 0 var(--edge), 0 3px 8px rgba(0, 0, 0, 0.5); }
     .medal.arm { animation: arm 0.3s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
     @keyframes arm { from { transform: scale(0.6); } }
+    @media (prefers-reduced-motion: reduce) { .medal.go::after { animation: none; opacity: 0; } }
+    /* A special decided the snap: the medal is gold and says what it did. */
+    .medal.gold { font-size: 11.5px; }
+    /* The headline under the cards is blue when the offense won the snap and red when the defense did, like the cards. */
+    .result { --offense: #7aa2ff; --defense: #ff4b5c; }
+    /* Points read as a score. */
+    .medal.big { font-size: 21px; }
+
+    /* A kick isn't a matchup: the kicker's card stands alone with the medal, and nobody's card waits face down. */
+    .table[data-solo] { grid-template-columns: auto auto; justify-content: center; }
+    .table[data-solo="you"] > .slot:last-child, .table[data-solo="cpu"] > .slot:first-child { display: none; }
+
+    /* The special that decided the snap comes to the front, glowing; the play card it beat peeks out behind. */
+    .slot .card.won > .cv { translate: 0 -21cqi; rotate: 3deg; transform-origin: 50% 100%; filter: brightness(0.8); }
+    .slot .card.cpu.won > .cv { rotate: -3deg; }
+    .slot .card.won .tuck { z-index: 1; transform: none; }
+    .slot .card.won .tag { display: none; }
+    .slot .card.won.fresh .tuck { animation: to-front 0.35s 0.45s ease-out both; }
+    .slot .card.cpu.won.fresh .tuck { animation-name: to-front-cpu; }
+    .slot .card.won.fresh > .cv { animation: to-back 0.35s 0.45s ease-out both; }
+    .slot .card.won.fresh.flip > .cv { animation: flip 0.38s ease-out, to-back 0.35s 0.45s ease-out both; }
+    @keyframes to-front { from { transform: translateY(-21cqi) rotate(3deg); z-index: -1; } }
+    @keyframes to-front-cpu { from { transform: translateY(-21cqi) rotate(-3deg); z-index: -1; } }
+    @keyframes to-back { from { translate: 0 0; rotate: 0deg; filter: none; } }
     .result { min-height: 58px; gap: 3px; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8); }
     .result .head { font-size: 22px; }
     .result .detail { font-size: 13.5px; line-height: 1.3; color: rgba(236, 243, 232, 0.88); }
@@ -362,6 +395,17 @@ PHONE_CSS = """
 PHONE_JS = """  // Phones in portrait get the one-screen layout (the last block of styles).
   const phoneB = matchMedia('(max-width: 899px) and (min-height: 460px)');
   let medalGo = false, stageArt = '';
+  // When a special decided the snap, the medal says what it did instead of Stopped / Not stopped.
+  function spSaid(L) {
+    const c = [L.you, L.cpu].find((x) => x && x.status === 'worked');
+    if (!c) return '';
+    const k = c.card.key;
+    if (k === 'flag') return 'Replay';
+    if (k === 'sack' || k === 'tfl') return L.at === 0 ? 'No gain' : 'Back<br>1 zone';
+    if (k === 'fumble') return 'Turn-<br>over';
+    if ((k === 'juke' || k === 'grab') && L.head !== 'Touchdown!') return '+1 zone';
+    return '+7';
+  }
 """
 
 
@@ -448,6 +492,45 @@ def phone_b(p):
     for k in ("data-play", "data-sp"):
         p.rep(f"    const b = e.target.closest('[{k}]');\n    if (!b || S.phase !== 'pick') return;",
               f"    const b = e.target.closest('[{k}]');\n    if (!b || S.phase !== 'pick' || !onTop(b, e)) return;")
+
+
+def phone_stage(p):
+    """Phones, on the finished page: kicks shown alone, a special that decided the snap in front with a gold medal,
+    and the stage art kept on the zone where the last play happened."""
+    # The zone each play happened in, so the stage keeps that zone's art until the next pick.
+    p.rep("S.last = { you, cpu, ...out, n: S.snaps, off, guessed:", "S.last = { you, cpu, ...out, n: S.snaps, off, at: pos0, guessed:")
+    p.rep("S.last = { fg: true, head: 'Field goal', detail, tone: who, n: S.snaps };",
+          "S.last = { fg: true, head: 'Field goal', detail, tone: who, n: S.snaps, at: S.pos };")
+    p.rep("    const art = field.querySelector(`.zone[data-z=\"${S.pos}\"] img`).src, stage = $('.stage');\n",
+          "    // It stays on the zone where the last play happened until the next pick (or the CPU's kick).\n"
+          "    const at = S.phase !== 'busy' && S.showLast && S.last && S.last.at != null ? S.last.at : S.pos;\n"
+          "    const art = field.querySelector(`.zone[data-z=\"${at}\"] img`).src, stage = $('.stage');\n")
+    # Phones: a special that decided the snap goes in front of its play card, and both play cards fade both lines.
+    if "${miss === 'both'" not in p.s:
+        p.rep("${miss ? `<span class=\"veil ${miss}\"></span>` : ''}",
+              "${miss === 'both' ? '<span class=\"veil win\"></span><span class=\"veil lose\"></span>' : miss ? `<span class=\"veil ${miss}\"></span>` : ''}")
+    p.s, n = re.subn(r"\n    const miss = (L \? .*;)\n",
+                     r"\n    let miss = \1\n    if (phoneB.matches && L && spSaid(L)) miss = 'both';\n", p.s)
+    if n != 1:
+        sys.exit(f"miss line: {n}")
+    p.rep("return `<div class=\"card ${PLAYS[key].side} ${owner}${flip ? ' flip' : ''}\">",
+          "return `<div class=\"card ${PLAYS[key].side} ${owner}${flip ? ' flip' : ''}"
+          "${phoneB.matches && c.status === 'worked' ? ' won' + (S.flip ? ' fresh' : '') : ''}\">")
+    p.s, n = re.subn(r"(\n      medal\.innerHTML = .*;\n)(    \} else \{\n)",
+                     r"\1      const said = phoneB.matches && spSaid(L);\n"
+                     r"      if (said) { medal.className += ' gold'; medal.style.setProperty('--tone', 'var(--flag)'); medal.innerHTML = said; if (said === '+7') medal.classList.add('big'); }\n\2", p.s)
+    if n != 1:
+        sys.exit(f"medal line: {n}")
+    p.rep("    res.style.setProperty('--tone', `var(--${R.tone})`);\n",
+          "    res.style.setProperty('--tone', `var(--${R.tone})`);\n"
+          "    // Phones: blue when the offense won the snap (or kicked), red when the defense did, like the cards.\n"
+          "    if (phoneB.matches && L) res.style.setProperty('--tone', L.fg || L.tone === L.off ? 'var(--offense)' : 'var(--defense)');\n")
+    p.rep("medal.textContent = '+3'; }", "medal.textContent = '+3'; if (phoneB.matches) medal.classList.add('big'); }")
+    p.rep("    S.flip = false;\n\n    // Result\n",
+          "    // Phones: a kick has no matchup, so only the kicker's card shows.\n"
+          "    const solo = !phoneB.matches ? '' : kicker || (S.sel.play === 'fg' && !(S.showLast && L) ? 'you' : '');\n"
+          "    if (solo) $('.table').dataset.solo = solo; else delete $('.table').dataset.solo;\n"
+          "    S.flip = false;\n\n    // Result\n")
 
 
 SPECIALS_P = "Only one special can work per snap, and a played special is used up either way.</p>"
@@ -635,6 +718,7 @@ p.rep("return { head: 'Fumble!', detail: `${NAME[def]} ${verb(def, 'recover')} a
       "return { head: 'Fumble!', detail: say([`${NAME[def]} ${verb(def, 'recover')} at midfield.`, `Loose ball! ${NAME[def]} ${verb(def, 'fall')} on it.`]), tone: def };")
 p.rep("const HARD_KEY = 'snap-call-hard';", "const HARD_KEY = 'snap-call-look-hard';")
 p.s = re.sub(r"(?<![\w/.\-])cards/", "../full-cards/cards/", p.s)
+phone_stage(p)
 (ROOT / "look/game.html").write_text(p.s)
 
 # ======================= look/downs/: stopped twice (from downs/) =======================
@@ -701,5 +785,6 @@ p.rep("const TARGET_KEY = 'snap-call-downs-target';", "const TARGET_KEY = 'snap-
 p.s = p.s.replace("../full-cards/", "../../full-cards/")
 p.s = re.sub(r"(?<![\w/.\-])cards/", "../../downs/cards/", p.s)
 (ROOT / "look/downs").mkdir(exist_ok=True)
+phone_stage(p)
 (ROOT / "look/downs/game.html").write_text(p.s)
 print("built look/ and look/downs/")
