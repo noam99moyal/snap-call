@@ -97,8 +97,10 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
   - Have the CPU save its specials for the last try.
 - **Forced Fumble** looks weak in the simulations (about −3.6% for the side that starts with it). Part of that is the CPU playing it too often.
 - **Main game:** bring the look preview's wording and first-game tips into `full-cards/` and `downs/`.
-- **The circle after a special changes the snap:** built in the look preview on phones. The special comes in front of its play card with no "Worked" stamp. The circle turns gold and says what it did: +1 zone, Back 1 zone (No gain from your own 25 or 20), Replay, +7 or Turn-over. Both play cards fade both lines. Wide screens still show it the old way.
-- **Also on phones in the look preview:**
-  - A kick shows only the kicker's card. The circle is a raised "Kick for 3" button, then a flat +3.
+- **The circle after a special changes the snap:** built in the look preview, on phones and wide screens. The special comes in front of its play card with no "Worked" stamp. The circle turns gold and says what it did: +1 zone, Back 1 zone (No gain from your own 25 or 20), Replay, +7 or Turn-over. Both play cards fade both lines.
+- **Also in the look preview, on every screen:**
+  - A kick shows only the kicker's card, then +3 in the circle.
   - The headline under the cards is blue when the offense wins the snap and red when the defense does, like the cards.
+- **Phones only:**
+  - The circle is a raised "Kick for 3" button before the kick, then a flat +3.
   - The stage keeps the field art of the zone where the last play happened until the next pick.

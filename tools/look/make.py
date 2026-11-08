@@ -205,6 +205,33 @@ PHONE_CSS = """
   button.medal { appearance: none; box-sizing: content-box; padding: 0; background: none; cursor: default; }
   .log-sheet { width: min(480px, calc(100% - 32px)); }
   .log-sheet .log { max-height: none; }
+
+  /* ---------- The stage, on every screen ---------- */
+  /* A special decided the snap: the medal is gold and says what it did. */
+  .medal.gold { font-size: 11.5px; }
+  /* The headline under the cards is blue when the offense won the snap and red when the defense did, like the cards. */
+  .result { --offense: #7aa2ff; --defense: #ff4b5c; }
+  /* Points read as a score. */
+  .medal.big { font-size: 21px; }
+
+  /* A kick isn't a matchup: the kicker's card stands alone with the medal, and nobody's card waits face down. */
+  .table[data-solo] { justify-content: center; }
+  .table[data-solo="you"] { grid-template-columns: minmax(0, 132px) auto; }
+  .table[data-solo="cpu"] { grid-template-columns: auto minmax(0, 132px); }
+  .table[data-solo="you"] > .slot:last-child, .table[data-solo="cpu"] > .slot:first-child { display: none; }
+
+  /* The special that decided the snap comes to the front, glowing; the play card it beat peeks out behind. */
+  .slot .card.won > .cv { translate: 0 -21cqi; rotate: 3deg; transform-origin: 50% 100%; filter: brightness(0.8); }
+  .slot .card.cpu.won > .cv { rotate: -3deg; }
+  .slot .card.won .tuck { z-index: 1; transform: none; }
+  .slot .card.won .tag { display: none; }
+  .slot .card.won.fresh .tuck { animation: to-front 0.35s 0.45s ease-out both; }
+  .slot .card.cpu.won.fresh .tuck { animation-name: to-front-cpu; }
+  .slot .card.won.fresh > .cv { animation: to-back 0.35s 0.45s ease-out both; }
+  .slot .card.won.fresh.flip > .cv { animation: flip 0.38s ease-out, to-back 0.35s 0.45s ease-out both; }
+  @keyframes to-front { from { transform: translateY(-21cqi) rotate(3deg); z-index: -1; } }
+  @keyframes to-front-cpu { from { transform: translateY(-21cqi) rotate(-3deg); z-index: -1; } }
+  @keyframes to-back { from { translate: 0 0; rotate: 0deg; filter: none; } }
   @media (max-width: 899px) and (min-height: 460px) {
     .wrap {
       height: 100dvh; box-sizing: border-box; max-width: 540px;
@@ -319,29 +346,7 @@ PHONE_CSS = """
     .medal.arm { animation: arm 0.3s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
     @keyframes arm { from { transform: scale(0.6); } }
     @media (prefers-reduced-motion: reduce) { .medal.go::after { animation: none; opacity: 0; } }
-    /* A special decided the snap: the medal is gold and says what it did. */
-    .medal.gold { font-size: 11.5px; }
-    /* The headline under the cards is blue when the offense won the snap and red when the defense did, like the cards. */
-    .result { --offense: #7aa2ff; --defense: #ff4b5c; }
-    /* Points read as a score. */
-    .medal.big { font-size: 21px; }
-
-    /* A kick isn't a matchup: the kicker's card stands alone with the medal, and nobody's card waits face down. */
-    .table[data-solo] { grid-template-columns: auto auto; justify-content: center; }
-    .table[data-solo="you"] > .slot:last-child, .table[data-solo="cpu"] > .slot:first-child { display: none; }
-
-    /* The special that decided the snap comes to the front, glowing; the play card it beat peeks out behind. */
-    .slot .card.won > .cv { translate: 0 -21cqi; rotate: 3deg; transform-origin: 50% 100%; filter: brightness(0.8); }
-    .slot .card.cpu.won > .cv { rotate: -3deg; }
-    .slot .card.won .tuck { z-index: 1; transform: none; }
-    .slot .card.won .tag { display: none; }
-    .slot .card.won.fresh .tuck { animation: to-front 0.35s 0.45s ease-out both; }
-    .slot .card.cpu.won.fresh .tuck { animation-name: to-front-cpu; }
-    .slot .card.won.fresh > .cv { animation: to-back 0.35s 0.45s ease-out both; }
-    .slot .card.won.fresh.flip > .cv { animation: flip 0.38s ease-out, to-back 0.35s 0.45s ease-out both; }
-    @keyframes to-front { from { transform: translateY(-21cqi) rotate(3deg); z-index: -1; } }
-    @keyframes to-front-cpu { from { transform: translateY(-21cqi) rotate(-3deg); z-index: -1; } }
-    @keyframes to-back { from { translate: 0 0; rotate: 0deg; filter: none; } }
+    .table[data-solo] { grid-template-columns: auto auto; }
     .result { min-height: 58px; gap: 3px; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8); }
     .result .head { font-size: 22px; }
     .result .detail { font-size: 13.5px; line-height: 1.3; color: rgba(236, 243, 232, 0.88); }
@@ -495,8 +500,8 @@ def phone_b(p):
 
 
 def phone_stage(p):
-    """Phones, on the finished page: kicks shown alone, a special that decided the snap in front with a gold medal,
-    and the stage art kept on the zone where the last play happened."""
+    """On the finished page: kicks shown alone, a special that decided the snap in front with a gold medal, the
+    headline in offense/defense colors (every screen), and the stage art kept on the last play's zone (phones)."""
     # The zone each play happened in, so the stage keeps that zone's art until the next pick.
     p.rep("S.last = { you, cpu, ...out, n: S.snaps, off, guessed:", "S.last = { you, cpu, ...out, n: S.snaps, off, at: pos0, guessed:")
     p.rep("S.last = { fg: true, head: 'Field goal', detail, tone: who, n: S.snaps };",
@@ -505,30 +510,30 @@ def phone_stage(p):
           "    // It stays on the zone where the last play happened until the next pick (or the CPU's kick).\n"
           "    const at = S.phase !== 'busy' && S.showLast && S.last && S.last.at != null ? S.last.at : S.pos;\n"
           "    const art = field.querySelector(`.zone[data-z=\"${at}\"] img`).src, stage = $('.stage');\n")
-    # Phones: a special that decided the snap goes in front of its play card, and both play cards fade both lines.
+    # A special that decided the snap goes in front of its play card, and both play cards fade both lines.
     if "${miss === 'both'" not in p.s:
         p.rep("${miss ? `<span class=\"veil ${miss}\"></span>` : ''}",
               "${miss === 'both' ? '<span class=\"veil win\"></span><span class=\"veil lose\"></span>' : miss ? `<span class=\"veil ${miss}\"></span>` : ''}")
     p.s, n = re.subn(r"\n    const miss = (L \? .*;)\n",
-                     r"\n    let miss = \1\n    if (phoneB.matches && L && spSaid(L)) miss = 'both';\n", p.s)
+                     r"\n    let miss = \1\n    if (L && spSaid(L)) miss = 'both';\n", p.s)
     if n != 1:
         sys.exit(f"miss line: {n}")
     p.rep("return `<div class=\"card ${PLAYS[key].side} ${owner}${flip ? ' flip' : ''}\">",
           "return `<div class=\"card ${PLAYS[key].side} ${owner}${flip ? ' flip' : ''}"
-          "${phoneB.matches && c.status === 'worked' ? ' won' + (S.flip ? ' fresh' : '') : ''}\">")
+          "${c.status === 'worked' ? ' won' + (S.flip ? ' fresh' : '') : ''}\">")
     p.s, n = re.subn(r"(\n      medal\.innerHTML = .*;\n)(    \} else \{\n)",
-                     r"\1      const said = phoneB.matches && spSaid(L);\n"
+                     r"\1      const said = spSaid(L);\n"
                      r"      if (said) { medal.className += ' gold'; medal.style.setProperty('--tone', 'var(--flag)'); medal.innerHTML = said; if (said === '+7') medal.classList.add('big'); }\n\2", p.s)
     if n != 1:
         sys.exit(f"medal line: {n}")
     p.rep("    res.style.setProperty('--tone', `var(--${R.tone})`);\n",
           "    res.style.setProperty('--tone', `var(--${R.tone})`);\n"
-          "    // Phones: blue when the offense won the snap (or kicked), red when the defense did, like the cards.\n"
-          "    if (phoneB.matches && L) res.style.setProperty('--tone', L.fg || L.tone === L.off ? 'var(--offense)' : 'var(--defense)');\n")
-    p.rep("medal.textContent = '+3'; }", "medal.textContent = '+3'; if (phoneB.matches) medal.classList.add('big'); }")
+          "    // Blue when the offense won the snap (or kicked), red when the defense did, like the cards.\n"
+          "    if (L) res.style.setProperty('--tone', L.fg || L.tone === L.off ? 'var(--offense)' : 'var(--defense)');\n")
+    p.rep("medal.textContent = '+3'; }", "medal.textContent = '+3'; medal.classList.add('big'); }")
     p.rep("    S.flip = false;\n\n    // Result\n",
-          "    // Phones: a kick has no matchup, so only the kicker's card shows.\n"
-          "    const solo = !phoneB.matches ? '' : kicker || (S.sel.play === 'fg' && !(S.showLast && L) ? 'you' : '');\n"
+          "    // A kick has no matchup, so only the kicker's card shows.\n"
+          "    const solo = kicker || (S.sel.play === 'fg' && !(S.showLast && L) ? 'you' : '');\n"
           "    if (solo) $('.table').dataset.solo = solo; else delete $('.table').dataset.solo;\n"
           "    S.flip = false;\n\n    // Result\n")
 
