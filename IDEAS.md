@@ -57,7 +57,7 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
 
 ## One screen per snap on phones
 
-**Status:** mockups to try: https://noam99moyal.github.io/snap-call/mockups/phone/ (open it on a phone).
+**Status:** B is built into the look preview on phones, with the stage drawn on the current zone's field card (https://noam99moyal.github.io/snap-call/look/ and /look/downs/). The three mockups are still at https://noam99moyal.github.io/snap-call/mockups/phone/.
 
 **The problem.** A tester said he has to scroll down to pick his cards and back up to see what happened, every snap. On a phone that shows 390 × 664, the look preview is about 1,490px tall:
 
@@ -97,3 +97,4 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
   - Have the CPU save its specials for the last try.
 - **Forced Fumble** looks weak in the simulations (about −3.6% for the side that starts with it). Part of that is the CPU playing it too often.
 - **Main game:** bring the look preview's wording and first-game tips into `full-cards/` and `downs/`.
+- **The circle after a special changes the snap:** it says "Not stopped" in the offense's color even when a defense save (Sack, Tackle for Loss) turns the snap the defense's way, and the play card still lights its "Not stopped" line. Idea: keep the words, but color the circle for the side the snap went to, and dim the play card's line when a special replaced it.

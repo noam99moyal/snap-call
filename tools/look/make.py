@@ -188,6 +188,266 @@ def common(p, src, red, other):
           "detail: `${say(['Picked off!', 'Pick and gone!', 'All the way back!'])} ${NAME[def]} ${verb(def, 'score')} 7.`")
     p.rep("const detail = `${NAME[who]} ${verb(who, 'kick')} it through. 3 points.`;",
           "const detail = say([`${NAME[who]} ${verb(who, 'kick')} it through. 3 points.`, 'Right down the middle. 3 points.', 'It’s good! 3 points.']);")
+    phone_b(p)
+
+
+# ---------- Phones: one screen per snap (layout B from mockups/phone/) ----------
+PHONE_CSS = """
+  /* ---------- Phones: one screen per snap ----------
+     A portrait phone shows the whole snap at once, with nothing to scroll:
+       the score bar, with How to play, New game and Play by play in the ⋯ menu
+       the field as a strip seen from above, the ball on the zone it's in
+       the stage, drawn on that zone's field card: your card, the medal, the CPU's card, then the result
+       your hand along the bottom, plays then specials, overlapping like cards held in a hand
+     Tap a card and it goes on the stage; the medal between the two cards becomes the Snap button.
+     Landscape phones and wide screens keep the layouts above. */
+  .menu-btn, #showLog, .zn { display: none; }
+  button.medal { appearance: none; box-sizing: content-box; padding: 0; background: none; cursor: default; }
+  .log-sheet { width: min(480px, calc(100% - 32px)); }
+  .log-sheet .log { max-height: none; }
+  @media (max-width: 899px) and (min-height: 460px) {
+    .wrap {
+      height: 100dvh; box-sizing: border-box; max-width: 540px;
+      padding-block: max(8px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-bottom, 0px));
+      padding-left: max(10px, env(safe-area-inset-left, 0px)); padding-right: max(10px, env(safe-area-inset-right, 0px));
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      grid-template-areas: "board menu" "field field" "stage stage" "play play";
+      justify-content: stretch; gap: 6px;
+    }
+    .scoreline { display: contents; }
+    .actions, .log-box { display: none; }
+
+    /* Score bar: the CPU's special marks sit beside its name, so both sides are two short lines. */
+    .board { grid-area: board; padding: 5px 12px; gap: 6px; }
+    .team { gap: 8px; }
+    .team .who { gap: 3px; }
+    .team .label { font-size: 13px; letter-spacing: 0.12em; }
+    .team .score { font-size: 28px; min-width: 1.2em; }
+    .poss { font-size: 11px; }
+    .poss svg { width: 15px; height: 9px; }
+    .team.cpu .who { grid-template-columns: auto auto; align-items: center; column-gap: 6px; }
+    .team.cpu .poss { grid-row: 2; grid-column: 1 / -1; }
+    .pips { gap: 3px; }
+    .pips i { width: 9px; height: 13px; }
+    .target { font-size: 11px; }
+    .target b { font-size: 17px; margin-top: 1px; }
+    .lvl-tag { margin-top: 2px; font-size: 9px; }
+
+    /* The ⋯ menu. The title stays for screen readers. */
+    .top { grid-area: menu; display: block; position: relative; }
+    .brand { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .menu-btn { display: grid; place-items: center; width: 44px; height: 100%; padding: 0; background: var(--board); border-color: var(--line); border-radius: 10px; }
+    .menu-btn svg { width: 18px; height: 4px; fill: currentColor; }
+    .top.open .menu-btn { border-color: var(--chalk); }
+    .top-actions {
+      display: none; position: absolute; z-index: 30; right: 0; top: calc(100% + 6px); min-width: 190px;
+      flex-direction: column; gap: 2px; padding: 6px;
+      background: var(--board); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+    }
+    .top.open .top-actions { display: flex; }
+    .top-actions .ghost { border: 0; border-radius: 6px; padding: 12px; text-align: left; font-size: 17px; }
+    .top-actions .ghost:hover { background: var(--slate); }
+    .top-actions .long, #showLog { display: block; }
+    .top-actions .short { display: none; }
+
+    /* The field, seen from above and attacking right: mown stripes, hash marks along the sidelines, chalk lines
+       between the zones, and the Red Zone and end zone in their field cards' red and blue.
+       Hold a zone to see its card. */
+    .field { grid-area: field; }
+    .zones {
+      position: relative; height: 38px; gap: 6px; border-radius: 4px;
+      background:
+        repeating-linear-gradient(90deg, rgba(236, 243, 232, 0.38) 0 1px, transparent 1px 8px) top / 100% 4px no-repeat,
+        repeating-linear-gradient(90deg, rgba(236, 243, 232, 0.38) 0 1px, transparent 1px 8px) bottom / 100% 4px no-repeat,
+        repeating-linear-gradient(90deg, #154b31 0 12px, #103d29 12px 24px);
+    }
+    .zones::after { content: ''; position: absolute; inset: 0; border: 1.5px solid rgba(236, 243, 232, 0.6); border-radius: inherit; pointer-events: none; }
+    .zone img { display: none; }
+    .zone + .zone::before { content: ''; position: absolute; top: 0; bottom: 0; left: -4px; width: 2px; background: rgba(236, 243, 232, 0.6); }
+    .zone:has(+ .ez) { background: rgba(214, 46, 42, 0.5); }
+    .zone.ez { background: rgba(43, 95, 214, 0.45); }
+    .zn {
+      display: block; position: absolute; top: 7px; left: 0; right: 0; text-align: center; white-space: nowrap;
+      font: 600 12px/1 var(--ui); font-size: min(12px, 100cqi / 4.9); letter-spacing: 0.05em; text-transform: uppercase; color: var(--chalk-dim);
+    }
+    .zone.here .zn { color: var(--chalk); font-weight: 700; }
+    .who-ez { bottom: 5px; padding: 0; background: none; font-size: 10px; }
+    .ball { top: 71%; width: 24px; height: 15px; }
+    .trail { top: 71%; height: 4px; }
+    .trail b { font-size: 11px; padding: 1px 4px; }
+
+    /* The stage is drawn on the field card of the zone the ball is in (render sets --art), darker at the top and
+       bottom where the words are. The cards take whatever height is left. */
+    .stage {
+      grid-area: stage; position: relative; isolation: isolate; overflow: hidden;
+      grid-template-rows: minmax(0, 1fr) auto; gap: 6px; padding: 10px;
+      background: var(--board);
+    }
+    .stage::before {
+      content: ''; position: absolute; inset: 0; z-index: -1;
+      background:
+        linear-gradient(180deg, rgba(8, 21, 15, 0.8), rgba(8, 21, 15, 0.36) 28%, rgba(8, 21, 15, 0.3) 60%, rgba(8, 21, 15, 0.9)),
+        var(--art, none) 50% 62% / 128% auto no-repeat;
+    }
+    .stage.new-art::before { animation: art-in 0.55s ease-out; }
+    @keyframes art-in { from { opacity: 0.25; } }
+    .table {
+      container-type: size; align-content: center; gap: 0 10px;
+      --cw: min((100cqw - 84px) / 2, (100cqh - 19px) / 1.635, 150px);
+    }
+    .slot-label { text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85); }
+    .slot-body { padding-top: calc(var(--cw) * 0.235); }
+    .slot .card { width: var(--cw); }
+    .card.empty .cv { box-sizing: border-box; background: rgba(8, 21, 15, 0.6); border-color: rgba(236, 243, 232, 0.45); color: var(--chalk); }
+    .medal { width: 60px; height: 60px; margin-top: calc(19px + var(--cw) * 0.235); background: rgba(8, 21, 15, 0.8); }
+    .medal.go {
+      background: var(--you); border-color: var(--you); color: var(--ink); font-size: 12.5px; text-wrap: balance; cursor: pointer;
+      box-shadow: 0 0 0 5px rgba(255, 138, 61, 0.28), 0 8px 20px rgba(0, 0, 0, 0.45);
+      transition: transform 0.1s ease-out;
+    }
+    .medal.go:active { transform: scale(0.94); }
+    .medal.arm { animation: arm 0.3s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+    @keyframes arm { from { transform: scale(0.6); } }
+    .result { min-height: 58px; gap: 3px; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8); }
+    .result .head { font-size: 22px; }
+    .result .detail { font-size: 13.5px; line-height: 1.3; color: rgba(236, 243, 232, 0.88); }
+
+    /* The line under the field sits at the top of the stage. While it can come and go it keeps its room there;
+       otherwise (the CPU's kick after your first game) it shows on a dark band over the stage for a moment. */
+    .status {
+      grid-area: stage; align-self: start; z-index: 2; margin: 9px 14px 0; justify-items: center; text-align: center;
+      gap: 1px; pointer-events: none; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+    }
+    .status.room { min-height: 0; }
+    .status strong { font-size: 15px; }
+    .status span { font: 500 13px/1.25 var(--ui); font-size: 13.5px; color: rgba(236, 243, 232, 0.88); }
+    .status:not(.room) { background: rgba(8, 21, 15, 0.92); border-radius: 8px; padding: 6px 10px; text-shadow: none; }
+    .wrap:has(.status.room) .stage { padding-top: 48px; }
+
+    /* Your hand: plays, then specials after a small gap, overlapping only as much as they must to fit.
+       --n (set in render) is how many cards there are. The card you picked rises out of the hand. */
+    .play {
+      grid-area: play; container-type: inline-size;
+      display: grid; grid-template-columns: auto auto; justify-content: center; align-items: end; column-gap: 12px; row-gap: 0;
+      --w: min(23dvh * 0.7143, 128px, (100cqw - 12px) / 3);
+      --m: min(6px, (100cqw - var(--w) - 12px) / (var(--n, 5) - 1) - var(--w));
+    }
+    .play > .section-label { grid-column: 1 / -1; padding: 0 2px; }
+    .play > .section-label ~ .section-label { display: none; }
+    .play > .section-label > span:first-child { font-size: 14px; color: var(--chalk-dim); }
+    .play > .hand, .play > .specials { display: flex; align-items: flex-end; gap: 0; padding-top: 13px; }
+    .hand { grid-column: 1; grid-row: 2; }
+    .specials { grid-column: 2; grid-row: 2; }
+    .play .card { flex: none; width: var(--w); margin-left: var(--m); }
+    .hand > .card:first-child { margin-left: 0; }
+    .specials .card.empty { display: none; }
+    .play:not(:has(.specials > .card:not(.empty))) { column-gap: 0; }
+    .play .cv { box-shadow: -3px 0 8px rgba(0, 0, 0, 0.35), 0 6px 14px rgba(0, 0, 0, 0.45); }
+    .play .card.on .cv { transform: translateY(-9px); box-shadow: 0 0 0 3px var(--chalk), 0 12px 24px rgba(0, 0, 0, 0.5); }
+    .play .card:disabled .cv { opacity: 1; filter: brightness(0.5) saturate(0.45); }
+    /* Short phones (iPhone SE): a slightly smaller hand and field strip, so the cards on the stage stay the biggest. */
+    @media (max-height: 620px) {
+      .play { --w: min(20dvh * 0.7143, 128px, (100cqw - 12px) / 3); }
+      .zones { height: 34px; }
+      .zn { top: 5px; }
+      .result { min-height: 54px; }
+      .result .head { font-size: 20px; }
+      .wrap:has(.status.room) .stage { padding-top: 44px; }
+      .status { margin-top: 7px; }
+    }
+  }
+</style>"""
+
+PHONE_JS = """  // Phones in portrait get the one-screen layout (the last block of styles).
+  const phoneB = matchMedia('(max-width: 899px) and (min-height: 460px)');
+  let medalGo = false, stageArt = '';
+"""
+
+
+def phone_b(p):
+    """Layout B on phones: one screen per snap, the stage on the current field card, the medal as the Snap button."""
+    p.rep("</style>", PHONE_CSS)
+    # The field strip shows each zone's name; the field card images stay for wide screens and for holding a zone.
+    p.s, n = re.subn(r'(<div class="zone[^"]*"[^>]*><img [^>]*alt="([^"]+)"[^>]*>)', r'\1<span class="zn">\2</span>', p.s)
+    if n not in (4, 6):
+        sys.exit(f"expected 4 or 6 zones, got {n}")
+    # The ⋯ menu: How to play, New game and Play by play (wide screens keep the two buttons).
+    p.rep('<div class="top-actions">', '<div class="top-actions" id="menu">')
+    p.rep('<button class="ghost" id="newGame" type="button">New game</button>\n      </div>\n',
+          '<button class="ghost" id="newGame" type="button">New game</button>\n'
+          '        <button class="ghost" id="showLog" type="button">Play by play</button>\n      </div>\n'
+          '      <button class="ghost menu-btn" id="menuBtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu">'
+          '<svg viewBox="0 0 18 4" aria-hidden="true"><circle cx="2" cy="2" r="2"></circle><circle cx="9" cy="2" r="2"></circle><circle cx="16" cy="2" r="2"></circle></svg></button>\n')
+    p.rep('<div class="medal" id="medal">vs</div>', '<button class="medal" id="medal" type="button" disabled>vs</button>')
+    p.rep('    <dialog class="rules" id="rules"',
+          '    <dialog class="rules log-sheet" id="logSheet" aria-labelledby="logHead">\n'
+          '      <div class="head"><h2 id="logHead">Play by play</h2><button class="ghost" id="closeLog" type="button">Close</button></div>\n'
+          '      <div class="body"><ol class="log" id="logAll"></ol></div>\n'
+          '    </dialog>\n\n'
+          '    <dialog class="rules" id="rules"')
+    p.rep("  // ---------- Drawing ----------\n", "  // ---------- Drawing ----------\n" + PHONE_JS)
+    p.rep("    $('#ball').style.left = zoneX(S.pos);\n",
+          """    $('#ball').style.left = zoneX(S.pos);
+    // Phones: the stage is drawn on the field card of the zone the ball is in, and fades in when the zone changes.
+    const art = field.querySelector(`.zone[data-z="${S.pos}"] img`).src, stage = $('.stage');
+    if (art !== stageArt) {
+      if (stageArt) { stage.classList.remove('new-art'); void stage.offsetWidth; stage.classList.add('new-art'); }
+      stageArt = art;
+      stage.style.setProperty('--art', `url("${art}")`);
+    }
+""")
+    p.rep("    setCards($('#specials'), sp.join(''));\n",
+          "    setCards($('#specials'), sp.join(''));\n    $('.play').style.setProperty('--n', keys.length + S.hands.you.length);\n")
+    p.rep("    // Play by play\n",
+          """    // Phones: once you've picked, the medal between the two cards is the Snap button.
+    const go = phoneB.matches && ready();
+    medal.disabled = !go;
+    if (go) {
+      medal.className = 'medal go' + (medalGo ? '' : ' arm');
+      medal.style.removeProperty('--tone');
+      medal.textContent = $('#snap').textContent;
+    }
+    medalGo = go;
+
+    // Play by play
+""")
+    p.rep("  $('#snap').addEventListener('click', snap);\n",
+          """  $('#snap').addEventListener('click', snap);
+  $('#medal').addEventListener('click', snap);
+  phoneB.addEventListener('change', render);
+  // Phones: How to play, New game and Play by play are in the ⋯ menu. Any tap outside it closes it.
+  const topBar = $('.top');
+  function openMenu(open) {
+    topBar.classList.toggle('open', open);
+    $('#menuBtn').setAttribute('aria-expanded', String(open));
+  }
+  $('#menuBtn').addEventListener('click', () => openMenu(!topBar.classList.contains('open')));
+  $('#menu').addEventListener('click', (e) => { if (e.target.closest('button')) openMenu(false); });
+  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.top')) openMenu(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') openMenu(false); });
+  $('#showLog').addEventListener('click', () => { $('#logAll').innerHTML = $('#log').innerHTML; $('#logSheet').showModal(); });
+  $('#closeLog').addEventListener('click', () => $('#logSheet').close());
+""")
+    # Cards in the phone hand overlap: a hold opens, and a tap picks, the card on top (the later one).
+    p.rep("    // A tucked special sits behind its play card, so the play card wins where they overlap.\n"
+          "    const el = hits.find((h) => !h.classList.contains('tuck')) || hits[0];",
+          "    // A tucked special sits behind its play card, so the play card wins where they overlap. Where cards in the\n"
+          "    // phone hand overlap, the one on top (later on the page) wins.\n"
+          "    const el = hits.filter((h) => !h.classList.contains('tuck')).pop() || hits[0];")
+    p.rep("  // ---------- Input ----------\n",
+          """  // ---------- Input ----------
+  // Phones: the hand's cards overlap, and a dimmed special lets taps through to the card under it,
+  // so a tap only counts for the card on top where it landed.
+  function onTop(b, e) {
+    if (!phoneB.matches || !e.detail) return true;
+    const inside = (x) => { const r = x.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; };
+    return [...document.querySelectorAll('.hand .card, .specials .card:not(.empty)')].filter((c) => inside(c) || inside(c.firstElementChild)).pop() === b;
+  }
+""")
+    for k in ("data-play", "data-sp"):
+        p.rep(f"    const b = e.target.closest('[{k}]');\n    if (!b || S.phase !== 'pick') return;",
+              f"    const b = e.target.closest('[{k}]');\n    if (!b || S.phase !== 'pick' || !onTop(b, e)) return;")
 
 
 SPECIALS_P = "Only one special can work per snap, and a played special is used up either way.</p>"
