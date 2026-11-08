@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Snap Call: one-screen phone mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Graduate&display=swap">
+<style>
+  /* Three ways to fit a snap on one phone screen. Each mock is drawn inside a fixed-size "phone" box and sized with
+     container units (cqh/cqw), so the 390x664 and 375x553 frames show exactly what fits on those screens. On a real
+     phone the mock fills the screen under a thin switcher bar. The game logic is a cut-down Stopped once game. */
+  :root {
+    --turf: #0f3d29;
+    --turf-deep: #0a2c1d;
+    --board: #08150f;
+    --slate: #0b241a;
+    --line: #24533d;
+    --chalk: #ecf3e8;
+    --chalk-dim: #a9bdb0;
+    --you: #ff8a3d;
+    --cpu: #3fdcc4;
+    --gold: #ffd447;
+    --ink: #15201a;
+    --display: 'Graduate', 'Rockwell', 'Courier New', serif;
+    --label: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    --body: 'Barlow', 'Helvetica Neue', Arial, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--turf-deep);
+    background-image: repeating-linear-gradient(180deg, var(--turf) 0 64px, var(--turf-deep) 64px 128px);
+    color: var(--chalk);
+    font: 400 16px/1.5 var(--body);
+    -webkit-tap-highlight-color: transparent;
+  }
+  button { font: inherit; color: inherit; }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  /* ---------- Desktop page: notes on the left, two phone frames on the right ---------- */
+  .page { display: flex; flex-wrap: wrap; gap: 32px; justify-content: center; align-items: flex-start; padding: 32px 24px 48px; }
+  .about { flex: 0 1 340px; display: grid; gap: 16px; }
+  .about .brand { font: 400 15px/1 var(--display); color: var(--gold); letter-spacing: 0.06em; }
+  .about h1 { margin: 0; font: 700 34px/1.05 var(--label); text-wrap: balance; }
+  .about p { margin: 0; color: var(--chalk-dim); }
+  .tabs { display: grid; gap: 8px; }
+  .tab { text-align: left; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; display: grid; gap: 4px; }
+  .tab b { font: 700 19px/1.15 var(--label); }
+  .tab span { color: var(--chalk-dim); font-size: 15px; line-height: 1.4; }
+  .tab[aria-pressed="true"] { border-color: var(--you); background: #1a2a1f; }
+  .tab .tradeoff { color: var(--chalk); font-size: 14px; }
+  .frames { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; justify-content: center; }
+  .frames figure { margin: 0; display: grid; gap: 10px; justify-items: center; }
+  .frames figcaption { color: var(--chalk-dim); font: 600 15px/1.2 var(--label); }
+
+  .phone {
+    container-type: size;
+    position: relative;
+    box-sizing: content-box;
+    width: 390px; height: 664px;
+    border-radius: 30px;
+    border: 8px solid #020604;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+    background: var(--turf-deep);
+    background-image: repeating-linear-gradient(180deg, var(--turf) 0 48px, var(--turf-deep) 48px 96px);
+    user-select: none; -webkit-user-select: none;
+  }
+  .phone.small { width: 375px; height: 553px; }
+  .phone-wrap { box-sizing: content-box; }
+
+  /* ---------- Phones: just the mock, full screen, under a thin switcher ---------- */
+  .switch { display: none; }
+  @media (max-width: 640px) {
+    .page { padding: 0; gap: 0; display: block; }
+    .about, .frames figure:nth-child(2), .frames figcaption { display: none; }
+    .frames { display: block; }
+    .phone, .phone.small { width: 100vw; height: calc(100dvh - 44px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); border: 0; border-radius: 0; box-shadow: none; }
+    .switch {
+      display: flex; gap: 6px; align-items: center; height: calc(44px + env(safe-area-inset-top, 0px));
+      padding: env(safe-area-inset-top, 0px) max(10px, env(safe-area-inset-right, 0px)) 0 max(10px, env(safe-area-inset-left, 0px));
+      background: #020604; border-bottom: 1px solid var(--line);
+    }
+    .switch button { flex: 1; min-width: 0; height: 32px; border-radius: 16px; border: 1px solid var(--line); background: transparent; font: 600 14px/1 var(--label); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 8px; }
+    .switch button[aria-pressed="true"] { background: var(--you); border-color: var(--you); color: var(--ink); }
+    .switch .info { flex: none; width: 32px; padding: 0; }
+    body { padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--turf-deep); }
+  }
+  .sheet { position: fixed; inset: 0; z-index: 50; background: rgba(2, 6, 4, 0.75); display: grid; align-items: end; }
+  .sheet[hidden] { display: none; }
+  .sheet > div { background: var(--board); border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; padding: 20px 18px calc(24px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 10px; }
+  .sheet h2 { margin: 0; font: 700 22px/1.1 var(--label); }
+  .sheet p { margin: 0; color: var(--chalk-dim); }
+  .sheet button { justify-self: start; background: var(--you); color: var(--ink); border: 0; border-radius: 10px; padding: 10px 16px; font: 700 16px/1 var(--label); }
+
+  /* ---------- Shared pieces inside a phone ---------- */
+  .mock { position: absolute; inset: 0; display: grid; gap: 1cqh; padding: 1.2cqh 8px 1.4cqh; }
+  .bar { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 4px 0 8px; background: var(--board); border: 1px solid var(--line); border-radius: 12px; }
+  .bar .side { display: flex; align-items: center; gap: 6px; font: 700 14px/1 var(--label); letter-spacing: 0.03em; }
+  .bar .you { color: var(--you); }
+  .bar .cpu { color: var(--cpu); margin-left: auto; }
+  .bar .pts { font: 400 24px/1 var(--display); color: var(--chalk); min-width: 1.2em; text-align: center; font-variant-numeric: tabular-nums; }
+  .bar .to { font: 600 13px/1 var(--label); color: var(--chalk-dim); white-space: nowrap; }
+  .bar .ball { width: 16px; height: 10px; }
+  .bar .menu { width: 34px; height: 30px; border-radius: 9px; border: 1px solid var(--line); background: transparent; font-size: 18px; line-height: 1; cursor: pointer; }
+
+  .strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; height: 9.5cqh; }
+  .zone { position: relative; border-radius: 8px; overflow: hidden; border: 2px solid transparent; opacity: 0.55; }
+  .zone img.card { width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover; object-position: 50% 0%; display: block; border-radius: 0; box-shadow: none; }
+  .zone.at { opacity: 1; border-color: var(--you); }
+  .zone.at.cpu { border-color: var(--cpu); }
+  .zone .ball { position: absolute; left: 50%; bottom: 8%; width: 26px; height: 16px; transform: translateX(-50%); filter: drop-shadow(0 2px 2px rgba(0,0,0,.6)); }
+  .zone .tag { position: absolute; right: 4px; bottom: 4px; font: 700 10px/1 var(--label); padding: 3px 5px; border-radius: 5px; background: rgba(2, 6, 4, 0.8); }
+  .zone .tag.you { color: var(--you); }
+  .zone .tag.cpu { color: var(--cpu); }
+
+  .card { display: block; aspect-ratio: 600 / 840; border-radius: 7% / 5%; }
+  img.card { height: 100%; width: auto; object-fit: cover; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45); }
+  .empty { border: 2px dashed rgba(236, 243, 232, 0.35); display: grid; place-items: center; text-align: center; padding: 8px; color: var(--chalk-dim); font: 600 13px/1.25 var(--label); }
+
+  .stage { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 0.6cqh; background: rgba(8, 21, 15, 0.7); border: 1px solid var(--line); border-radius: 14px; padding: 0.8cqh 8px 1cqh; }
+  .who { display: flex; justify-content: space-between; padding: 0 14%; font: 700 12px/1 var(--label); letter-spacing: 0.08em; }
+  .who .y { color: var(--you); } .who .c { color: var(--cpu); }
+  .duel { min-height: 0; height: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .slot { position: relative; height: min(100%, calc((100cqw - 32px - 76px) / 2 / 0.7143)); aspect-ratio: 600 / 840; display: grid; isolation: isolate; }
+  .slot > .card { width: 100%; height: 100%; }
+  .slot .tuck { position: absolute; z-index: -1; top: -7%; left: 9%; width: 82%; height: auto; transform: rotate(-4deg); }
+  .slot.cpu .card.flip { animation: flip 0.45s ease-out; }
+  @keyframes flip { from { transform: rotateY(90deg); } to { transform: none; } }
+  .medal { flex: none; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; text-align: center; border: 2px solid rgba(236, 243, 232, 0.3); font: 700 12px/1.05 var(--label); color: var(--chalk-dim); background: var(--board); }
+  .medal.you { background: var(--you); border-color: var(--you); color: var(--ink); }
+  .medal.cpu { background: var(--cpu); border-color: var(--cpu); color: var(--ink); }
+  .medal.go { width: 64px; height: 64px; background: var(--you); border: 0; color: var(--ink); font: 400 13px/1 var(--display); cursor: pointer; box-shadow: 0 0 0 6px rgba(255, 138, 61, 0.22); }
+  .medal.go:disabled { background: var(--board); color: var(--chalk-dim); border: 2px solid rgba(236, 243, 232, 0.3); box-shadow: none; cursor: default; }
+  .result { text-align: center; display: grid; gap: 2px; min-height: 38px; align-content: center; }
+  .result .head { font: 400 clamp(17px, 3.3cqh, 24px)/1 var(--display); }
+  .result .head.you { color: var(--you); } .result .head.cpu { color: var(--cpu); }
+  .result .line { font-size: 13.5px; line-height: 1.25; color: var(--chalk-dim); }
+
+  .label { display: flex; justify-content: space-between; align-items: baseline; font: 700 13px/1 var(--label); letter-spacing: 0.04em; padding: 0 2px; }
+  .label .hint { color: var(--chalk-dim); font-weight: 500; letter-spacing: 0; }
+  .row { display: flex; justify-content: center; gap: 6px; }
+  .row .pick { --h: min(var(--max), calc((100cqw - 16px - (var(--n) - 1) * 6px) / var(--n) / 0.7143)); height: var(--h); width: calc(var(--h) * 0.7143); padding: 0; border: 0; background: none; border-radius: 7% / 5%; cursor: pointer; position: relative; transition: transform 0.15s ease-out; }
+  .row .pick img.card { width: 100%; height: 100%; }
+  .pick.sel { transform: translateY(-6px); }
+  .pick.sel img.card { outline: 3px solid var(--you); outline-offset: 1px; }
+  .pick.sp.sel img.card { outline-color: var(--gold); }
+  .snap { height: 46px; border: 0; border-radius: 12px; background: var(--you); color: var(--ink); font: 400 20px/1 var(--display); cursor: pointer; }
+  .snap:disabled { background: #3a3523; color: rgba(236, 243, 232, 0.4); cursor: default; }
+
+  /* A: specials as gold buttons with the card's rule written out */
+  .chips { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; }
+  .chip { text-align: left; border: 1.5px solid rgba(255, 212, 71, 0.55); background: rgba(255, 212, 71, 0.08); border-radius: 10px; padding: 6px 8px; display: grid; gap: 2px; cursor: pointer; min-height: 8cqh; align-content: center; }
+  .chip b { font: 700 14px/1.1 var(--label); color: var(--gold); }
+  .chip span { font-size: 12px; line-height: 1.25; color: var(--chalk-dim); }
+  .chip.sel { background: var(--gold); border-color: var(--gold); }
+  .chip.sel b, .chip.sel span { color: var(--ink); }
+
+  /* B: one hand along the bottom, cards overlapping, plays then specials */
+  .dock { position: relative; display: flex; justify-content: center; align-items: flex-end; padding-top: 12px; }
+  .dock .pick { position: relative; --w: calc(var(--dh) * 0.7143); height: var(--dh); width: var(--w); flex: none; padding: 0; border: 0; background: none; border-radius: 7% / 5%; cursor: pointer; transition: transform 0.15s ease-out; margin-left: min(6px, calc((100cqw - 16px - var(--w) - 12px) / (var(--n) - 1) - var(--w))); }
+  .dock .pick:first-child { margin-left: 0; }
+  .dock .pick.gap { margin-left: calc(12px + min(6px, calc((100cqw - 16px - var(--w) - 12px) / (var(--n) - 1) - var(--w)))); }
+  .dock .pick img.card { width: 100%; height: 100%; }
+  .dock .pick.sel { transform: translateY(-12px); }
+
+  /* C: the reveal over the whole screen */
+  .lastline { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border-radius: 10px; background: rgba(8, 21, 15, 0.7); border: 1px solid var(--line); font-size: 13.5px; color: var(--chalk-dim); white-space: nowrap; overflow: hidden; }
+  .lastline b { font: 700 14px/1 var(--label); }
+  .lastline b.you { color: var(--you); } .lastline b.cpu { color: var(--cpu); }
+  .reveal { position: absolute; inset: 0; z-index: 10; background: rgba(4, 14, 9, 0.94); display: grid; grid-template-rows: 1fr auto auto auto 1fr; gap: 2cqh; justify-items: center; padding: 16px 12px; cursor: pointer; }
+  .reveal .duel { grid-row: 2; height: 46cqh; gap: 14px; }
+  .reveal .slot { height: min(100%, calc((100cqw - 24px - 86px) / 2 / 0.7143)); }
+  .reveal .result { grid-row: 3; }
+  .reveal .result .head { font-size: clamp(24px, 5cqh, 34px); }
+  .reveal .result .line { font-size: 15px; }
+  .reveal .tapon { grid-row: 4; font: 600 13px/1 var(--label); color: var(--chalk-dim); }
+  .reveal .slot .side-tag { position: absolute; bottom: -22px; left: 0; right: 0; text-align: center; font: 700 13px/1 var(--label); letter-spacing: 0.08em; }
+  .reveal .slot.you .side-tag { color: var(--you); }
+  .reveal .slot.cpu .side-tag { color: var(--cpu); }
+
+  /* Hold a card to see it big */
+  .zoom { position: absolute; inset: 0; z-index: 20; background: rgba(2, 6, 4, 0.88); display: grid; place-items: center; padding: 16px; }
+  .zoom img { height: min(82cqh, calc((100cqw - 32px) / 0.7143)); width: auto; aspect-ratio: 600 / 840; border-radius: 6% / 4.3%; }
+  .menu-sheet { position: absolute; top: calc(1.2cqh + 42px); right: 8px; z-index: 15; background: var(--board); border: 1px solid var(--line); border-radius: 12px; padding: 6px; display: grid; min-width: 170px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+  .menu-sheet button { text-align: left; background: none; border: 0; padding: 10px 12px; border-radius: 8px; font: 600 16px/1 var(--label); cursor: pointer; }
+  .menu-sheet button:hover { background: var(--slate); }
+  .menu-sheet .soon { color: var(--chalk-dim); }
+  .over { position: absolute; inset: 0; z-index: 12; background: rgba(4, 14, 9, 0.94); display: grid; place-content: center; gap: 14px; text-align: center; }
+  .over h2 { margin: 0; font: 400 34px/1 var(--display); }
+  .over button { justify-self: center; background: var(--you); color: var(--ink); border: 0; border-radius: 12px; padding: 12px 22px; font: 400 18px/1 var(--display); cursor: pointer; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slot.cpu .card.flip { animation: none; }
+    .pick { transition: none; }
+  }
+</style>
+</head>
+<body>
+<nav class="switch" aria-label="Mockups">
+  <button type="button" data-variant="a">A · Compact</button>
+  <button type="button" data-variant="b">B · Snap in the middle</button>
+  <button type="button" data-variant="c">C · Reveal</button>
+  <button type="button" class="info" aria-label="About this layout">?</button>
+</nav>
+<div class="sheet" id="sheet" hidden><div><h2 id="sheetTitle"></h2><p id="sheetText"></p><p id="sheetTrade"></p><button type="button" id="sheetClose">Got it</button></div></div>
+
+<div class="page">
+  <section class="about">
+    <div class="brand">SNAP CALL</div>
+    <h1>One screen per snap on phones</h1>
+    <p>Today’s game is about 1,500px tall on a phone that shows 664px, so you scroll down to pick a card and up to see what happened. These three mockups fit a whole snap on one screen. They play a cut-down Stopped once game: tap a card, snap, hold any card to see it big. Specials can be picked but don’t do anything here.</p>
+    <div class="tabs" id="tabs"></div>
+    <p>Open this page on your phone to try them for real: <b>noam99moyal.github.io/snap-call/mockups/phone/</b></p>
+  </section>
+  <div class="frames">
+    <figure><div class="phone" id="p1"></div><figcaption>Most phones: 390 × 664 visible</figcaption></figure>
+    <figure><div class="phone small" id="p2"></div><figcaption>Small phone (iPhone SE): 375 × 553 visible</figcaption></figure>
+  </div>
+</div>
+
+<script>
+(() => {
+  const CARDS = '../../full-cards/cards/';
+  const VARIANTS = {
+    a: { name: 'A · Compact', title: 'Compact',
+         text: 'Same order as today, everything smaller. The scoreboard and the field become two thin rows, the line under the field moves into the stage, and the specials turn into gold buttons with their rule written out. Snap stays at the bottom.',
+         trade: 'Smallest change. Play cards are a bit smaller than today; hold one to see it big.' },
+    b: { name: 'B · Snap in the middle', title: 'Snap in the middle',
+         text: 'Your hand sits along the bottom like cards in your hand, plays first, then specials. Tap a card and it jumps into your spot on the stage, and the VS circle turns into the Snap button, so you pick, check and snap in the same place.',
+         trade: 'Biggest cards on the stage. Cards in the hand overlap; you read the one you picked on the stage.' },
+    c: { name: 'C · Pick, then reveal', title: 'Pick, then reveal',
+         text: 'The screen is your hand, with cards about today’s size. When you snap, both cards flip big over the whole screen with the result, then it goes back to your hand. The last result stays in one line at the top.',
+         trade: 'Easiest to read while picking. You don’t see the stage while you pick, only the last result line.' },
+  };
+  const NAMES = {
+    run: 'Run', 'short-pass': 'Short Pass', 'deep-pass': 'Deep Pass', 'kick-field-goal': 'Kick Field Goal',
+    'stop-run': 'Stop Run', 'stop-short': 'Stop Short', 'stop-deep': 'Stop Deep',
+    'spectacular-catch': 'Spectacular Catch', 'challenge-flag': 'Challenge Flag', 'card-back': 'Card back',
+  };
+  const RULES = {
+    'spectacular-catch': 'If your play is stopped → still gain 1 zone',
+    'challenge-flag': 'If you lose the snap → replay it',
+  };
+  const STOP_FOR = { run: 'stop-run', 'short-pass': 'stop-short', 'deep-pass': 'stop-deep' };
+  const PLAY_FOR = { 'stop-run': 'run', 'stop-short': 'short-pass', 'stop-deep': 'deep-pass' };
+  const ZONES = ['own-25', 'midfield', 'red-zone', 'end-zone'];
+  const ZONE_LINE = ['your own 25', 'midfield', 'the Red Zone'];
+  const TARGET = 28;
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const BALL = '<svg class="ball" viewBox="0 0 26 16" aria-hidden="true"><ellipse cx="13" cy="8" rx="12" ry="7" fill="#8b4a29" stroke="#3b1d0e" stroke-width="1"/><path d="M8 8h10M10 6v4M13 6v4M16 6v4" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>';
+  const img = (name, cls = '') => `<img class="card ${cls}" src="${CARDS}${name}.webp" alt="${NAMES[name] || name}" draggable="false">`;
+
+  let variant = 'a';
+  try { const h = location.hash.slice(1); if (VARIANTS[h]) variant = h; } catch (e) { /* default A */ }
+
+  class Mock {
+    constructor(el) {
+      this.el = el;
+      this.newGame();
+      el.addEventListener('click', (e) => this.click(e));
+      el.addEventListener('pointerdown', (e) => this.press(e));
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach((t) => el.addEventListener(t, () => clearTimeout(this.hold)));
+      el.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+    newGame() {
+      this.S = { poss: 'you', pos: 0, score: { you: 0, cpu: 0 }, sel: null, sp: null, last: null, reveal: false, zoom: null, menu: false, over: null, flip: false };
+      this.specials = ['spectacular-catch', 'challenge-flag'];
+    }
+    plays() {
+      const S = this.S;
+      if (S.poss === 'cpu') return ['stop-run', 'stop-short', 'stop-deep'];
+      return S.pos === 2 ? ['run', 'short-pass', 'deep-pass', 'kick-field-goal'] : ['run', 'short-pass', 'deep-pass'];
+    }
+    press(e) {
+      const t = e.target.closest('[data-card]');
+      if (!t) return;
+      clearTimeout(this.hold);
+      this.held = false;
+      this.hold = setTimeout(() => { this.held = true; this.S.zoom = t.dataset.card; this.render(); }, 450);
+    }
+    click(e) {
+      const S = this.S;
+      if (this.held) { this.held = false; return; }
+      if (S.zoom) { S.zoom = null; return this.render(); }
+      if (e.target.closest('.reveal')) { clearTimeout(this.auto); S.reveal = false; return this.render(); }
+      if (e.target.closest('[data-new]')) { this.newGame(); return this.render(); }
+      if (e.target.closest('.menu')) { S.menu = !S.menu; return this.render(); }
+      if (S.menu) { S.menu = false; this.render(); if (!e.target.closest('.menu-sheet')) return; }
+      const t = e.target.closest('[data-card]');
+      if (t) {
+        const c = t.dataset.card;
+        if (t.dataset.kind === 'sp') S.sp = S.sp === c ? null : c;
+        else S.sel = S.sel === c ? null : c;
+        return this.render();
+      }
+      if (e.target.closest('[data-snap]') && S.sel) this.snap();
+    }
+    snap() {
+      const S = this.S;
+      const you = S.sel, sp = S.sp;
+      S.sel = null; S.sp = null;
+      let cpu, head, line, tone, medal;
+      const off = S.poss;
+      const score = (who, pts) => { S.score[who] += pts; S.poss = who === 'you' ? 'cpu' : 'you'; S.pos = 0; };
+      if (you === 'kick-field-goal') {
+        cpu = 'card-back'; head = 'Field goal'; line = 'It’s good! 3 points.'; tone = 'you'; medal = 'Kick';
+        score('you', 3);
+      } else {
+        const play = off === 'you' ? you : (cpu = pick(Object.keys(STOP_FOR)));
+        const stop = off === 'you' ? (cpu = pick(Object.values(STOP_FOR))) : you;
+        const stopped = STOP_FOR[play] === stop;
+        const def = off === 'you' ? 'cpu' : 'you';
+        const D = def === 'you' ? 'You' : 'CPU';
+        medal = stopped ? 'Stopped' : 'Not stopped';
+        if (stopped) {
+          tone = def;
+          if (play === 'deep-pass') { head = 'Intercepted!'; line = `${D} start${def === 'cpu' ? 's' : ''} at midfield.`; S.poss = def; S.pos = 1; }
+          else { head = 'Stopped'; line = `${D} take${def === 'cpu' ? 's' : ''} over at ${def === 'you' ? 'your' : 'their'} 25.`; S.poss = def; S.pos = 0; }
+        } else {
+          tone = off;
+          const gain = play === 'deep-pass' ? 2 : 1;
+          S.pos += gain;
+          if (S.pos > 2) { head = 'Touchdown!'; line = `${off === 'you' ? 'You score' : 'CPU scores'} 7.`; score(off, 7); }
+          else { head = `+${gain} zone${gain > 1 ? 's' : ''}`; line = `Ball ${S.pos === 2 ? 'in the Red Zone' : 'at midfield'}.`; }
+        }
+      }
+      S.last = { you, cpu, sp, head, line, tone, medal };
+      S.flip = true;
+      if (S.score.you >= TARGET || S.score.cpu >= TARGET) S.over = S.score.you > S.score.cpu ? 'You win' : 'CPU wins';
+      if (variant === 'c') {
+        S.reveal = true;
+        clearTimeout(this.auto);
+        this.auto = setTimeout(() => { if (S.reveal) { S.reveal = false; this.render(); } }, 2800);
+      }
+      this.render();
+    }
+
+    // ---------- pieces ----------
+    bar() {
+      const S = this.S;
+      return `<div class="bar">
+        <div class="side you">${S.poss === 'you' ? BALL : ''}You<span class="pts">${S.score.you}</span></div>
+        <div class="to">First to ${TARGET}</div>
+        <div class="side cpu"><span class="pts">${S.score.cpu}</span>CPU${S.poss === 'cpu' ? BALL : ''}</div>
+        <button type="button" class="menu" aria-label="Menu">⋯</button>
+      </div>`;
+    }
+    strip() {
+      const S = this.S, def = S.poss === 'you' ? 'cpu' : 'you';
+      return `<div class="strip">${ZONES.map((z, i) => `<div class="zone ${i === S.pos ? 'at ' + S.poss : ''}">${img(z)}${i === S.pos ? BALL : ''}${i === 3 ? `<span class="tag ${def}">${def === 'you' ? 'YOU' : 'CPU'}</span>` : ''}</div>`).join('')}</div>`;
+    }
+    hint() {
+      const S = this.S;
+      if (S.poss === 'you') return S.pos === 2 ? 'Your ball: Red Zone' : `Your ball at ${ZONE_LINE[S.pos]}`;
+      return 'CPU ball: pick a Stop card';
+    }
+    duel(goButton) {
+      const S = this.S, L = S.last;
+      let you, cpu, mid, flip = '';
+      if (S.sel) {
+        you = img(S.sel) + (S.sp ? img(S.sp, 'tuck') : '');
+        cpu = img('card-back');
+        mid = goButton ? `<button type="button" class="medal go" data-snap>Snap</button>` : `<div class="medal">VS</div>`;
+      } else if (L) {
+        you = img(L.you) + (L.sp ? img(L.sp, 'tuck') : '');
+        cpu = img(L.cpu, S.flip ? 'flip' : '');
+        mid = `<div class="medal ${L.tone}">${L.medal}</div>`;
+      } else {
+        you = `<div class="card empty">${goButton ? 'Tap a card below' : 'Pick a card'}</div>`;
+        cpu = img('card-back');
+        mid = goButton ? `<button type="button" class="medal go" disabled>Snap</button>` : `<div class="medal">VS</div>`;
+      }
+      return `<div class="duel"><div class="slot you">${you}</div>${mid}<div class="slot cpu">${cpu}</div></div>`;
+    }
+    result() {
+      const S = this.S, L = S.last;
+      if (S.sel || !L) return `<div class="result"><div class="head">${L ? '' : 'Kickoff'}</div><div class="line">${this.hint()}</div></div>`;
+      return `<div class="result"><div class="head ${L.tone}">${L.head}</div><div class="line">${L.line}</div></div>`;
+    }
+    stage(goButton) {
+      return `<div class="stage"><div class="who"><span class="y">YOU</span><span class="c">CPU</span></div>${this.duel(goButton)}${this.result()}</div>`;
+    }
+    row(cards, max, kind = 'play') {
+      const S = this.S;
+      return `<div class="row" style="--n:${cards.length};--max:${max}">${cards.map((c) => `<button type="button" class="pick ${kind === 'sp' ? 'sp' : ''} ${(kind === 'sp' ? S.sp : S.sel) === c ? 'sel' : ''}" data-card="${c}" data-kind="${kind}" aria-pressed="${(kind === 'sp' ? S.sp : S.sel) === c}">${img(c)}</button>`).join('')}</div>`;
+    }
+    side() { return this.S.poss === 'you' ? 'Offense' : 'Defense'; }
+    overlays() {
+      const S = this.S;
+      let h = '';
+      if (S.menu) h += `<div class="menu-sheet"><button type="button" class="soon">How to play</button><button type="button" class="soon">Play by play</button><button type="button" data-new>New game</button></div>`;
+      if (S.over) h += `<div class="over"><h2>${S.over}</h2><div>${S.score.you} – ${S.score.cpu}</div><button type="button" data-new>Play again</button></div>`;
+      if (S.zoom) h += `<div class="zoom">${img(S.zoom)}</div>`;
+      return h;
+    }
+
+    // ---------- the three layouts ----------
+    a() {
+      const S = this.S;
+      return `<div class="mock" style="grid-template-rows: auto auto minmax(0,1fr) auto auto auto auto">
+        ${this.bar()}${this.strip()}${this.stage(false)}
+        <div class="label"><span>${this.side()}</span><span class="hint">Hold a card to see it big</span></div>
+        ${this.row(this.plays(), '21cqh')}
+        <div class="chips" style="--n:${Math.max(1, this.specials.length)}">${this.specials.map((c) =>
+          `<button type="button" class="chip ${S.sp === c ? 'sel' : ''}" data-card="${c}" data-kind="sp" aria-pressed="${S.sp === c}"><b>${NAMES[c]}</b><span>${RULES[c]}</span></button>`).join('')}</div>
+        <button type="button" class="snap" data-snap ${S.sel ? '' : 'disabled'}>${S.sel === 'kick-field-goal' ? 'Kick for 3' : S.poss === 'you' ? 'Snap' : 'Defend'}</button>
+      </div>`;
+    }
+    b() {
+      const S = this.S, plays = this.plays(), n = plays.length + this.specials.length;
+      const pickBtn = (c, kind, extra = '') => `<button type="button" class="pick ${kind === 'sp' ? 'sp' : ''} ${extra} ${(kind === 'sp' ? S.sp : S.sel) === c ? 'sel' : ''}" data-card="${c}" data-kind="${kind}" aria-pressed="${(kind === 'sp' ? S.sp : S.sel) === c}">${img(c)}</button>`;
+      return `<div class="mock" style="grid-template-rows: auto auto minmax(0,1fr) auto auto">
+        ${this.bar()}${this.strip()}${this.stage(true)}
+        <div class="label"><span>${this.side()} · specials at the end</span><span class="hint">Hold to see it big</span></div>
+        <div class="dock" style="--n:${n};--dh:23cqh">${plays.map((c) => pickBtn(c, 'play')).join('')}${this.specials.map((c, i) => pickBtn(c, 'sp', i === 0 ? 'gap' : '')).join('')}</div>
+      </div>`;
+    }
+    c() {
+      const S = this.S, L = S.last;
+      const last = L ? `<b class="${L.tone}">${L.head}</b><span>${NAMES[L.you] || ''} vs ${NAMES[L.cpu] === 'Card back' ? 'no snap' : NAMES[L.cpu]}. ${L.line}</span>` : `<b class="you">Kickoff</b><span>You start at your own 25.</span>`;
+      let h = `<div class="mock" style="grid-template-rows: auto auto auto auto auto auto auto minmax(0,1fr) auto">
+        ${this.bar()}${this.strip()}
+        <div class="lastline">${last}</div>
+        <div class="label"><span>${this.side()}</span><span class="hint">${this.hint()}</span></div>
+        ${this.row(this.plays(), '25cqh')}
+        <div class="label"><span>Specials</span><span class="hint">Hold a card to see it big</span></div>
+        ${this.row(this.specials, '25cqh', 'sp')}
+        <div></div>
+        <button type="button" class="snap" data-snap ${S.sel ? '' : 'disabled'}>${S.sel === 'kick-field-goal' ? 'Kick for 3' : S.poss === 'you' ? 'Snap' : 'Defend'}</button>
+      </div>`;
+      if (S.reveal && L) {
+        h += `<div class="reveal" role="dialog" aria-label="Snap result">
+          <div class="duel"><div class="slot you">${img(L.you)}${L.sp ? img(L.sp, 'tuck') : ''}<span class="side-tag">YOU</span></div><div class="medal ${L.tone}">${L.medal}</div><div class="slot cpu">${img(L.cpu, 'flip')}<span class="side-tag">CPU</span></div></div>
+          <div class="result"><div class="head ${L.tone}">${L.head}</div><div class="line">${L.line}</div></div>
+          <div class="tapon">Tap to go on</div>
+        </div>`;
+      }
+      return h;
+    }
+    render() {
+      this.el.innerHTML = this[variant]() + this.overlays();
+      this.S.flip = false;
+    }
+  }
+
+  const mocks = [new Mock(document.getElementById('p1')), new Mock(document.getElementById('p2'))];
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = Object.entries(VARIANTS).map(([k, v]) => `<button type="button" class="tab" data-variant="${k}"><b>${v.name}</b><span>${v.text}</span><span class="tradeoff">${v.trade}</span></button>`).join('');
+  function setVariant(v) {
+    variant = v;
+    document.querySelectorAll('[data-variant]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.variant === v)));
+    mocks.forEach((m) => { m.S.reveal = false; m.S.zoom = null; m.S.menu = false; m.render(); });
+    try { history.replaceState(null, '', '#' + v); } catch (e) { /* hash stays */ }
+  }
+  document.querySelectorAll('[data-variant]').forEach((b) => b.addEventListener('click', () => setVariant(b.dataset.variant)));
+  const sheet = document.getElementById('sheet');
+  document.querySelector('.switch .info').addEventListener('click', () => {
+    const v = VARIANTS[variant];
+    document.getElementById('sheetTitle').textContent = v.name;
+    document.getElementById('sheetText').textContent = v.text;
+    document.getElementById('sheetTrade').textContent = v.trade;
+    sheet.hidden = false;
+  });
+  sheet.addEventListener('click', (e) => { if (e.target === sheet || e.target.id === 'sheetClose') sheet.hidden = true; });
+  setVariant(variant);
+})();
+</script>
+</body>
+</html>
