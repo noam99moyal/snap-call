@@ -454,6 +454,11 @@
   }
   .rule-set button[aria-checked="true"] { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
   .rule-set p { margin: 0; font: 400 14px/1.35 var(--ui); color: var(--chalk-dim); }
+  /* The other rule set is its own page: the choice shows at once and the rest dims while that page loads. */
+  .level.leaving .body > :not(.rule-set) { opacity: 0.45; transition: opacity 0.15s; }
+  /* Focus rings are for the keyboard. After a tap or a click, the button a dialog focuses when it opens stays plain. */
+  :root[data-input="pointer"] :focus-visible { outline: none; }
+  :root[data-input="pointer"] .card:focus-visible .cv { outline: none; }
   /* The line under the field only shows when it says something the screen doesn't (see showStatus). While it can
      come and go between snaps, it keeps its room so the cards below don't jump. */
   .status[hidden] { display: none; }
@@ -566,8 +571,19 @@
     .zones::after { content: ''; position: absolute; inset: 0; border: 1.5px solid rgba(236, 243, 232, 0.6); border-radius: inherit; pointer-events: none; }
     .zone img { display: none; }
     .zone + .zone::before { content: ''; position: absolute; top: 0; bottom: 0; left: -4px; width: 2px; background: rgba(236, 243, 232, 0.6); }
-    .zone:has(+ .ez) { background: rgba(214, 46, 42, 0.5); }
-    .zone.ez { background: rgba(43, 95, 214, 0.45); }
+    /* The Red Zone and end zone are painted turf in their field cards' red and blue, with their own mown stripes,
+       filling the gaps up to the chalk lines. The end zone has no hash marks. */
+    .zone:has(+ .ez) {
+      background:
+        repeating-linear-gradient(90deg, rgba(236, 243, 232, 0.38) 0 1px, transparent 1px 8px) top / 100% 4px no-repeat,
+        repeating-linear-gradient(90deg, rgba(236, 243, 232, 0.38) 0 1px, transparent 1px 8px) bottom / 100% 4px no-repeat,
+        repeating-linear-gradient(90deg, #a5312a 0 12px, #962b25 12px 24px);
+      box-shadow: -3px 0 0 #a5312a, 3px 0 0 #962b25;
+    }
+    .zone.ez {
+      background: repeating-linear-gradient(90deg, #2a54a8 0 12px, #244a97 12px 24px);
+      box-shadow: -3px 0 0 #2a54a8; border-radius: 0 4px 4px 0;
+    }
     .zn {
       display: block; position: absolute; top: 7px; left: 0; right: 0; text-align: center; white-space: nowrap;
       font: 600 12px/1 var(--ui); font-size: min(12px, 100cqi / 4.9); letter-spacing: 0.05em; text-transform: uppercase; color: var(--chalk-dim);
@@ -1681,10 +1697,23 @@
   for (const b of document.querySelectorAll('.len button')) b.addEventListener('click', () => setLen(+b.dataset.target));
   $('#newGame').addEventListener('click', askLevel);
   $('#again').addEventListener('click', askLevel);
-  // The rules choice in New game opens the other rule set's page, with New game showing.
-  for (const b of document.querySelectorAll('.rule-set button')) b.addEventListener('click', () => {
-    if (b.getAttribute('aria-checked') !== 'true') location.href = '../?new';
+  // The rules choice in New game opens the other rule set's page, with New game showing and the same length picked.
+  // The choice shows at once, since that page can take a moment to load.
+  const ruleBtns = [...document.querySelectorAll('.rule-set button')], ruleHere = ruleBtns.find((b) => b.getAttribute('aria-checked') === 'true');
+  const showRules = (on) => { for (const o of ruleBtns) o.setAttribute('aria-checked', String(o === on)); };
+  for (const b of ruleBtns) b.addEventListener('click', () => {
+    if (b === ruleHere) return;
+    showRules(b);
+    $('#level').classList.add('leaving');
+    location.href = `../?new=${lenPick}`;
   });
+  // Back from the other page: New game as it was.
+  addEventListener('pageshow', (e) => { if (e.persisted) { showRules(ruleHere); $('#level').classList.remove('leaving'); } });
+  // Focus rings are for the keyboard (see the styles): taps and clicks turn them off, Tab and the arrows turn them on.
+  const root = document.documentElement;
+  root.dataset.input = 'pointer';
+  addEventListener('pointerdown', () => { root.dataset.input = 'pointer'; }, true);
+  addEventListener('keydown', (e) => { if (e.key === 'Tab' || e.key.startsWith('Arrow')) root.dataset.input = 'key'; }, true);
   for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', () => { $('#level').close(); newGame(b.dataset.level, lenPick); });
   $('#closeLevel').addEventListener('click', () => $('#level').close());
   $('#level').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
@@ -1709,6 +1738,10 @@
   }
   window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
   // Arriving from the other rule set: ask Normal or Hard right away.
-  if (new URLSearchParams(location.search).has('new')) { history.replaceState(null, '', location.pathname); if (S) askLevel(); }
+  const arrived = new URLSearchParams(location.search).get('new');
+  if (arrived !== null) {
+    history.replaceState(null, '', location.pathname);
+    if (S) { askLevel(); if ([21, 28, 35].includes(+arrived)) setLen(+arrived); }
+  }
 })();
 </script>
