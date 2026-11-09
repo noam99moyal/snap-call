@@ -797,17 +797,17 @@
       <div class="head"><h2 id="rulesHead">How to play</h2><button class="ghost" id="closeRules" type="button">Close</button></div>
       <div class="body">
         <ul>
-          <li>The field has 3 zones: your own 25, midfield, the Red Zone. Get past the Red Zone for a touchdown, 7 points. In the Red Zone you can also kick a field goal instead of a play, for 3.</li>
+          <li>Get past the Red Zone for a touchdown (7 points), or kick a field goal there (3 points).</li>
           <li>Each snap, the offense secretly picks a play and the defense secretly picks a Stop card. Both flip at once.</li>
-          <li><strong>Not stopped</strong> (the Stop card doesn’t match the play): the ball moves. Run and Short Pass gain 1 zone, Deep Pass gains 2.</li>
-          <li><strong>Stopped</strong> (it matches): the defense gets the ball at its own 25. A stopped Deep Pass is intercepted, and they start at midfield.</li>
+          <li><strong>Not stopped</strong> (the cards don’t match): Run and Short Pass gain 1 zone, Deep Pass gains 2.</li>
+          <li><strong>Stopped</strong> (it matches): the defense gets the ball at its own 25, or midfield if it’s a Deep Pass.</li>
           <li>First to 21 wins, or pick 28 or 35 at New game.</li>
         </ul>
 
         <h3>Specials: losers save, winners score</h3>
         <p>Every special is a Save or a Bonus. You play it with your card, before the cards are shown. A Save only works if you lose the snap, with any play. A Bonus only works if you win it.</p>
         <p>Only one special can work per snap, and a played special is used up either way, except when a Challenge Flag cancels the snap: then the other side’s special goes back to its hand.</p>
-        <p>You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>
+        <p>You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks by CPU on the scoreboard show how many it holds, but not which ones.</p>
         <dl>
           <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If your play is stopped, you still gain 1 zone. A stopped Deep Pass gains 1 instead of being intercepted.</dd>
           <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd>If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own 25).</dd>
@@ -1425,8 +1425,7 @@
     // Status: first-game tips and the CPU's field goal; the scoreboard and the ball on the field show who has the ball and where.
     const kick = S.phase === 'busy';
     const tipLine = S.phase !== 'pick' ? ''
-      : S.poss === 'cpu' ? (tip('def') ? 'Pick the Stop card that matches their play.' : '')
-      : tip('off') ? 'Pick a play. The CPU will try to stop it.' : '';
+      : S.poss === 'cpu' && tip('def') ? 'Pick the Stop card that matches their play.' : '';
     showStatus(kick ? 'CPU lines up a field goal' : '', kick ? 'From the Red Zone, 3 points.' : tipLine, tips.on);
 
     // Field

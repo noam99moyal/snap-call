@@ -612,8 +612,9 @@ def status_block(p, code):
     p.s = p.s[:i] + code + p.s[j:]
 
 
+# The line under the field in your first game. Only defense has one: on offense the empty card spot and Kickoff
+# already say to pick a play.
 TIPS = {
-    'off': 'Pick a play. The CPU will try to stop it.',
     'def': 'Pick the Stop card that matches their play.',
 }
 
@@ -719,15 +720,14 @@ p.rep("  function askLevel() {\n", """  let lenPick = 21;
 p.rep("newGame(b.dataset.level); });", "newGame(b.dataset.level, lenPick); });")
 p.rep("'card-back', 'touchdown', 'field-goal']) new Image()", "'card-back', 'touchdown', 'field-goal', 'kick-field-goal']) new Image()")
 how_to_play(p, [
-    "The field has 3 zones: your own 25, midfield, the Red Zone. Get past the Red Zone for a touchdown, 7 points. "
-    "In the Red Zone you can also kick a field goal instead of a play, for 3.",
+    "Get past the Red Zone for a touchdown (7 points), or kick a field goal there (3 points).",
     "Each snap, the offense secretly picks a play and the defense secretly picks a Stop card. Both flip at once.",
-    "<strong>Not stopped</strong> (the Stop card doesn’t match the play): the ball moves. Run and Short Pass gain 1 zone, Deep Pass gains 2.",
-    "<strong>Stopped</strong> (it matches): the defense gets the ball at its own 25. A stopped Deep Pass is intercepted, and they start at midfield.",
+    "<strong>Not stopped</strong> (the cards don’t match): Run and Short Pass gain 1 zone, Deep Pass gains 2.",
+    "<strong>Stopped</strong> (it matches): the defense gets the ball at its own 25, or midfield if it’s a Deep Pass.",
     "First to 21 wins, or pick 28 or 35 at New game.",
 ])
 p.rep(SPECIALS_P, SPECIALS_P + """
-        <p>You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>""")
+        <p>You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks by CPU on the scoreboard show how many it holds, but not which ones.</p>""")
 p.rep("If they guess your play, you still gain 1 zone. A guessed Deep Pass gains 1 instead of being intercepted.",
       "If your play is stopped, you still gain 1 zone. A stopped Deep Pass gains 1 instead of being intercepted.")
 cards_words(p, "25")
@@ -737,8 +737,7 @@ cards_words(p, "25")
 status_block(p, f"""    // Status: first-game tips and the CPU's field goal; the scoreboard and the ball on the field show who has the ball and where.
     const kick = S.phase === 'busy';
     const tipLine = S.phase !== 'pick' ? ''
-      : S.poss === 'cpu' ? (tip('def') ? '{TIPS['def']}' : '')
-      : tip('off') ? '{TIPS['off']}' : '';
+      : S.poss === 'cpu' && tip('def') ? '{TIPS['def']}' : '';
     showStatus(kick ? 'CPU lines up a field goal' : '', kick ? 'From the Red Zone, 3 points.' : tipLine, tips.on);""")
 p.rep("    $('#handHint').textContent = S.poss === 'you' ? 'If the CPU guesses it, they get the ball' : 'Guess right to get the ball';\n", "")
 p.rep("detail: 'You start at your own 25. Pick a play, then snap.'", "detail: tips.on ? 'You start at your own 25. Pick a play, then snap.' : ''")
@@ -769,16 +768,15 @@ p.rep('        <div class="len" role="radiogroup"',
       + '        <div class="len" role="radiogroup"')
 p.rep("        <p>This page tests a longer field where you get two chances in each zone.</p>\n", "")
 how_to_play(p, [
-    "The field has 5 zones: your own 20, your own 35, midfield, their 35, the Red Zone. Get past the Red Zone for a "
-    "touchdown, 7 points. In the Red Zone you can also kick a field goal instead of a play, for 3.",
+    "Get past the Red Zone for a touchdown (7 points), or kick a field goal there (3 points).",
     "Each snap, the offense secretly picks a play and the defense secretly picks a Stop card. Both flip at once.",
-    "<strong>Not stopped</strong> (the Stop card doesn’t match the play): the ball moves. Run and Short Pass gain 1 zone, Deep Pass gains 2.",
+    "<strong>Not stopped</strong> (the cards don’t match): Run and Short Pass gain 1 zone, Deep Pass gains 2.",
     "<strong>Stopped once</strong> (it matches): the offense keeps the ball and tries again. Reaching a new zone starts the count over.",
-    "<strong>Stopped twice</strong> in the same zone: the defense gets the ball at its own 20. If the second stop is on a Deep Pass, it’s intercepted, and they start at midfield.",
+    "<strong>Stopped twice</strong> in a zone: the defense gets the ball at its own 20, or midfield if it’s a Deep Pass.",
     "First to 21 wins, or pick 28 or 35 at New game.",
 ])
 p.rep(SPECIALS_P, SPECIALS_P + """
-        <p>You start with 2 specials, or 3 if you get the ball second. You draw one when you’re scored on and when you win the ball back with a stop, and you can hold 3. The marks under CPU show how many it holds, but not which ones.</p>""")
+        <p>You start with 2 specials, or 3 if you get the ball second. You draw one when you’re scored on and when you win the ball back with a stop, and you can hold 3. The marks by CPU on the scoreboard show how many it holds, but not which ones.</p>""")
 p.rep("If they guess your play, it doesn’t count as a stop: you still gain 1 zone.",
       "If your play is stopped, you still gain 1 zone. A stopped Deep Pass gains 1 instead of being intercepted.")
 cards_words(p, "20", twice=True)
@@ -792,8 +790,7 @@ status_block(p, f"""    // Status: "stopped once" while it's the last try in thi
       head = S.poss === 'you' ? 'Your ball: stopped once' : 'CPU ball: stopped once';
       line = S.poss === 'you' ? 'Stopped again here and the CPU gets the ball.' : 'Stop them again to get the ball.';
     }} else if (S.phase === 'pick') {{
-      line = S.poss === 'cpu' ? (tip('def') ? '{TIPS['def']}' : '')
-        : tip('off') ? '{TIPS['off']}' : '';
+      line = S.poss === 'cpu' && tip('def') ? '{TIPS['def']}' : '';
     }}
     showStatus(head, line, S.phase !== 'over');""")
 p.rep("""    $('#handHint').textContent = S.poss === 'you'
