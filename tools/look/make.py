@@ -571,7 +571,9 @@ def phone_stage(p):
     p.rep("    res.style.setProperty('--tone', `var(--${R.tone})`);\n",
           "    res.style.setProperty('--tone', `var(--${R.tone})`);\n"
           "    // Blue when the offense won the snap (or kicked), red when the defense did, like the cards.\n"
-          "    if (L) res.style.setProperty('--tone', L.fg || L.tone === L.off ? 'var(--offense)' : 'var(--defense)');\n")
+          "    // Kickoff: blue when you get the ball first, red when the CPU does, like your hand.\n"
+          "    if (L) res.style.setProperty('--tone', L.fg || L.tone === L.off ? 'var(--offense)' : 'var(--defense)');\n"
+          "    else res.style.setProperty('--tone', S.poss === 'you' ? 'var(--offense)' : 'var(--defense)');\n")
     p.rep("medal.textContent = '+3'; }", "medal.textContent = '+3'; medal.classList.add('big'); }")
     p.rep("    S.flip = false;\n\n    // Result\n",
           "    // A kick has no matchup, so only the kicker's card shows.\n"
@@ -622,6 +624,7 @@ def tips_row(p):
           '          <button type="button" role="radio" data-tips="off" aria-checked="false">Off</button>\n'
           '        </div>\n')
     # The Tips row borrows the First to row's look (.len), so the length buttons are picked by their data-target.
+    # (first_ball below is the other New game change: who gets the ball first.)
     old = "document.querySelectorAll('.len button')"
     assert p.s.count(old) == 2, p.s.count(old)
     p.s = p.s.replace(old, "document.querySelectorAll('.len [data-target]')")
@@ -639,6 +642,26 @@ def status_block(p, code):
     i = p.s.index("    // Status\n")
     j = p.s.index("\n\n    // Field", i)
     p.s = p.s[:i] + code + p.s[j:]
+
+
+def first_ball(p, home, twice=False):
+    """Who gets the ball first is random. The kickoff line on the stage and the first play-by-play line say who,
+    every game; your first game adds what to do when it's you. When it's the CPU, the defense tip says it.
+    On Stopped twice the side that gets the ball second still starts with the extra special."""
+    p.rep("poss: 'you', pos: 0,", "poss: Math.random() < 0.5 ? 'you' : 'cpu', pos: 0,")
+    say = ("S.poss === 'you' ? 'You get the ball first, so the CPU starts with 3 specials.' "
+           ": 'CPU gets the ball first, so you start with 3 specials.'") if twice else \
+          "S.poss === 'you' ? 'You get the ball first.' : 'CPU gets the ball first.'"
+    p.rep("  function draw(w) {\n",
+          f"  function firstBall() {{ return {say}; }}\n  function draw(w) {{\n")
+    if twice:
+        p.rep("    draw('cpu');\n    S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first, so the CPU starts with 3 specials.', tone: 'you' });",
+              "    draw(S.poss === 'you' ? 'cpu' : 'you');\n    S.log.unshift({ n: 0, head: 'Kickoff', text: firstBall(), tone: S.poss });")
+    else:
+        p.rep("S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first.', tone: 'you' });",
+              "S.log.unshift({ n: 0, head: 'Kickoff', text: firstBall(), tone: S.poss });")
+    p.rep(f"{{ head: 'Kickoff', detail: 'You start at your own {home}. Pick a play, then snap.', tone: 'you', n: 0 }}",
+          "{ head: 'Kickoff', detail: firstBall() + (tips.on && S.poss === 'you' ? ' Pick a play, then snap.' : ''), tone: S.poss, n: 0 }")
 
 
 # The line under the field in your first game. Only defense has one: on offense the empty card spot and Kickoff
@@ -750,7 +773,7 @@ p.rep("newGame(b.dataset.level); });", "newGame(b.dataset.level, lenPick); });")
 p.rep("'card-back', 'touchdown', 'field-goal']) new Image()", "'card-back', 'touchdown', 'field-goal', 'kick-field-goal']) new Image()")
 how_to_play(p, [
     "Get past the Red Zone for a touchdown (7 points), or kick a field goal there (3 points).",
-    "Each snap, the offense picks a play and the defense guesses it with a Stop card. Both flip at once.",
+    "The offense picks a play, the defense guesses it with a Stop card, and both flip at once.",
     "<strong>Not stopped</strong> (wrong guess): Run and Short Pass gain 1 zone, Deep Pass gains 2.",
     "<strong>Stopped</strong> (right guess): the defense takes over at its 25, or midfield on a Deep Pass.",
     "First to 21 wins, or pick 28 or 35 at New game.",
@@ -769,7 +792,6 @@ status_block(p, f"""    // Status: first-game tips and the CPU's field goal; the
       : S.poss === 'cpu' && tip('def') ? '{TIPS['def']}' : '';
     showStatus(kick ? 'CPU lines up a field goal' : '', kick ? 'From the Red Zone, 3 points.' : tipLine, tips.on);""")
 p.rep("    $('#handHint').textContent = S.poss === 'you' ? 'If the CPU guesses it, they get the ball' : 'Guess right to get the ball';\n", "")
-p.rep("detail: 'You start at your own 25. Pick a play, then snap.'", "detail: tips.on ? 'You start at your own 25. Pick a play, then snap.' : ''")
 p.rep("""      case 'stop':
         S.poss = def; S.pos = 0;
         return { head: 'Stopped', detail: `${NAME[def]} ${verb(def, 'take')} over at ${def === 'you' ? 'your' : 'their'} 25.`, tone: def };""",
@@ -785,6 +807,7 @@ p.rep("return { head: 'Fumble!', detail: `${NAME[def]} ${verb(def, 'recover')} a
 p.rep("const HARD_KEY = 'snap-call-hard';", "const HARD_KEY = 'snap-call-look-hard';")
 p.s = re.sub(r"(?<![\w/.\-])cards/", "../full-cards/cards/", p.s)
 tips_row(p)
+first_ball(p, "25")
 phone_stage(p)
 (ROOT / "look/game.html").write_text(p.s)
 
@@ -799,7 +822,7 @@ p.rep('        <div class="len" role="radiogroup"',
 p.rep("        <p>This page tests a longer field where you get two chances in each zone.</p>\n", "")
 how_to_play(p, [
     "Get past the Red Zone for a touchdown (7 points), or kick a field goal there (3 points).",
-    "Each snap, the offense picks a play and the defense guesses it with a Stop card. Both flip at once.",
+    "The offense picks a play, the defense guesses it with a Stop card, and both flip at once.",
     "<strong>Not stopped</strong> (wrong guess): Run and Short Pass gain 1 zone, Deep Pass gains 2.",
     "<strong>Stopped once</strong> (right guess): the offense tries again in the same zone.",
     "<strong>Stopped twice</strong> in the same zone: the defense takes over at its 20, or midfield on a Deep Pass.",
@@ -827,7 +850,6 @@ p.rep("""    $('#handHint').textContent = S.poss === 'you'
       ? (last ? 'If the CPU guesses it, they get the ball' : 'If the CPU guesses it, you get one more try')
       : (last ? 'Guess right to get the ball' : 'Guess right twice to get the ball');
 """, "")
-p.rep("detail: 'You start at your own 20. Pick a play, then snap.'", "detail: tips.on ? 'You start at your own 20. Pick a play, then snap.' : ''")
 # Winning the ball back: lines now end with a period, and the draw joins subject-led lines with "and"
 # (the Old look's lines all are, so they read exactly as before).
 p.rep("""    const drew = S.hands[who].length > n ? ` and ${verb(who, 'draw')} a special` : '';
@@ -851,6 +873,7 @@ p.s = p.s.replace("../full-cards/", "../../full-cards/")
 p.s = re.sub(r"(?<![\w/.\-])cards/", "../../downs/cards/", p.s)
 (ROOT / "look/downs").mkdir(exist_ok=True)
 tips_row(p)
+first_ball(p, "20", twice=True)
 phone_stage(p)
 (ROOT / "look/downs/game.html").write_text(p.s)
 print("built look/ and look/downs/")

@@ -799,7 +799,7 @@
       <div class="body">
         <ul>
           <li>Get past the Red Zone for a touchdown (7 points), or kick a field goal there (3 points).</li>
-          <li>Each snap, the offense picks a play and the defense guesses it with a Stop card. Both flip at once.</li>
+          <li>The offense picks a play, the defense guesses it with a Stop card, and both flip at once.</li>
           <li><strong>Not stopped</strong> (wrong guess): Run and Short Pass gain 1 zone, Deep Pass gains 2.</li>
           <li><strong>Stopped</strong> (right guess): the defense takes over at its 25, or midfield on a Deep Pass.</li>
           <li>First to 21 wins, or pick 28 or 35 at New game.</li>
@@ -979,7 +979,7 @@
     for (const [k, s] of Object.entries(SPECIALS)) for (let i = 0; i < s.count; i++) deck.push(k);
     S = {
       v: RULES_VERSION, level, target,
-      score: { you: 0, cpu: 0 }, poss: 'you', pos: 0,
+      score: { you: 0, cpu: 0 }, poss: Math.random() < 0.5 ? 'you' : 'cpu', pos: 0,
       hands: { you: [], cpu: [] }, deck: shuffle(deck), discard: [],
       sel: { play: null, special: null },
       phase: 'pick', last: null, move: null, showLast: false, flip: false, log: [], snaps: 0,
@@ -994,10 +994,11 @@
     }
     try { localStorage.setItem(LEVEL_KEY, level); localStorage.setItem(TARGET_KEY, target); } catch (e) { /* the next visit starts on Normal, first to 21 */ }
     for (let i = 0; i < 2; i++) { draw('you'); draw('cpu'); }
-    S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first.', tone: 'you' });
+    S.log.unshift({ n: 0, head: 'Kickoff', text: firstBall(), tone: S.poss });
     render();
   }
 
+  function firstBall() { return S.poss === 'you' ? 'You get the ball first.' : 'CPU gets the ball first.'; }
   function draw(w) {
     if (S.hands[w].length >= 3) return;
     if (!S.deck.length) { S.deck = shuffle(S.discard); S.discard = []; }
@@ -1485,10 +1486,12 @@
 
     // Result
     const res = $('#result');
-    const R = L || { head: 'Kickoff', detail: tips.on ? 'You start at your own 25. Pick a play, then snap.' : '', tone: 'you', n: 0 };
+    const R = L || { head: 'Kickoff', detail: firstBall() + (tips.on && S.poss === 'you' ? ' Pick a play, then snap.' : ''), tone: S.poss, n: 0 };
     res.style.setProperty('--tone', `var(--${R.tone})`);
     // Blue when the offense won the snap (or kicked), red when the defense did, like the cards.
+    // Kickoff: blue when you get the ball first, red when the CPU does, like your hand.
     if (L) res.style.setProperty('--tone', L.fg || L.tone === L.off ? 'var(--offense)' : 'var(--defense)');
+    else res.style.setProperty('--tone', S.poss === 'you' ? 'var(--offense)' : 'var(--defense)');
     res.innerHTML = `<span class="head">${R.head}</span><span class="detail">${R.detail}</span>`;
     res.classList.remove('pop');
     if (R.n !== shownResult && R.n > 0) { void res.offsetWidth; res.classList.add('pop'); $('#log').scrollTop = 0; }
