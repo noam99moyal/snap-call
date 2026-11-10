@@ -773,7 +773,7 @@ p.rep("newGame(b.dataset.level); });", "newGame(b.dataset.level, lenPick); });")
 p.rep("'card-back', 'touchdown', 'field-goal']) new Image()", "'card-back', 'touchdown', 'field-goal', 'kick-field-goal']) new Image()")
 how_to_play(p, [
     "Get past the Red Zone for a touchdown (7 points), or kick a field goal there (3 points).",
-    "The offense picks a play, the defense guesses it with a Stop card, and both flip at once.",
+    "The offense picks a play, the defense tries to guess it with a Stop card, and both flip at once.",
     "<strong>Not stopped</strong> (wrong guess): Run and Short Pass gain 1 zone, Deep Pass gains 2.",
     "<strong>Stopped</strong> (right guess): the defense takes over at its 25, or midfield on a Deep Pass.",
     "First to 21 wins, or pick 28 or 35 at New game.",
@@ -822,7 +822,7 @@ p.rep('        <div class="len" role="radiogroup"',
 p.rep("        <p>This page tests a longer field where you get two chances in each zone.</p>\n", "")
 how_to_play(p, [
     "Get past the Red Zone for a touchdown (7 points), or kick a field goal there (3 points).",
-    "The offense picks a play, the defense guesses it with a Stop card, and both flip at once.",
+    "The offense picks a play, the defense tries to guess it with a Stop card, and both flip at once.",
     "<strong>Not stopped</strong> (wrong guess): Run and Short Pass gain 1 zone, Deep Pass gains 2.",
     "<strong>Stopped once</strong> (right guess): the offense tries again in the same zone.",
     "<strong>Stopped twice</strong> in the same zone: the defense takes over at its 20, or midfield on a Deep Pass.",
