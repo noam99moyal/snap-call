@@ -496,6 +496,8 @@
   /* ---------- The stage, on every screen ---------- */
   /* A special decided the snap: the medal is gold and says what it did. */
   .medal.gold { font-size: 11.5px; }
+  /* Once you pick your next card, the last snap's result clears; its space stays so the stage doesn't move. */
+  .result.gone { visibility: hidden; }
   /* The headline under the cards is blue when the offense won the snap and red when the defense did, like the cards. */
   .result { --offense: #7aa2ff; --defense: #ff4b5c; }
   /* Points read as a score. */
@@ -1516,6 +1518,8 @@
     if (L) res.style.setProperty('--tone', L.fg || L.tone === L.off ? 'var(--offense)' : 'var(--defense)');
     else res.style.setProperty('--tone', S.poss === 'you' ? 'var(--offense)' : 'var(--defense)');
     res.innerHTML = `<span class="head">${R.head}</span><span class="detail">${R.detail}</span>`;
+    // Picking your next card clears the last snap's result (Play by play keeps it). Kickoff stays until the first snap.
+    res.classList.toggle('gone', !!L && !S.showLast);
     res.classList.remove('pop');
     if (R.n !== shownResult && R.n > 0) { void res.offsetWidth; res.classList.add('pop'); $('#log').scrollTop = 0; }
     shownResult = R.n;

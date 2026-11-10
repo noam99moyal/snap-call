@@ -208,6 +208,8 @@ PHONE_CSS = """
   /* ---------- The stage, on every screen ---------- */
   /* A special decided the snap: the medal is gold and says what it did. */
   .medal.gold { font-size: 11.5px; }
+  /* Once you pick your next card, the last snap's result clears; its space stays so the stage doesn't move. */
+  .result.gone { visibility: hidden; }
   /* The headline under the cards is blue when the offense won the snap and red when the defense did, like the cards. */
   .result { --offense: #7aa2ff; --defense: #ff4b5c; }
   /* Points read as a score. */
@@ -542,6 +544,9 @@ def phone_stage(p):
           "    // Kickoff: blue when you get the ball first, red when the CPU does, like your hand.\n"
           "    if (L) res.style.setProperty('--tone', L.fg || L.tone === L.off ? 'var(--offense)' : 'var(--defense)');\n"
           "    else res.style.setProperty('--tone', S.poss === 'you' ? 'var(--offense)' : 'var(--defense)');\n")
+    p.rep("    res.classList.remove('pop');\n",
+          "    // Picking your next card clears the last snap's result (Play by play keeps it). Kickoff stays until the first snap.\n"
+          "    res.classList.toggle('gone', !!L && !S.showLast);\n    res.classList.remove('pop');\n")
     p.rep("medal.textContent = '+3'; }", "medal.textContent = '+3'; medal.classList.add('big'); }")
     p.rep("    S.flip = false;\n\n    // Result\n",
           "    // A kick has no matchup, so only the kicker's card shows.\n"
