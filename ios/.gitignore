@@ -1,0 +1,5 @@
+# Built from the repo by build.py before every Xcode build
+SnapCall/web/
+build/
+xcuserdata/
+*.xcuserstate

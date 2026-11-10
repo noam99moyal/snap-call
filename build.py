@@ -8,6 +8,7 @@ index.html for GitHub Pages, and optionally zips that for itch.io:
     python3 build.py --netlify ~/Desktop/snap-call-netlify.zip   # also zips full-cards/ as a whole site
     python3 build.py --netlify-downs ~/Desktop/snap-call-netlify-downs.zip   # the downs test as a whole site
     python3 build.py --netlify-look ~/Desktop/snap-call-netlify-look.zip     # the look preview as a whole site
+    python3 build.py --app-web ios/SnapCall/web   # the look preview for the iPhone app (Xcode runs this itself)
 
 preview/ is the card art version of the game (preview/game.html plus the card images in
 preview/cards/). full-cards/ is the same game played with the finished printed cards. downs/ is
@@ -116,6 +117,34 @@ if "--netlify-look" in args:
         for f in sorted((HERE / "downs" / "cards").glob("*.webp")):
             z.write(f, f"downs/cards/{f.name}")
     print(f"wrote {netlify}")
+
+if "--app-web" in args:
+    # The iPhone app (ios/): the same files as the Netlify look site, written to a folder the app bundles. The app
+    # serves them itself, so links like downs/?new=28 and the saved Hard memory work as on the website. Two app-only
+    # tweaks: no pinch zoom, and no iOS copy/save menu when you hold a card (the game uses holding to show it big).
+    import shutil
+    i = args.index("--app-web")
+    web = Path(args[i + 1]).expanduser()
+    del args[i:i + 2]
+    once = (HERE / "look" / "index.html").read_text(encoding="utf-8").replace("../full-cards/cards/", "cards/")
+    twice = ((HERE / "look" / "downs" / "index.html").read_text(encoding="utf-8")
+             .replace("../../full-cards/cards/", "../cards/").replace("../../downs/cards/", "cards/"))
+    viewport = '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
+    app_head = ('<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, '
+                'viewport-fit=cover">\n<style>html { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;'
+                ' -webkit-tap-highlight-color: transparent; touch-action: manipulation; }</style>')
+    if web.exists():
+        shutil.rmtree(web)
+    (web / "cards").mkdir(parents=True)
+    (web / "downs" / "cards").mkdir(parents=True)
+    for name, page in (("index.html", once), ("downs/index.html", twice)):
+        assert page.count(viewport) == 1, name
+        (web / name).write_text(page.replace(viewport, app_head), encoding="utf-8")
+    for f in sorted((HERE / "full-cards" / "cards").glob("*.webp")):
+        shutil.copy2(f, web / "cards" / f.name)
+    for f in sorted((HERE / "downs" / "cards").glob("*.webp")):
+        shutil.copy2(f, web / "downs" / "cards" / f.name)
+    print(f"wrote {web}")
 
 if args:
     out = Path(args[0]).expanduser()

@@ -1,0 +1,46 @@
+# Snap Call for iPhone and iPad. After editing this file, run `xcodegen` in ios/ to regenerate SnapCall.xcodeproj.
+# Signing uses the free Personal Team (installs on your own phone, expires after 7 days). The App Store needs the
+# paid Apple Developer Program: change DEVELOPMENT_TEAM to that team's ID.
+name: SnapCall
+options:
+  bundleIdPrefix: com.noammoyal
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    DEVELOPMENT_TEAM: 954F7NAM6R
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+targets:
+  SnapCall:
+    type: application
+    platform: iOS
+    sources:
+      - path: SnapCall
+        excludes:
+          - "web/**"
+          - "web"
+      - path: SnapCall/web
+        type: folder
+        buildPhase: resources
+    preBuildScripts:
+      - name: Build the game pages
+        script: |
+          # The app plays the look preview pages: rebuild them from the repo before every build.
+          python3 "$SRCROOT/../build.py" --app-web "$SRCROOT/SnapCall/web"
+        basedOnDependencyAnalysis: false
+    settings:
+      base:
+        PRODUCT_NAME: SnapCall
+        PRODUCT_BUNDLE_IDENTIFIER: com.noammoyal.snapcall
+        INFOPLIST_FILE: SnapCall/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
