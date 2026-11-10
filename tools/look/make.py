@@ -25,8 +25,7 @@ class Page:
 NOTE = """says whether the play was stopped.
      Look preview: today's design (the same as {src}) with proposed wording. The announcer has a few lines per result,
      How to play is a short list in the cards' words (Stopped / Not stopped), the hand says just Offense or Defense, and
-     the helper lines (under the field, in the empty card spot, at kickoff) show only in your first game, or when Tips is
-     on in New game. New game also has the rules choice: Stopped once (look/) or Stopped twice (look/downs/). */"""
+     two tips (at kickoff and in the empty card spot) show every game until its first snap. New game also has the rules choice: Stopped once (look/) or Stopped twice (look/downs/). */"""
 
 CSS = """
   /* ---------- Look preview ---------- */
@@ -49,8 +48,6 @@ CSS = """
   .status[hidden] { display: none; }
   .status.room { min-height: 48px; }
   @media (min-width: 900px) { .status.room { min-height: 24px; } }
-  /* New game: the labels of First to and Tips share a width, so both rows of buttons start at the same place. */
-  .len > span { flex: none; width: 4.4em; }
   /* Phones: the title and the buttons are centered, each on its own row. */
   @media (max-width: 500px) {
     .top { flex-direction: column; align-items: center; gap: 10px; }
@@ -75,21 +72,8 @@ def rule_set(current, note):
 
 def state_js():
     return f"""  let S;
-  // First-game tips: the helper lines under the field, in the empty card spot and at kickoff. Each one shows until
-  // you've done it once (the card spot's until your first snap), and none after your first game on this device.
-  // Tips: On in New game brings them all back; the end of that game turns them off again.
-  const TIPS_KEY = 'snap-call-look-tips';
-  const FRESH_TIPS = {{ on: true, off: false, def: false, hold: false }};
-  let tips = {{ ...FRESH_TIPS }};
-  try {{ tips = {{ ...FRESH_TIPS, ...JSON.parse(localStorage.getItem(TIPS_KEY)) }}; }} catch (e) {{ /* tips on */ }}
-  const tip = (k) => tips.on && !tips[k];
-  function saveTips() {{ try {{ localStorage.setItem(TIPS_KEY, JSON.stringify(tips)); }} catch (e) {{ /* tips come back next visit */ }} }}
-  function tipDone(k) {{ if (tip(k)) {{ tips[k] = true; saveTips(); }} }}
-  // A snap teaches the tip for your side, and the game has started, so the card spot's tip goes too.
-  function markTips() {{
-    tipDone(S.poss === 'you' ? 'off' : 'def');
-    tipDone('hold');
-  }}
+  // Two tips show every game until its first snap: the kickoff line says what to do (pick a play or a Stop card),
+  // and your empty card spot says to pick a card below and hold one to see it big.
 """
 
 
@@ -124,17 +108,6 @@ def rules_js(other):
   root.dataset.input = 'pointer';
   addEventListener('pointerdown', () => {{ root.dataset.input = 'pointer'; }}, true);
   addEventListener('keydown', (e) => {{ if (e.key === 'Tab' || e.key.startsWith('Arrow')) root.dataset.input = 'key'; }}, true);
-  // Tips in New game: On brings every first-game tip back (they're saved at once, so they carry to the other rule set's
-  // page too); Off turns them off. New game opens showing whether they're on now.
-  function showTipsPick() {{
-    for (const b of document.querySelectorAll('[data-tips]')) b.setAttribute('aria-checked', String((b.dataset.tips === 'on') === tips.on));
-  }}
-  for (const b of document.querySelectorAll('[data-tips]')) b.addEventListener('click', () => {{
-    tips = b.dataset.tips === 'on' ? {{ ...FRESH_TIPS }} : {{ ...tips, on: false }};
-    saveTips();
-    showTipsPick();
-    if (S && S.phase !== 'over') render();
-  }});
   for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener("""
 
 
@@ -190,15 +163,10 @@ def common(p, src, red, other):
     p.rep('<span id="handLabel">Your play</span><span id="handHint"></span>', '<span id="handLabel">Offense</span>')
     p.rep("$('#handLabel').textContent = S.poss === 'you' ? 'Your play (offense)' : 'Your guess (defense)';",
           "$('#handLabel').textContent = S.poss === 'you' ? 'Offense' : 'Defense';")
-    # Tips: marked as learned by a snap and by holding a card; the first game's end turns them all off.
-    p.rep("  function snap() {\n    if (!ready()) return;\n", "  function snap() {\n    if (!ready()) return;\n    markTips();\n")
-    p.rep("  function showZoom(img) {\n", "  function showZoom(img) {\n    if (tip('hold')) { tipDone('hold'); render(); }\n")
-    # The moment a game ends (not every redraw of a finished game, so Tips: On in New game sticks).
-    p.rep("S.phase = 'over'; return true; }", "S.phase = 'over'; if (tips.on) { tips.on = false; saveTips(); } return true; }")
-    p.rep("    $('#level').showModal();\n    $(`.lvl-pick[data-level=\"${S.level || 'normal'}\"]`).focus();",
-          "    showTipsPick();\n    $('#level').showModal();\n    $(`.lvl-pick[data-level=\"${S.level || 'normal'}\"]`).focus();")
+    # Hold to see it big: only cards (your hand and the two on the stage), not the field zones.
+    p.rep(".slot .card:not(.back):not(.empty), .tuck, .zone';", ".slot .card:not(.back):not(.empty), .tuck';")
     p.rep("'<div class=\"card empty\"><span class=\"cv\">Pick a card below. Hold one to see it big.</span></div>'",
-          "`<div class=\"card empty\"><span class=\"cv\">${tip('hold') ? 'Pick a card below. Hold one to see it big.' : ''}</span></div>`")
+          "`<div class=\"card empty\"><span class=\"cv\">${S.snaps ? '' : 'Pick a card below. Hold one to see it big.'}</span></div>`")
     p.rep("    return { kind: 'gain', zones: PLAYS[o.play].gain };",
           "    return { kind: 'gain', zones: PLAYS[o.play].gain, play: o.play };")
     p.rep("detail: `${NAME[r.by]} threw the flag: snap again.`",
@@ -597,8 +565,8 @@ def cards_words(p, home, twice=False):
           "if you lose the snap, with any play. A Bonus only works if you win it. Only one special can work per snap, and a "
           "played special is used up either way.</p>",
           "<p>Play one with your card, before the flip. A Save works only if you lose the snap, a Bonus only if you win it. "
-          "Only one works per snap. Once played, it’s gone, even if it doesn’t work. If their Challenge Flag cancels the "
-          "snap, you get yours back.</p>")
+          "Only one works per snap, and once played it’s gone, even if it doesn’t work, unless their Challenge Flag "
+          "cancels the snap: then you get it back.</p>")
     p.rep("If you lose the snap, cancel it and both sides pick again. Any other special played on it goes back to its owner.",
           "If you lose the snap, cancel it and both sides pick again.")
     p.rep("If you run and they guess wrong, it goes all the way for a touchdown.",
@@ -612,22 +580,6 @@ def cards_words(p, home, twice=False):
     p.rep("<p>It remembers which plays you call and which ones you guess, and leans on your habits. Mix it up.</p>\n"
           "        <p>On Hard it also notices when you try to trick it, and remembers your last few games on this device.</p>",
           "<p>It learns your habits, so mix it up. On Hard it also catches tricks and remembers your last few games.</p>")
-
-
-def tips_row(p):
-    """Tips: On / Off in New game, under First to (it took the place of Show tips again in How to play)."""
-    p.rep('data-target="35" aria-checked="false">35</button>\n        </div>\n',
-          'data-target="35" aria-checked="false">35</button>\n        </div>\n'
-          '        <div class="len" role="radiogroup" aria-label="Tips">\n'
-          '          <span>Tips</span>\n'
-          '          <button type="button" role="radio" data-tips="on" aria-checked="true">On</button>\n'
-          '          <button type="button" role="radio" data-tips="off" aria-checked="false">Off</button>\n'
-          '        </div>\n')
-    # The Tips row borrows the First to row's look (.len), so the length buttons are picked by their data-target.
-    # (first_ball below is the other New game change: who gets the ball first.)
-    old = "document.querySelectorAll('.len button')"
-    assert p.s.count(old) == 2, p.s.count(old)
-    p.s = p.s.replace(old, "document.querySelectorAll('.len [data-target]')")
 
 
 def how_to_play(p, items):
@@ -646,7 +598,7 @@ def status_block(p, code):
 
 def first_ball(p, home, twice=False):
     """Who gets the ball first is random. The kickoff line on the stage and the first play-by-play line say who,
-    every game; your first game adds what to do when it's you. When it's the CPU, the defense tip says it.
+    every game, with what to do: pick a play, or pick a Stop card when the CPU has the ball. It goes after the first snap.
     On Stopped twice the side that gets the ball second still starts with the extra special."""
     p.rep("poss: 'you', pos: 0,", "poss: Math.random() < 0.5 ? 'you' : 'cpu', pos: 0,")
     say = ("S.poss === 'you' ? 'You get the ball first, so the CPU starts with 3 specials.' "
@@ -661,14 +613,7 @@ def first_ball(p, home, twice=False):
         p.rep("S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first.', tone: 'you' });",
               "S.log.unshift({ n: 0, head: 'Kickoff', text: firstBall(), tone: S.poss });")
     p.rep(f"{{ head: 'Kickoff', detail: 'You start at your own {home}. Pick a play, then snap.', tone: 'you', n: 0 }}",
-          "{ head: 'Kickoff', detail: firstBall() + (tips.on && S.poss === 'you' ? ' Pick a play, then snap.' : ''), tone: S.poss, n: 0 }")
-
-
-# The line under the field in your first game. Only defense has one: on offense the empty card spot and Kickoff
-# already say to pick a play.
-TIPS = {
-    'def': 'Guess their play and pick that Stop card.',
-}
+          "{ head: 'Kickoff', detail: firstBall() + (S.poss === 'you' ? ' Pick a play, then snap.' : ' Pick a Stop card, then defend.'), tone: S.poss, n: 0 }")
 
 
 # ======================= look/: stopped once (from full-cards/) =======================
@@ -727,8 +672,8 @@ p.rep("    try { localStorage.setItem(LEVEL_KEY, level); } catch (e) { /* the ne
 p.rep("  function fits(key, play, sd) {\n",
       "  function fits(key, play, sd) {\n    if (play === 'fg') return false;   // a kick isn't a snap, so no special goes with it\n")
 p.rep("S.score[who] >= TARGET)", "S.score[who] >= S.target)")
-p.rep("    if (!ready()) return;\n    markTips();\n",
-      "    if (!ready()) return;\n    markTips();\n    if (S.sel.play === 'fg') { kickFG('you'); render(); return; }\n")
+p.rep("  function snap() {\n    if (!ready()) return;\n",
+      "  function snap() {\n    if (!ready()) return;\n    if (S.sel.play === 'fg') { kickFG('you'); render(); return; }\n")
 p.rep("    S.showLast = false; S.move = null;",
       "    // The stage keeps showing the kick until the next pick.\n    S.showLast = true; S.move = null;")
 p.rep("const kick = TARGET - S.score.cpu <= 3", "const kick = S.target - S.score.cpu <= 3")
@@ -783,14 +728,11 @@ p.rep(SPECIALS_P, SPECIALS_P + """
 p.rep("If they guess your play, you still gain 1 zone. A guessed Deep Pass gains 1 instead of being intercepted.",
       "If your play is stopped, you still gain 1 zone, even on a Deep Pass.")
 cards_words(p, "25")
-# The line under the field: first-game tips and the CPU's field goal. The scoreboard and the ball on the field
-# already show who has the ball and where. The kick line comes and goes with the Red Zone and the kick itself,
-# so no room is kept for it after the first game.
-status_block(p, f"""    // Status: first-game tips and the CPU's field goal; the scoreboard and the ball on the field show who has the ball and where.
+# The line under the field: only the CPU's field goal. The scoreboard and the ball on the field already show who
+# has the ball and where. The kick line comes and goes with the kick itself, so no room is kept for it.
+status_block(p, """    // Status: the CPU's field goal; the scoreboard and the ball on the field show who has the ball and where.
     const kick = S.phase === 'busy';
-    const tipLine = S.phase !== 'pick' ? ''
-      : S.poss === 'cpu' && tip('def') ? '{TIPS['def']}' : '';
-    showStatus(kick ? 'CPU lines up a field goal' : '', kick ? 'From the Red Zone, 3 points.' : tipLine, tips.on);""")
+    showStatus(kick ? 'CPU lines up a field goal' : '', kick ? 'From the Red Zone, 3 points.' : '', false);""")
 p.rep("    $('#handHint').textContent = S.poss === 'you' ? 'If the CPU guesses it, they get the ball' : 'Guess right to get the ball';\n", "")
 p.rep("""      case 'stop':
         S.poss = def; S.pos = 0;
@@ -806,7 +748,6 @@ p.rep("return { head: 'Fumble!', detail: `${NAME[def]} ${verb(def, 'recover')} a
       "return { head: 'Fumble!', detail: say([`${NAME[def]} ${verb(def, 'recover')} at midfield.`, `Loose ball! ${NAME[def]} ${verb(def, 'fall')} on it.`]), tone: def };")
 p.rep("const HARD_KEY = 'snap-call-hard';", "const HARD_KEY = 'snap-call-look-hard';")
 p.s = re.sub(r"(?<![\w/.\-])cards/", "../full-cards/cards/", p.s)
-tips_row(p)
 first_ball(p, "25")
 phone_stage(p)
 (ROOT / "look/game.html").write_text(p.s)
@@ -833,17 +774,16 @@ p.rep(SPECIALS_P, SPECIALS_P + """
 p.rep("If they guess your play, it doesn’t count as a stop: you still gain 1 zone.",
       "If your play is stopped, you still gain 1 zone, even on a Deep Pass.")
 cards_words(p, "20", twice=True)
-# The line under the field: "stopped once" while it's the last try in this zone, the CPU's kick, and first-game tips.
-status_block(p, f"""    // Status: "stopped once" while it's the last try in this zone, the CPU's kick, and first-game tips.
+# The line under the field: "stopped once" while it's the last try in this zone (once the stop's result has cleared,
+# since the result already says it), and the CPU's kick.
+status_block(p, f"""    // Status: "stopped once" while it's the last try in this zone, from your next pick on, and the CPU's kick.
     // The scoreboard and the ball on the field show who has the ball and where.
     const last = S.down === DOWNS;   // already stopped once in this zone
     let head = '', line = '';
     if (S.phase === 'busy') {{ head = 'CPU lines up a field goal'; line = 'From the Red Zone, 3 points.'; }}
-    else if (S.phase === 'pick' && last) {{
+    else if (S.phase === 'pick' && last && !S.showLast) {{
       head = S.poss === 'you' ? 'Your ball: stopped once' : 'CPU ball: stopped once';
       line = S.poss === 'you' ? 'Stopped again here and the CPU gets the ball.' : 'Stop them again to get the ball.';
-    }} else if (S.phase === 'pick') {{
-      line = S.poss === 'cpu' && tip('def') ? '{TIPS['def']}' : '';
     }}
     showStatus(head, line, S.phase !== 'over');""")
 p.rep("""    $('#handHint').textContent = S.poss === 'you'
@@ -872,7 +812,6 @@ p.rep("const TARGET_KEY = 'snap-call-downs-target';", "const TARGET_KEY = 'snap-
 p.s = p.s.replace("../full-cards/", "../../full-cards/")
 p.s = re.sub(r"(?<![\w/.\-])cards/", "../../downs/cards/", p.s)
 (ROOT / "look/downs").mkdir(exist_ok=True)
-tips_row(p)
 first_ball(p, "20", twice=True)
 phone_stage(p)
 (ROOT / "look/downs/game.html").write_text(p.s)
