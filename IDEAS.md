@@ -96,7 +96,11 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
   - Show a "Last try" tag on the field after the first stop.
   - Have the CPU save its specials for the last try.
 - **Forced Fumble** looks weak in the simulations (about −3.6% for the side that starts with it). Part of that is the CPU playing it too often.
-- **Main game:** bring the look preview's wording and first-game tips into `full-cards/` and `downs/`.
+- **Main game:** bring the look preview's wording, tips and rule changes into `full-cards/` and `downs/`.
+- **Specials at the start:** in the look preview, the side that gets the ball second starts with 3 specials on both rule sets, and a stop that wins the ball back no longer draws one. In `tools/rules-sim/start_specials.py` (first to 21):
+  - Stopped once: the side with the ball first wins 50.6% instead of 53.1%.
+  - Stopped twice: 53.6% without the stop draw, 53.0% with it. The stop draw added about one special per game and a few less close games.
+  - The printed rules would need the third special too, if it stays.
 - **The circle after a special changes the snap:** built in the look preview, on phones and wide screens. The special comes in front of its play card with no "Worked" stamp. The circle turns gold and says what it did: +1 zone, Back 1 zone (No gain from your own 25 or 20), Replay, +7 or Turn-over. Both play cards fade both lines.
 - **Also in the look preview, on every screen:**
   - A kick shows only the kicker's card, then +3 in the circle.

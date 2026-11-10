@@ -602,21 +602,22 @@ def status_block(p, code):
 
 
 def first_ball(p, home, twice=False):
-    """Who gets the ball first is random. The kickoff line on the stage and the first play-by-play line say who,
-    every game, with what to do: pick a play, or pick a Stop card when the CPU has the ball. It goes after the first snap.
-    On Stopped twice the side that gets the ball second still starts with the extra special."""
+    """Who gets the ball first is random, and the side that gets it second starts with a third special (both rule
+    sets: tools/rules-sim/start_specials.py). The kickoff line on the stage and the first play-by-play line say who,
+    every game, with what to do: pick a play, or pick a Stop card when the CPU has the ball. It goes after the first snap."""
     p.rep("poss: 'you', pos: 0,", "poss: Math.random() < 0.5 ? 'you' : 'cpu', pos: 0,")
     say = ("S.poss === 'you' ? 'You get the ball first, so the CPU starts with 3 specials.' "
-           ": 'CPU gets the ball first, so you start with 3 specials.'") if twice else \
-          "S.poss === 'you' ? 'You get the ball first.' : 'CPU gets the ball first.'"
+           ": 'CPU gets the ball first, so you start with 3 specials.'")
     p.rep("  function draw(w) {\n",
           f"  function firstBall() {{ return {say}; }}\n  function draw(w) {{\n")
     if twice:
         p.rep("    draw('cpu');\n    S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first, so the CPU starts with 3 specials.', tone: 'you' });",
               "    draw(S.poss === 'you' ? 'cpu' : 'you');\n    S.log.unshift({ n: 0, head: 'Kickoff', text: firstBall(), tone: S.poss });")
     else:
-        p.rep("S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first.', tone: 'you' });",
-              "S.log.unshift({ n: 0, head: 'Kickoff', text: firstBall(), tone: S.poss });")
+        p.rep("    S.log.unshift({ n: 0, head: 'Kickoff', text: 'You get the ball first.', tone: 'you' });",
+              "    // The side that gets the ball second starts with one more special.\n"
+              "    draw(S.poss === 'you' ? 'cpu' : 'you');\n"
+              "    S.log.unshift({ n: 0, head: 'Kickoff', text: firstBall(), tone: S.poss });")
     p.rep(f"{{ head: 'Kickoff', detail: 'You start at your own {home}. Pick a play, then snap.', tone: 'you', n: 0 }}",
           "{ head: 'Kickoff', detail: firstBall() + (S.poss === 'you' ? ' Pick a play, then snap.' : ' Pick a Stop card, then defend.'), tone: S.poss, n: 0 }")
 
@@ -729,7 +730,7 @@ how_to_play(p, [
     "First to 21 wins, or pick 28 or 35 at New game.",
 ])
 p.rep(SPECIALS_P, SPECIALS_P + """
-        <p>You start with 2, draw 1 when you’re scored on, and hold up to 3. The marks by CPU show how many it has.</p>""")
+        <p>You start with 2 (3 if you get the ball second), draw 1 when you’re scored on, and hold up to 3. The marks by CPU show how many it has.</p>""")
 p.rep("If they guess your play, you still gain 1 zone. A guessed Deep Pass gains 1 instead of being intercepted.",
       "If your play is stopped, you still gain 1 zone, even on a Deep Pass.")
 cards_words(p, "25")
@@ -775,7 +776,7 @@ how_to_play(p, [
     "First to 21 wins, or pick 28 or 35 at New game.",
 ])
 p.rep(SPECIALS_P, SPECIALS_P + """
-        <p>You start with 2 (3 if you get the ball second), draw 1 when you’re scored on or win the ball back with a stop, and hold up to 3. The marks by CPU show how many it has.</p>""")
+        <p>You start with 2 (3 if you get the ball second), draw 1 when you’re scored on, and hold up to 3. The marks by CPU show how many it has.</p>""")
 p.rep("If they guess your play, it doesn’t count as a stop: you still gain 1 zone.",
       "If your play is stopped, you still gain 1 zone, even on a Deep Pass.")
 cards_words(p, "20", twice=True)
@@ -795,15 +796,17 @@ p.rep("""    $('#handHint').textContent = S.poss === 'you'
       ? (last ? 'If the CPU guesses it, they get the ball' : 'If the CPU guesses it, you get one more try')
       : (last ? 'Guess right to get the ball' : 'Guess right twice to get the ball');
 """, "")
-# Winning the ball back: lines now end with a period, and the draw joins subject-led lines with "and"
-# (the Old look's lines all are, so they read exactly as before).
-p.rep("""    const drew = S.hands[who].length > n ? ` and ${verb(who, 'draw')} a special` : '';
-    return { detail: `${text}${drew}.`, log: `${text}.` };""",
-      """    if (S.hands[who].length === n) return { detail: text, log: text };
-    // "CPU recovers at midfield and draws a special." or "Jumped the route. Ball at midfield. CPU draws a special."
-    const detail = text.startsWith(`${NAME[who]} `) && !text.slice(0, -1).includes('.')
-      ? `${text.slice(0, -1)} and ${verb(who, 'draw')} a special.` : `${text} ${NAME[who]} ${verb(who, 'draw')} a special.`;
-    return { detail, log: text };""")
+# Winning the ball back with a stop draws nothing in the look preview: only being scored on draws a special, on both
+# rule sets (tools/rules-sim/start_specials.py). The lines end with a period, as on the stage and in the play-by-play.
+p.rep("""  // Winning the ball back with a stop draws a special, if there's room in the hand. The result says so;
+  // the play-by-play leaves it out so every line still fits two lines on phones.
+  function wonBack(who, text) {
+    const n = S.hands[who].length;
+    draw(who);
+    const drew = S.hands[who].length > n ? ` and ${verb(who, 'draw')} a special` : '';
+    return { detail: `${text}${drew}.`, log: `${text}.` };
+  }""", """  // Winning the ball back with a stop draws nothing here: only being scored on draws a special.
+  function wonBack(who, text) { return { detail: text, log: text }; }""")
 p.rep("return { head: 'Stopped once', detail: 'One more try.', tone: def, once: true };",
       "return { head: 'Stopped once', detail: say(['One more try.', 'Stuffed. One more try.', 'Read it. One more try.', 'No room. One more try.']), tone: def, once: true };")
 p.rep("return { ...wonBack(def, `${NAME[def]} ${verb(def, 'start')} at midfield`), head: 'Intercepted!', tone: def, twice: true };",

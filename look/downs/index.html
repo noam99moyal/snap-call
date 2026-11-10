@@ -806,7 +806,7 @@
 
         <h3>Specials</h3>
         <p>Play one with your card, before the flip. A Save works only if you lose the snap, a Bonus only if you win it. Only one works per snap, and once played it’s gone, even if it doesn’t work, unless their Challenge Flag cancels the snap: then you get it back.</p>
-        <p>You start with 2 (3 if you get the ball second), draw 1 when you’re scored on or win the ball back with a stop, and hold up to 3. The marks by CPU show how many it has.</p>
+        <p>You start with 2 (3 if you get the ball second), draw 1 when you’re scored on, and hold up to 3. The marks by CPU show how many it has.</p>
         <dl>
           <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If your play is stopped, you still gain 1 zone, even on a Deep Pass.</dd>
           <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd>If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own 20).</dd>
@@ -1210,17 +1210,8 @@
     deep: ['Over the top! ', 'Wide open! ', 'Deep ball, caught! '],
   };
 
-  // Winning the ball back with a stop draws a special, if there's room in the hand. The result says so;
-  // the play-by-play leaves it out so every line still fits two lines on phones.
-  function wonBack(who, text) {
-    const n = S.hands[who].length;
-    draw(who);
-    if (S.hands[who].length === n) return { detail: text, log: text };
-    // "CPU recovers at midfield and draws a special." or "Jumped the route. Ball at midfield. CPU draws a special."
-    const detail = text.startsWith(`${NAME[who]} `) && !text.slice(0, -1).includes('.')
-      ? `${text.slice(0, -1)} and ${verb(who, 'draw')} a special.` : `${text} ${NAME[who]} ${verb(who, 'draw')} a special.`;
-    return { detail, log: text };
-  }
+  // Winning the ball back with a stop draws nothing here: only being scored on draws a special.
+  function wonBack(who, text) { return { detail: text, log: text }; }
   function kickoff(receiver) { S.poss = receiver; S.pos = 0; S.down = 1; draw(receiver); }
   function won(who) { if (S.score[who] >= S.target) { S.phase = 'over'; return true; } return false; }
   function score(who, pts) { S.score[who] += pts; if (!won(who)) kickoff(other(who)); }

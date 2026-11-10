@@ -806,7 +806,7 @@
 
         <h3>Specials</h3>
         <p>Play one with your card, before the flip. A Save works only if you lose the snap, a Bonus only if you win it. Only one works per snap, and once played it’s gone, even if it doesn’t work, unless their Challenge Flag cancels the snap: then you get it back.</p>
-        <p>You start with 2, draw 1 when you’re scored on, and hold up to 3. The marks by CPU show how many it has.</p>
+        <p>You start with 2 (3 if you get the ball second), draw 1 when you’re scored on, and hold up to 3. The marks by CPU show how many it has.</p>
         <dl>
           <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If your play is stopped, you still gain 1 zone, even on a Deep Pass.</dd>
           <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd>If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own 25).</dd>
@@ -975,11 +975,13 @@
     }
     try { localStorage.setItem(LEVEL_KEY, level); localStorage.setItem(TARGET_KEY, target); } catch (e) { /* the next visit starts on Normal, first to 21 */ }
     for (let i = 0; i < 2; i++) { draw('you'); draw('cpu'); }
+    // The side that gets the ball second starts with one more special.
+    draw(S.poss === 'you' ? 'cpu' : 'you');
     S.log.unshift({ n: 0, head: 'Kickoff', text: firstBall(), tone: S.poss });
     render();
   }
 
-  function firstBall() { return S.poss === 'you' ? 'You get the ball first.' : 'CPU gets the ball first.'; }
+  function firstBall() { return S.poss === 'you' ? 'You get the ball first, so the CPU starts with 3 specials.' : 'CPU gets the ball first, so you start with 3 specials.'; }
   function draw(w) {
     if (S.hands[w].length >= 3) return;
     if (!S.deck.length) { S.deck = shuffle(S.discard); S.discard = []; }
