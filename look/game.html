@@ -12,8 +12,8 @@
      The one loud moment is the stage: the CPU's card flips over and a referee-style medal says whether the play was stopped.
      Look preview: today's design (the same as full-cards/) with proposed wording. The announcer has a few lines per result,
      How to play is a short list in the cards' words (Stopped / Not stopped), the hand says just Offense or Defense, and
-     the helper lines (under the field, in the empty card spot, at kickoff) show only in your first game: How to play has
-     Show tips again. New game also has the rules choice: Stopped once (look/) or Stopped twice (look/downs/). */
+     the helper lines (under the field, in the empty card spot, at kickoff) show only in your first game, or when Tips is
+     on in New game. New game also has the rules choice: Stopped once (look/) or Stopped twice (look/downs/). */
   :root {
     --turf: #0f3d29;
     --turf-2: #13492f;
@@ -467,7 +467,8 @@
   .status[hidden] { display: none; }
   .status.room { min-height: 48px; }
   @media (min-width: 900px) { .status.room { min-height: 24px; } }
-  .rules .tips-again { justify-self: start; }
+  /* New game: the labels of First to and Tips share a width, so both rows of buttons start at the same place. */
+  .len > span { flex: none; width: 4.4em; }
   /* Phones: the title and the buttons are centered, each on its own row. */
   @media (max-width: 500px) {
     .top { flex-direction: column; align-items: center; gap: 10px; }
@@ -787,30 +788,27 @@
       <div class="body">
         <ul>
           <li>Get past the Red Zone for a touchdown (7 points), or kick a field goal there (3 points).</li>
-          <li>Each snap, the offense secretly picks a play and the defense secretly picks a Stop card. Both flip at once.</li>
-          <li><strong>Not stopped</strong> (the cards don’t match): Run and Short Pass gain 1 zone, Deep Pass gains 2.</li>
-          <li><strong>Stopped</strong> (it matches): the defense gets the ball at its own 25, or midfield if it’s a Deep Pass.</li>
+          <li>Each snap, the offense picks a play and the defense guesses it with a Stop card. Both flip at once.</li>
+          <li><strong>Not stopped</strong> (wrong guess): Run and Short Pass gain 1 zone, Deep Pass gains 2.</li>
+          <li><strong>Stopped</strong> (right guess): the defense takes over at its 25, or midfield on a Deep Pass.</li>
           <li>First to 21 wins, or pick 28 or 35 at New game.</li>
         </ul>
 
-        <h3>Specials: losers save, winners score</h3>
-        <p>Every special is a Save or a Bonus. You play it with your card, before the cards are shown. A Save only works if you lose the snap, with any play. A Bonus only works if you win it.</p>
-        <p>Only one special can work per snap, and a played special is used up either way, except when a Challenge Flag cancels the snap: then the other side’s special goes back to its hand.</p>
-        <p>You start with 2 specials. You draw one when you’re scored on, and you can hold 3. The marks by CPU on the scoreboard show how many it holds, but not which ones.</p>
+        <h3>Specials</h3>
+        <p>Play one with your card, before the flip. A Save works only if you lose the snap, a Bonus only if you win it. Only one works per snap. Once played, it’s gone, even if it doesn’t work. If their Challenge Flag cancels the snap, you get yours back.</p>
+        <p>You start with 2, draw 1 when you’re scored on, and hold up to 3. The marks by CPU show how many it has.</p>
         <dl>
-          <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If your play is stopped, you still gain 1 zone. A stopped Deep Pass gains 1 instead of being intercepted.</dd>
+          <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If your play is stopped, you still gain 1 zone, even on a Deep Pass.</dd>
           <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd>If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own 25).</dd>
           <dt>Challenge Flag <span>either side, save</span></dt><dd>If you lose the snap, cancel it and both sides pick again.</dd>
-          <dt>Breakaway <span>offense bonus</span></dt><dd>If your Run isn’t stopped, it goes all the way for a touchdown.</dd>
-          <dt>Hail Mary <span>offense bonus</span></dt><dd>If your Deep Pass isn’t stopped, it goes all the way for a touchdown.</dd>
+          <dt>Breakaway <span>offense bonus</span></dt><dd>If your Run isn’t stopped, it’s a touchdown.</dd>
+          <dt>Hail Mary <span>offense bonus</span></dt><dd>If your Deep Pass isn’t stopped, it’s a touchdown.</dd>
           <dt>Pick Six <span>defense bonus</span></dt><dd>If you stop a pass (Stop Short or Stop Deep), you score 7.</dd>
           <dt>Forced Fumble <span>defense bonus</span></dt><dd>If you stop a Run, you get the ball at midfield.</dd>
         </dl>
 
         <h3>The computer</h3>
-        <p>It remembers which plays you call and which Stop cards you pick, and leans on your habits. Mix it up.</p>
-        <p>On Hard it also notices when you try to trick it, and remembers your last few games on this device.</p>
-        <button class="ghost tips-again" id="tipsAgain" type="button">Show tips again</button>
+        <p>It learns your habits, so mix it up. On Hard it also catches tricks and remembers your last few games.</p>
       </div>
     </dialog>
 
@@ -829,6 +827,11 @@
           <button type="button" role="radio" data-target="21" aria-checked="true">21</button>
           <button type="button" role="radio" data-target="28" aria-checked="false">28</button>
           <button type="button" role="radio" data-target="35" aria-checked="false">35</button>
+        </div>
+        <div class="len" role="radiogroup" aria-label="Tips">
+          <span>Tips</span>
+          <button type="button" role="radio" data-tips="on" aria-checked="true">On</button>
+          <button type="button" role="radio" data-tips="off" aria-checked="false">Off</button>
         </div>
         <button class="lvl-pick" type="button" data-level="normal"><b>Normal</b><span>Learns your habits as you play.</span></button>
         <button class="lvl-pick" type="button" data-level="hard"><b>Hard</b><span>Reads you closely and remembers your last few games.</span></button>
@@ -905,7 +908,7 @@
   let S;
   // First-game tips: the helper lines under the field, in the empty card spot and at kickoff. Each one shows until
   // you've done it once (the card spot's until your first snap), and none after your first game on this device.
-  // Show tips again (How to play) brings them back.
+  // Tips: On in New game brings them all back; the end of that game turns them off again.
   const TIPS_KEY = 'snap-call-look-tips';
   const FRESH_TIPS = { on: true, off: false, def: false, hold: false };
   let tips = { ...FRESH_TIPS };
@@ -1199,7 +1202,7 @@
   };
 
   function kickoff(receiver) { S.poss = receiver; S.pos = 0; draw(receiver); }
-  function won(who) { if (S.score[who] >= S.target) { S.phase = 'over'; return true; } return false; }
+  function won(who) { if (S.score[who] >= S.target) { S.phase = 'over'; if (tips.on) { tips.on = false; saveTips(); } return true; } return false; }
   function score(who, pts) { S.score[who] += pts; if (!won(who)) kickoff(other(who)); }
 
   function apply(r, off) {
@@ -1401,7 +1404,6 @@
   }
 
   function render() {
-    if (S.phase === 'over' && tips.on) { tips.on = false; saveTips(); }
     // Scoreboard
     $('#sYou').textContent = cele && cele.who === 'you' ? cele.before : S.score.you;
     $('#sCpu').textContent = cele && cele.who === 'cpu' ? cele.before : S.score.cpu;
@@ -1414,7 +1416,7 @@
     // Status: first-game tips and the CPU's field goal; the scoreboard and the ball on the field show who has the ball and where.
     const kick = S.phase === 'busy';
     const tipLine = S.phase !== 'pick' ? ''
-      : S.poss === 'cpu' && tip('def') ? 'Pick the Stop card that matches their play.' : '';
+      : S.poss === 'cpu' && tip('def') ? 'Guess their play and pick that Stop card.' : '';
     showStatus(kick ? 'CPU lines up a field goal' : '', kick ? 'From the Red Zone, 3 points.' : tipLine, tips.on);
 
     // Field
@@ -1639,11 +1641,12 @@
   let lenPick = 21;
   function setLen(t) {
     lenPick = t;
-    for (const b of document.querySelectorAll('.len button')) b.setAttribute('aria-checked', String(+b.dataset.target === t));
+    for (const b of document.querySelectorAll('.len [data-target]')) b.setAttribute('aria-checked', String(+b.dataset.target === t));
   }
-  for (const b of document.querySelectorAll('.len button')) b.addEventListener('click', () => setLen(+b.dataset.target));
+  for (const b of document.querySelectorAll('.len [data-target]')) b.addEventListener('click', () => setLen(+b.dataset.target));
   function askLevel() {
     setLen(S.target);
+    showTipsPick();
     $('#level').showModal();
     $(`.lvl-pick[data-level="${S.level || 'normal'}"]`).focus();
   }
@@ -1666,13 +1669,23 @@
   root.dataset.input = 'pointer';
   addEventListener('pointerdown', () => { root.dataset.input = 'pointer'; }, true);
   addEventListener('keydown', (e) => { if (e.key === 'Tab' || e.key.startsWith('Arrow')) root.dataset.input = 'key'; }, true);
+  // Tips in New game: On brings every first-game tip back (they're saved at once, so they carry to the other rule set's
+  // page too); Off turns them off. New game opens showing whether they're on now.
+  function showTipsPick() {
+    for (const b of document.querySelectorAll('[data-tips]')) b.setAttribute('aria-checked', String((b.dataset.tips === 'on') === tips.on));
+  }
+  for (const b of document.querySelectorAll('[data-tips]')) b.addEventListener('click', () => {
+    tips = b.dataset.tips === 'on' ? { ...FRESH_TIPS } : { ...tips, on: false };
+    saveTips();
+    showTipsPick();
+    if (S && S.phase !== 'over') render();
+  });
   for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', () => { $('#level').close(); newGame(b.dataset.level, lenPick); });
   $('#closeLevel').addEventListener('click', () => $('#level').close());
   $('#level').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   $('#cele').addEventListener('click', endCelebrate);
   $('#howTo').addEventListener('click', () => $('#rules').showModal());
   $('#closeRules').addEventListener('click', () => $('#rules').close());
-  $('#tipsAgain').addEventListener('click', () => { tips = { ...FRESH_TIPS }; saveTips(); $('#rules').close(); render(); });
   $('#rules').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   window.addEventListener('resize', fitLog);
   // Fetch every card up front so the first reveal never waits on an image.
