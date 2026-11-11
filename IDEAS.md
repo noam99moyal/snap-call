@@ -89,6 +89,27 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
 - The field row shows small tiles with the ball on the current zone.
 - Empty special slots aren't drawn. The rules already say you draw one when you're scored on.
 
+## The iPhone app and what comes next
+
+`ios/` plays the look preview as an iPhone and iPad app (see the README). Planned, in this order:
+
+1. **Setup step** (1 to 2 days, nothing visible changes): the look pages become real source files instead of being built by `tools/look/make.py`. Stopped once and Stopped twice become a setting in one game, and the snap rules move into their own part so a server can later run the same code. After this, new work happens only in the look version. `full-cards/` and `downs/` stay online as they are.
+2. **Home screen** (about half a day). The mockup is in `mockups/home/`:
+   - The stadium from the Midfield card, darkening toward the bottom.
+   - The card back in the middle, with Deep Pass and Hail Mary fanned behind it. In the app the cards fan out when it opens.
+   - A raised orange "Start game" button (wording agreed), with a light tap vibration in the app.
+   - Under it, your current rules, length and level. Tapping them opens the New game panel.
+   - "?" for How to play and a gear for settings in the top corners.
+   - On the website too, unless we make it app-only.
+3. **Play a friend online** (about 1 to 2 weeks): a link or room code, no accounts. A small server holds both secret picks and deals the specials. Its button goes under Start game.
+4. **Play strangers** (later): matchmaking, accounts, maybe rankings. Needs a server account in your name (for example Cloudflare) and the App Store's rules for accounts (account deletion in the app, Sign in with Apple).
+
+Also open for the app:
+- Bundle the fonts so it works fully offline (needs an OK to download them from Google Fonts).
+- A sharper 1024px icon from your art tool.
+- A trademark check on "Snap Call", mainly against Snap Inc. (Snapchat).
+- The paid Apple Developer Program, to publish.
+
 ## Still open
 
 - **Field goals:** keep the sure kick, add Block Kick, or drop field goals.
@@ -100,7 +121,7 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
 - **Specials at the start:** in the look preview, the side that gets the ball second starts with 3 specials on both rule sets, and a stop that wins the ball back no longer draws one. In `tools/rules-sim/start_specials.py` (first to 21):
   - Stopped once: the side with the ball first wins 50.6% instead of 53.1%.
   - Stopped twice: 53.6% without the stop draw, 53.0% with it. The stop draw added about one special per game and a few less close games.
-  - The printed rules would need the third special too, if it stays.
+  - The full rules doc has the third special too (Setup, step 4) since 2026-11-10.
 - **The circle after a special changes the snap:** built in the look preview, on phones and wide screens. The special comes in front of its play card with no "Worked" stamp. The circle turns gold and says what it did: +1 zone, Back 1 zone (No gain from your own 25 or 20), Replay, +7 or Turn-over. Both play cards fade both lines.
 - **Also in the look preview, on every screen:**
   - A kick shows only the kicker's card, then +3 in the circle.

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Snap Call: home screen mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Graduate&display=swap" rel="stylesheet">
+<!-- Mockup of the app's home screen (version 2), built from the real card art. Not wired to the game. -->
+<style>
+  :root {
+    --chalk: #ecf3e8; --chalk-dim: rgba(236, 243, 232, 0.7); --chalk-faint: rgba(236, 243, 232, 0.34);
+    --ink: #15201a; --turf-deep: #0a2c1d; --turf: #0f3d29; --you: #ff8a3d; --gold: #f5c518;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--turf-deep); color: var(--chalk); font-family: Barlow, sans-serif; }
+  body { overflow: hidden; -webkit-tap-highlight-color: transparent; }
+  /* ?shot: a fixed 390 × 844 phone screen, for screenshots from a wider window. */
+  .shot .home { width: 390px; height: 844px; }
+
+  .home { position: relative; height: 100dvh; display: flex; flex-direction: column; align-items: center;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 20px calc(env(safe-area-inset-bottom, 0px) + 22px); isolation: isolate; }
+
+  /* The stadium from the Midfield card, cropped to stands and lights, darkened toward the bottom for the controls. */
+  .stadium { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
+  .stadium img { position: absolute; left: 50%; top: -236px; width: 1060px; translate: -50% 0; filter: saturate(1.05); }
+  .stadium::after { content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(10, 44, 29, 0.15) 0%, rgba(10, 44, 29, 0.3) 38%, rgba(10, 44, 29, 0.85) 66%, var(--turf-deep) 82%); }
+
+  .corner { width: 100%; display: flex; justify-content: space-between; }
+  .icon { width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--chalk-faint); background: rgba(10, 44, 29, 0.55);
+    color: var(--chalk); display: grid; place-items: center; font: 700 20px 'Barlow Condensed', sans-serif; }
+  .icon svg { width: 21px; height: 21px; }
+
+  /* Three cards fanned out: a play, the card back with the logo, a special. */
+  .fan { position: relative; width: 320px; height: 330px; }
+  .fan img { position: absolute; left: 50%; top: 16px; width: 160px; border-radius: 12px; translate: -50% 0;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55); transform-origin: 50% 110%; }
+  .fan .l { rotate: -13deg; translate: -86% 20px; filter: brightness(0.85); }
+  .fan .r { rotate: 13deg; translate: -14% 20px; filter: brightness(0.85); }
+  .fan .c { width: 204px; top: 0; }
+
+  .grow { flex: 1; }
+  .grow.top { flex: 0.55; }
+
+  /* Start game: the game's raised button (cream face, dark edge), with the same calling ring as the Snap medal. */
+  .start { position: relative; width: 100%; max-width: 330px; height: 64px; border: 3px solid var(--chalk); border-radius: 18px;
+    background: var(--you); color: var(--ink); font: 700 27px 'Barlow Condensed', sans-serif; letter-spacing: 0.01em;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 6px 0 color-mix(in srgb, var(--you) 55%, #000), 0 14px 24px rgba(0, 0, 0, 0.55); }
+
+  .setup { margin-top: 18px; display: flex; gap: 6px; align-items: center; padding: 7px 8px 7px 10px; border-radius: 999px;
+    background: rgba(236, 243, 232, 0.08); border: 1px solid var(--chalk-faint); }
+  .chip { font: 600 15px 'Barlow Condensed', sans-serif; padding: 5px 10px; border-radius: 999px; background: rgba(10, 44, 29, 0.7);
+    border: 1px solid rgba(236, 243, 232, 0.18); white-space: nowrap; }
+  .chip.hard { color: var(--gold); }
+  .setup svg { width: 16px; height: 16px; color: var(--chalk-dim); margin-left: 2px; }
+</style>
+</head>
+<body>
+  <script>if (location.search.includes('shot')) document.body.classList.add('shot');</script>
+  <main class="home">
+    <div class="stadium"><img src="../../full-cards/cards/midfield.webp" alt=""></div>
+
+    <div class="corner">
+      <div class="icon" aria-label="How to play">?</div>
+      <div class="icon" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 4.3c.4-1.8 3-1.8 3.4 0a1.7 1.7 0 0 0 2.6 1.1c1.5-.9 3.3.8 2.4 2.4a1.7 1.7 0 0 0 1 2.5c1.8.5 1.8 3 0 3.5a1.7 1.7 0 0 0-1 2.5c.9 1.5-.9 3.3-2.4 2.4a1.7 1.7 0 0 0-2.6 1c-.4 1.9-3 1.9-3.4 0a1.7 1.7 0 0 0-2.6-1c-1.5.9-3.3-.9-2.4-2.4a1.7 1.7 0 0 0-1-2.5c-1.8-.5-1.8-3 0-3.5a1.7 1.7 0 0 0 1-2.5c-.9-1.6.9-3.3 2.4-2.4 1 .6 2.3.1 2.6-1.1z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+    </div>
+
+    <div class="grow top"></div>
+
+    <div class="fan">
+      <img class="l" src="../../full-cards/cards/deep-pass.webp" alt="">
+      <img class="r" src="../../full-cards/cards/hail-mary.webp" alt="">
+      <img class="c" src="../../full-cards/cards/card-back.webp" alt="Snap Call">
+    </div>
+
+    <div class="grow"></div>
+
+    <button class="start" type="button">Start game</button>
+
+    <div class="setup" aria-label="Game settings">
+      <span class="chip">Stopped once</span>
+      <span class="chip">First to 21</span>
+      <span class="chip">Normal</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </div>
+  </main>
+</body>
+</html>
