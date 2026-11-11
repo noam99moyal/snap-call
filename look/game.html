@@ -1,11 +1,6 @@
 <title>Snap Call</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<script>
-  if (location.protocol === 'snapcall:' && !location.search) {
-    try { if (localStorage.getItem('snap-call-look-rules') === 'twice') location.replace('downs/'); } catch (e) { /* stay on Stopped once */ }
-  }
-</script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Graduate&display=swap">
 <style>
@@ -15,9 +10,13 @@
      The cards are the printed cards: blue frames are offense, red defense, yellow specials. What happens either way is printed on each card's cream panel.
      Team colors (you orange, CPU teal) stay off the frames so they never read as offense or defense.
      The one loud moment is the stage: the CPU's card flips over and a referee-style medal says whether the play was stopped.
-     Look preview: today's design (the same as full-cards/) with proposed wording. The announcer has a few lines per result,
-     How to play is a short list in the cards' words (Stopped / Not stopped), the hand says just Offense or Defense, and
-     two tips (at kickoff and in the empty card spot) show every game until its first snap. New game also has the rules choice: Stopped once (look/) or Stopped twice (look/downs/). */
+     Look preview: the game as it's being developed, and the page the iPhone app plays. This file is the source (it
+     started from full-cards/ and downs/, which stay online as they were). Both rule sets are here: Stopped once
+     (today's rules, 4 field cards) and Stopped twice (being tested: 6 field cards and 2 tries in each zone). The page
+     opens on Stopped once, on Stopped twice with ?rules=twice (look/downs/ forwards there), and in the app on the
+     rules you played last; New game switches. Parts of the page that belong to one rule set carry data-only="once" or
+     data-only="twice". The announcer has a few lines per result, How to play is a short list in the cards' words, the
+     hand says just Offense or Defense, and two tips (at kickoff and in the empty card spot) show until the first snap. */
   :root {
     --turf: #0f3d29;
     --turf-2: #13492f;
@@ -42,6 +41,8 @@
   }
 
   [hidden] { display: none !important; }
+  /* Text that belongs to one rule set. */
+  :root[data-rules="twice"] [data-only="once"], :root:not([data-rules="twice"]) [data-only="twice"] { display: none !important; }
 
   body {
     background: repeating-linear-gradient(180deg, var(--turf-deep) 0 72px, var(--turf-deep-2) 72px 144px);
@@ -125,12 +126,13 @@
   .status strong { font: 700 21px/1.1 var(--ui); letter-spacing: 0.02em; }
   .status span { color: var(--chalk-dim); }
 
-  /* Field: the four field cards in a row, always from the offense's side, attacking to the right.
+  /* Field: the four field cards (six on Stopped twice) in a row, always from the offense's side, attacking to the right.
      The ball sits on the card of the zone it's in, like the ball card placed on the field cards on a table. */
   .field { position: relative; }
   .field[data-off="you"] { --offc: var(--you); --defc: var(--cpu); }
   .field[data-off="cpu"] { --offc: var(--cpu); --defc: var(--you); }
   .zones { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  :root[data-rules="twice"] .zones { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .zone { position: relative; container-type: inline-size; }
   .zone img {
     display: block; width: 100%; height: auto; border-radius: 4.5cqi;
@@ -149,7 +151,9 @@
     width: 36px; height: 22px; transition: left 0.55s cubic-bezier(0.3, 0.7, 0.3, 1);
     filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 6px var(--offc));
   }
-  .ball svg { width: 100%; height: 100%; display: block; }
+  .ball svg { width: 100%; height: 100%; display: block; transition: rotate 0.3s; }
+  /* Stopped twice, last try in a zone: the ball turns sideways, like turning the ball card at the table. */
+  .ball.last svg { rotate: 90deg; }
   #trail { position: absolute; }
   .trail {
     top: 79%; height: 6px; transform: translateY(-50%); border-radius: 3px;
@@ -432,6 +436,7 @@
     .target b { display: inline; font-size: 16px; }
     .field { grid-area: field; }
     .zones { grid-template-columns: repeat(4, 84px); gap: 6px; }
+    :root[data-rules="twice"] .zones { grid-template-columns: repeat(6, clamp(58px, 6.2vw, 84px)); }
     .team { gap: 16px; }
     .team .label { font-size: 19px; }
     .team .score { font-size: 48px; }
@@ -765,6 +770,8 @@
   .home-setup svg { width: 16px; height: 16px; color: var(--chalk-dim); margin-left: 2px; }
   .home :focus-visible { outline: 3px solid var(--chalk); outline-offset: 3px; }
   /* Short screens (iPhone SE in a browser): smaller cards so everything fits. */
+  /* 375pt-wide phones (iPhone SE, 13 mini): the side cards would reach 3pt past the screen edges. */
+  @media (max-width: 384px) { .home-fan { scale: 0.95; } }
   @media (max-height: 640px) { .home-fan { scale: 0.8; margin: -33px 0; } }
   @media (prefers-reduced-motion: reduce) {
     .home .home-fan img { animation: none; }
@@ -897,7 +904,9 @@
           <li>Get past the Red Zone for a touchdown (7 points), or kick a field goal there (3 points).</li>
           <li>The offense picks a play, the defense tries to guess it with a Stop card, and both flip at once.</li>
           <li><strong>Not stopped</strong> (wrong guess): Run and Short Pass gain 1 zone, Deep Pass gains 2.</li>
-          <li><strong>Stopped</strong> (right guess): the defense takes over at its 25, or midfield on a Deep Pass.</li>
+          <li data-only="once"><strong>Stopped</strong> (right guess): the defense takes over at its 25, or midfield on a Deep Pass.</li>
+          <li data-only="twice"><strong>Stopped once</strong> (right guess): the offense tries again in the same zone.</li>
+          <li data-only="twice"><strong>Stopped twice</strong> in the same zone: the defense takes over at its 20, or midfield on a Deep Pass.</li>
           <li>First to 21 wins, or pick 28 or 35 at New game.</li>
         </ul>
 
@@ -906,12 +915,12 @@
         <p>You start with 2 (3 if you get the ball second), draw 1 when you’re scored on, and hold up to 3. The marks by CPU show how many it has.</p>
         <dl>
           <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If your play is stopped, you still gain 1 zone, even on a Deep Pass.</dd>
-          <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd>If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own 25).</dd>
+          <dt>Sack or Tackle for Loss <span>defense save</span></dt><dd data-only="once">If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own 25).</dd><dd data-only="twice">If you don’t stop the play, they go back 1 zone instead of gaining (never behind their own 20).</dd>
           <dt>Challenge Flag <span>either side, save</span></dt><dd>If you lose the snap, cancel it and both sides pick again.</dd>
           <dt>Breakaway <span>offense bonus</span></dt><dd>If your Run isn’t stopped, it’s a touchdown.</dd>
           <dt>Hail Mary <span>offense bonus</span></dt><dd>If your Deep Pass isn’t stopped, it’s a touchdown.</dd>
-          <dt>Pick Six <span>defense bonus</span></dt><dd>If you stop a pass (Stop Short or Stop Deep), you score 7.</dd>
-          <dt>Forced Fumble <span>defense bonus</span></dt><dd>If you stop a Run, you get the ball at midfield.</dd>
+          <dt>Pick Six <span>defense bonus</span></dt><dd data-only="once">If you stop a pass (Stop Short or Stop Deep), you score 7.</dd><dd data-only="twice">If you stop a pass (Stop Short or Stop Deep), even on their first try, you score 7.</dd>
+          <dt>Forced Fumble <span>defense bonus</span></dt><dd data-only="once">If you stop a Run, you get the ball at midfield.</dd><dd data-only="twice">If you stop a Run, even on their first try, you get the ball at midfield.</dd>
         </dl>
 
         <h3>The computer</h3>
@@ -927,7 +936,8 @@
             <button type="button" role="radio" data-rules="once" aria-checked="true">Stopped once</button>
             <button type="button" role="radio" data-rules="twice" aria-checked="false">Stopped twice</button>
           </div>
-          <p>Today’s rules: one right guess and the defense gets the ball.</p>
+          <p data-only="once">Today’s rules: one right guess and the defense gets the ball.</p>
+          <p data-only="twice">Being tested: a longer field, and one more try in each zone.</p>
         </div>
         <div class="len" role="radiogroup" aria-label="Game length">
           <span>First to</span>
@@ -955,42 +965,22 @@
   </div>
 </div>
 
+<script src="rules.js"></script>
 <script>
 (() => {
   const $ = (s) => document.querySelector(s);
-  const other = (w) => (w === 'you' ? 'cpu' : 'you');
+  const { OFF, DEF, SPECIALS, other, say, fits } = SnapRules;   // look/rules.js
   const NAME = { you: 'You', cpu: 'CPU' };
   const verb = (who, base) => (who === 'you' ? base : base + 's');
-  const ZONES = ['your own 25', 'midfield', 'the Red Zone'];
+  // The rules (look/rules.js) for the rule set being played, and what this device saves for each rule set.
+  const SAVED = {
+    once: { version: 5, targetKey: 'snap-call-look-target', hardKey: 'snap-call-look-hard' },
+    twice: { version: 6, targetKey: 'snap-call-look-downs-target', hardKey: 'snap-call-look-downs-hard' },
+  };
+  let rules, RULES, TWICE, ZONES, RED, MID, DOWNS, PLAYS, RULES_VERSION, TARGET_KEY, HARD_KEY;
   const TARGETS = [21, 28, 35];
   const KICK = 'From the Red Zone → Score 3';
 
-  // win: what happens when the play beats the guess (offense) or the guess is right (defense). lose: the other way.
-  const PLAYS = {
-    run:    { side: 'off', name: 'Run', gain: 1, win: 'Not stopped: +1 zone', lose: 'Stopped: their ball' },
-    short:  { side: 'off', name: 'Short Pass', gain: 1, win: 'Not stopped: +1 zone', lose: 'Stopped: their ball' },
-    deep:   { side: 'off', name: 'Deep Pass', gain: 2, win: 'Not stopped: +2 zones', lose: 'Stopped: intercepted' },
-    runD:   { side: 'def', name: 'Stop Run', stops: 'run', win: 'Stopped: your ball', lose: 'Not stopped: they gain' },
-    shortD: { side: 'def', name: 'Stop Short', stops: 'short', win: 'Stopped: your ball', lose: 'Not stopped: they gain' },
-    deepD:  { side: 'def', name: 'Stop Deep', stops: 'deep', win: 'Stopped: interception', lose: 'Not stopped: they gain' },
-  };
-  const OFF = ['run', 'short', 'deep'];
-  const DEF = ['runD', 'shortD', 'deepD'];
-
-  // A Save only works if you lose the snap; a Bonus only works if you win it.
-  // Saves work with any play, so they never decide what you pick. Same-effect pairs keep two names for variety.
-  const SPECIALS = {
-    juke:      { name: 'Juke', side: 'off', kind: 'save', count: 2, when: 'If your play is stopped', then: 'Still gain 1 zone' },
-    grab:      { name: 'Spectacular Catch', side: 'off', kind: 'save', count: 2, when: 'If your play is stopped', then: 'Still gain 1 zone' },
-    sack:      { name: 'Sack', side: 'def', kind: 'save', count: 2, when: "If you don’t stop the play", then: 'They go back 1 zone' },
-    tfl:       { name: 'Tackle for Loss', side: 'def', kind: 'save', count: 2, when: "If you don’t stop the play", then: 'They go back 1 zone' },
-    flag:      { name: 'Challenge Flag', side: 'any', kind: 'save', count: 2, when: 'If you lose the snap', then: 'Replay it' },
-    breakaway: { name: 'Breakaway', side: 'off', kind: 'bonus', count: 2, needs: ['run'], when: "If your Run isn’t stopped", then: 'Touchdown' },
-    hail:      { name: 'Hail Mary', side: 'off', kind: 'bonus', count: 2, needs: ['deep'], when: "If your Deep Pass isn’t stopped", then: 'Touchdown' },
-    picksix:   { name: 'Pick Six', side: 'def', kind: 'bonus', count: 2, needs: ['shortD', 'deepD'], when: 'If you stop a pass', then: 'You score 7' },
-    fumble:    { name: 'Forced Fumble', side: 'def', kind: 'bonus', count: 2, needs: ['runD'], when: 'If you stop a Run', then: 'Your ball at midfield' },
-  };
-  const RULES_VERSION = 5;
   const SIDE_LABEL = { off: 'Offense', def: 'Defense', any: 'Either side' };
   const STATUS = { worked: 'Worked', wasted: 'No effect', back: 'Back to hand' };
   // Card images in ../full-cards/cards/: "<name>.webp" is the finished card, made from the PNGs in ../artwork/cards/.
@@ -1000,7 +990,6 @@
     breakaway: 'breakaway', hail: 'hail-mary', picksix: 'pick-six', fumble: 'forced-fumble',
   };
 
-  const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const weighted = (w) => {
     const ks = Object.keys(w); let r = Math.random() * ks.reduce((s, k) => s + w[k], 0);
     for (const k of ks) { r -= w[k]; if (r <= 0) return k; }
@@ -1045,20 +1034,16 @@
   function savedLevel() {
     try { return localStorage.getItem(LEVEL_KEY) === 'hard' ? 'hard' : 'normal'; } catch (e) { return 'normal'; }
   }
-  // So is the game length.
-  const TARGET_KEY = 'snap-call-look-target';
+  // So is the game length (TARGET_KEY, one per rule set).
   function savedTarget() {
     try { const t = +localStorage.getItem(TARGET_KEY); return TARGETS.includes(t) ? t : 21; } catch (e) { return 21; }
   }
 
   function newGame(level, target = savedTarget()) {
     if (cele) { clearTimeout(cele.timer); cele = null; $('#cele').hidden = true; }
-    const deck = [];
-    for (const [k, s] of Object.entries(SPECIALS)) for (let i = 0; i < s.count; i++) deck.push(k);
     S = {
       v: RULES_VERSION, level, target,
-      score: { you: 0, cpu: 0 }, poss: Math.random() < 0.5 ? 'you' : 'cpu', pos: 0,
-      hands: { you: [], cpu: [] }, deck: shuffle(deck), discard: [],
+      ...SnapRules.newDeal(),
       sel: { play: null, special: null },
       phase: 'pick', last: null, move: null, showLast: false, flip: false, log: [], snaps: 0,
       offHist: { run: 2, short: 2, deep: 2 },   // what you call on offense
@@ -1071,28 +1056,13 @@
       saveHard();
     }
     try { localStorage.setItem(LEVEL_KEY, level); localStorage.setItem(TARGET_KEY, target); } catch (e) { /* the next visit starts on Normal, first to 21 */ }
-    for (let i = 0; i < 2; i++) { draw('you'); draw('cpu'); }
-    // The side that gets the ball second starts with one more special.
-    draw(S.poss === 'you' ? 'cpu' : 'you');
+    rules.dealHands(S);
     S.log.unshift({ n: 0, head: 'Kickoff', text: firstBall(), tone: S.poss });
     render();
   }
 
   function firstBall() { return S.poss === 'you' ? 'You get the ball first, so the CPU starts with 3 specials.' : 'CPU gets the ball first, so you start with 3 specials.'; }
-  function draw(w) {
-    if (S.hands[w].length >= 3) return;
-    if (!S.deck.length) { S.deck = shuffle(S.discard); S.discard = []; }
-    if (S.deck.length) S.hands[w].push({ id: ++uid, key: S.deck.pop() });
-  }
-
   const side = () => (S.poss === 'you' ? 'off' : 'def');
-  // Whether a special can go with this play on this side right now. The card face already says which side and play it needs.
-  function fits(key, play, sd) {
-    if (play === 'fg') return false;   // a kick isn't a snap, so no special goes with it
-    const s = SPECIALS[key];
-    if (s.side !== 'any' && s.side !== sd) return false;
-    return !(s.needs && play && !s.needs.includes(play));
-  }
   const ready = () => S.phase === 'pick' && !!S.sel.play;
 
   // ---------- Computer ----------
@@ -1107,13 +1077,13 @@
       const seen = read && read.seen;
       const behind = S.score.you - S.score.cpu;
       const h = has('hail');
-      if (h && S.pos === 0 && behind >= 7 && Math.random() < 0.5) return { play: 'deep', card: h, seen };
+      if (h && S.pos + 2 < ZONES && behind >= 7 && Math.random() < 0.5) return { play: 'deep', card: h, seen };
       const g = S.defHist;
-      const play = read ? read.play : weighted({ run: 1 / g.run, short: 1 / g.short, deep: (S.pos === 2 ? 0.35 : 0.8) / g.deep });
+      const play = read ? read.play : weighted({ run: 1 / g.run, short: 1 / g.short, deep: (S.pos === RED ? 0.35 : 0.8) / g.deep });
       let card = null;
       const b = has('breakaway'), j = has('juke'), c = has('grab'), f = has('flag');
-      if (play === 'deep' && h && S.pos === 0 && Math.random() < 0.6) card = h;
-      else if (play === 'run' && b && Math.random() < 0.6) card = b;
+      if (play === 'deep' && h && S.pos + 2 < ZONES && Math.random() < 0.6) card = h;
+      else if (play === 'run' && b && (!TWICE || S.pos + 1 < ZONES) && Math.random() < 0.6) card = b;
       else if ((j || c) && Math.random() < (play === 'deep' ? 0.5 : 0.35)) card = j || c;
       else if (f && Math.random() < 0.2) card = f;
       return { play, card, seen };
@@ -1123,7 +1093,7 @@
     const tot = h.run + h.short + h.deep;
     const w = {};
     for (const p of OFF) w[p] = 0.25 / 3 + 0.75 * (h[p] / tot);
-    if (S.pos === 2) w.deep *= 0.5;
+    if (S.pos === RED) w.deep *= 0.5;
     const guess = read ? read.play : weighted(w);
     let card = null;
     const tl = has('tfl'), sk = has('sack'), p6 = has('picksix'), ff = has('fumble'), f = has('flag');
@@ -1140,7 +1110,6 @@
   // would have guessed lately. Hard starts from the calls and guesses nobody can read, even knowing its odds, and leans
   // on the hunches only as far as they have been working. Tuned by simulating thousands of games (tools/cpu-sim).
   // It remembers your last few games on this device: the last one counts half, the one before a quarter, and so on.
-  const HARD_KEY = 'snap-call-look-hard';
   const HUNCHES = ['even', 'all', 'recent', 'zone', 'after', 'repeat', 'balance', 'counter'];
   const EVEN = [1 / 3, 1 / 3, 1 / 3];
   const norm = (v) => { const s = v[0] + v[1] + v[2]; return v.map((x) => x / s); };
@@ -1209,8 +1178,9 @@
 
   // What each play is worth to the offense here: zones gained (reaching the end zone counts extra), and what a stop costs.
   function stakes(pos) {
-    const gain = OFF.map((p) => Math.min(PLAYS[p].gain, 3 - pos) + (pos + PLAYS[p].gain >= 3 ? 1 : 0));
-    const loss = OFF.map((p) => (p === 'deep' ? 1.8 : 1.2));
+    // Stopped twice: a first stop only costs a try (not re-tuned yet; the tools/cpu-sim numbers are for Stopped once).
+    const gain = OFF.map((p) => Math.min(PLAYS[p].gain, ZONES - pos) + (pos + PLAYS[p].gain >= ZONES ? 1 : 0));
+    const loss = OFF.map((p) => (TWICE && S.down < DOWNS ? 0.5 : p === 'deep' ? 1.8 : 1.2));
     return { gain, loss };
   }
   // The calls and guesses nobody can read: each side leaves the other nothing to gain by switching.
@@ -1254,97 +1224,6 @@
     return { play: OFF[sample(callOdds(full, pos))], seen };
   }
 
-  // ---------- Rules ----------
-  // Losers save, winners score: the plain result first, then the loser's Save, then the winner's Bonus.
-  // `sp` names the side whose special worked; at most one does.
-  function resolve(o, d) {
-    const pass = o.play !== 'run';
-    if (PLAYS[d.play].stops === o.play) {
-      // The offense lost the snap.
-      if (o.sp === 'flag') return { kind: 'replay', sp: 'off' };
-      if (o.sp === 'juke' || o.sp === 'grab') return { kind: 'gain', zones: 1, how: o.sp, sp: 'off' };
-      if (pass && d.sp === 'picksix') return { kind: 'pick6', sp: 'def' };
-      if (!pass && d.sp === 'fumble') return { kind: 'fumble', sp: 'def' };
-      return { kind: o.play === 'deep' ? 'int' : 'stop' };
-    }
-    // The defense lost the snap.
-    if (d.sp === 'flag') return { kind: 'replay', sp: 'def' };
-    if (d.sp === 'sack' || d.sp === 'tfl') return { kind: 'sack', how: d.sp, sp: 'def' };
-    if (o.play === 'deep' && o.sp === 'hail') return { kind: 'td', how: 'hail', sp: 'off' };
-    if (o.play === 'run' && o.sp === 'breakaway') return { kind: 'td', how: 'breakaway', sp: 'off' };
-    return { kind: 'gain', zones: PLAYS[o.play].gain, play: o.play };
-  }
-
-  function callText(offWho, o, d) {
-    const oc = o.sp === 'hail' ? 'threw a Hail Mary' : 'called ' + PLAYS[o.play].name;
-    const dc = 'called ' + PLAYS[d.play].name;
-    return `${NAME[offWho]} ${oc}. ${NAME[other(offWho)]} ${dc}.`;
-  }
-
-  const zoneName = (pos, who) => (pos === 0 ? (who === 'you' ? 'your own 25' : 'their own 25') : ZONES[pos]);
-  const cap = (s) => s[0].toUpperCase() + s.slice(1);
-  // Each result has a few announcer lines, picked at random, so the play-by-play doesn't repeat itself.
-  // Every line stays short enough for two lines on phones.
-  const say = (lines) => lines[Math.floor(Math.random() * lines.length)];
-  const ballAt = (pos, who) => (pos === ZONES.length - 1 ? 'Ball in the Red Zone.' : `Ball at ${zoneName(pos, who)}.`);
-  const GAIN_SAYS = {
-    run: ['Good gain. ', 'Found a gap. ', 'Room to run. '],
-    short: ['Good gain. ', 'Easy catch. ', 'Moving the chains. '],
-    deep: ['Over the top! ', 'Wide open! ', 'Deep ball, caught! '],
-  };
-
-  function kickoff(receiver) { S.poss = receiver; S.pos = 0; draw(receiver); }
-  function won(who) { if (S.score[who] >= S.target) { S.phase = 'over'; return true; } return false; }
-  function score(who, pts) { S.score[who] += pts; if (!won(who)) kickoff(other(who)); }
-
-  function apply(r, off) {
-    const def = other(off);
-    switch (r.kind) {
-      case 'replay':
-        return { head: 'Flag! Replay', detail: say([`${NAME[r.by]} threw the flag. Snap again.`, 'Flag on the play. Snap again.']), tone: r.by };
-      case 'gain': {
-        S.pos += r.zones;
-        const td = S.pos >= 3;
-        if (td) score(off, 7);
-        const rest = td ? `${say(['Into the end zone! ', 'All the way! ', 'Nobody touches it! '])}${NAME[off]} ${verb(off, 'score')} 7.`
-          : r.how ? '+1 zone.' : `${say(GAIN_SAYS[r.play])}${ballAt(S.pos, off)}`;
-        const head = td ? 'Touchdown!' : r.how === 'juke' ? 'Juke!' : r.how === 'grab' ? 'What a catch!' : `+${r.zones} zone${r.zones > 1 ? 's' : ''}`;
-        if (!r.how) return { head, detail: rest, tone: off };
-        // A Save turns a stop into a gain, so the log joins it to the picks with "but".
-        const save = r.how === 'juke' ? say(['the juke breaks free.', 'one cut and through.', 'a quick juke and gone.'])
-          : say(['what a catch!', 'a one-handed grab!', 'hauled in anyway!']);
-        return { head, detail: `${cap(save)} ${rest}`, but: `${save} ${rest}`, tone: off };
-      }
-      case 'td': {
-        const lead = r.how === 'hail' ? say(['Caught! ', 'Up for grabs, and caught! ', 'Hail Mary, caught! '])
-          : r.how === 'breakaway' ? say(['Breakaway! ', 'Gone! ', 'Untouched! ']) : '';
-        score(off, 7);
-        return { head: 'Touchdown!', detail: `${lead}${NAME[off]} ${verb(off, 'score')} 7.`, tone: off };
-      }
-      case 'stop': {
-        S.poss = def; S.pos = 0;
-        const at = `${NAME[def]} ${verb(def, 'take')} over at ${def === 'you' ? 'your' : 'their'} 25.`;
-        return { head: 'Stopped', detail: say([at, `Stuffed. ${at}`, `Read it. ${at}`]), tone: def };
-      }
-      case 'int':
-        S.poss = def; S.pos = 1;
-        return { head: 'Intercepted!', detail: say([`${NAME[def]} ${verb(def, 'start')} at midfield.`, 'Jumped the route. Ball at midfield.', 'Read it all the way. Ball at midfield.']), tone: def };
-      case 'sack': {
-        const was = S.pos;
-        S.pos = Math.max(0, S.pos - 1);
-        const rest = was === 0 ? 'No gain.' : 'Back 1 zone.';
-        const how = say(['the defense got through.', 'brought down behind the line.', 'swarmed in the backfield.']);
-        return { head: r.how === 'tfl' ? 'Tackle for loss!' : 'Sacked!', detail: `${cap(how)} ${rest}`, but: `${how} ${rest}`, tone: def };
-      }
-      case 'fumble':
-        S.poss = def; S.pos = 1;
-        return { head: 'Fumble!', detail: say([`${NAME[def]} ${verb(def, 'recover')} at midfield.`, `Loose ball! ${NAME[def]} ${verb(def, 'fall')} on it.`]), tone: def };
-      case 'pick6':
-        score(def, 7);
-        return { head: 'Pick Six!', detail: `${say(['Picked off!', 'Pick and gone!', 'All the way back!'])} ${NAME[def]} ${verb(def, 'score')} 7.`, tone: def };
-    }
-  }
-
   function addLog(e) { S.log.unshift(e); if (S.log.length > 80) S.log.length = 80; }
 
   function snap() {
@@ -1352,10 +1231,7 @@
     if (S.sel.play === 'fg') { kickFG('you'); render(); return; }
     const you = { play: S.sel.play, card: S.sel.special };
     const cpu = cpuPick();
-    for (const [w, c] of [['you', you], ['cpu', cpu]]) {
-      if (c.card) S.hands[w] = S.hands[w].filter((x) => x.id !== c.card.id);
-    }
-    const off = S.poss, def = other(off);
+    const off = S.poss;
     if (off === 'you') { if (you.play) S.offHist[you.play]++; } else S.defHist[PLAYS[you.play].stops]++;
     if (cpu.seen) {
       learn(off === 'you' ? S.hard.off : S.hard.dfn, cpu.seen, off === 'you' ? you.play : PLAYS[you.play].stops);
@@ -1363,23 +1239,11 @@
       saveHard();
     }
 
-    const O = off === 'you' ? you : cpu, D = off === 'you' ? cpu : you;
-    const o = { play: O.play, sp: O.card ? O.card.key : null };
-    const d = { play: D.play, sp: D.card ? D.card.key : null };
-    const r = resolve(o, d);
-    const firedBy = r.sp ? (r.sp === 'off' ? off : def) : null;
-    if (r.kind === 'replay') r.by = firedBy;
-    // Played specials are used up, except that a replayed snap hands the other side's special back.
-    for (const [w, c] of [['you', you], ['cpu', cpu]]) {
-      if (!c.card) continue;
-      if (r.kind === 'replay' && w !== firedBy) { S.hands[w].push(c.card); c.status = 'back'; }
-      else { S.discard.push(c.card.key); c.status = w === firedBy ? 'worked' : 'wasted'; }
-    }
-
-    const text = callText(off, o, d);
     const pos0 = S.pos;
     const before = { ...S.score };
-    const out = apply(r, off);
+    const { o, d, r, firedBy } = rules.playSnap(S, { you, cpu });
+    const text = rules.callText(off, o, d);
+    const out = rules.apply(S, r, off);
     for (const w of ['you', 'cpu']) {
       const sp = firedBy === w ? (w === 'you' ? you : cpu).card.key : null;
       if (S.score[w] > before[w]) celebrate(w, 'touchdown', `${out.head} ${NAME[w]} ${verb(w, 'score')} 7`, before[w], sp);
@@ -1388,7 +1252,7 @@
     S.move = S.phase !== 'over' && S.poss === off && S.pos !== pos0 ? { from: pos0, to: S.pos } : null;
     S.snaps++;
     S.last = { you, cpu, ...out, n: S.snaps, off, at: pos0, guessed: PLAYS[d.play].stops === o.play };
-    addLog({ n: S.snaps, head: out.head, text: out.but ? `${text.slice(0, -1)}, but ${out.but}` : `${text} ${out.detail}`, tone: out.tone });
+    addLog({ n: S.snaps, head: out.head, text: out.but ? `${text.slice(0, -1)}, but ${out.but}` : `${text} ${out.log || out.detail}`, tone: out.tone });
     S.sel = { play: null, special: null };
     S.showLast = true; S.flip = true;
     render();
@@ -1404,13 +1268,15 @@
     // The stage keeps showing the kick until the next pick.
     S.showLast = true; S.move = null;
     const before = S.score[who];
-    score(who, 3);
+    rules.fieldGoal(S, who);
     celebrate(who, 'field-goal', `Field goal! ${NAME[who]} ${verb(who, 'score')} 3`, before);
   }
 
+  // In the Red Zone the CPU kicks 45% of the time, or when 3 points wins the game. On Stopped twice it goes for the
+  // touchdown first, and kicks on its last try.
   function afterChange() {
-    if (S.phase !== 'pick' || S.poss !== 'cpu' || S.pos !== 2) return;
-    const kick = S.target - S.score.cpu <= 3 || Math.random() < 0.45;
+    if (S.phase !== 'pick' || S.poss !== 'cpu' || S.pos !== RED) return;
+    const kick = S.target - S.score.cpu <= 3 || (TWICE ? S.down === DOWNS : Math.random() < 0.45);
     if (!kick) return;
     S.phase = 'busy'; S.flip = true;
     render();
@@ -1457,7 +1323,9 @@
     box.classList.toggle('room', room);
   }
   // The finished card. Its rules are printed on it, so the alt text repeats them.
-  const art = (key, alt) => `<img src="../full-cards/cards/${ART[key]}.webp" alt="${alt}" width="600" height="840" decoding="sync">`;
+  // Stopped twice uses the play cards reprinted with "Stopped twice" (downs/cards/); every other card is the same.
+  const cardSrc = (key) => `${TWICE && PLAYS[key] ? '../downs/cards/' : '../full-cards/cards/'}${ART[key]}.webp`;
+  const art = (key, alt) => `<img src="${cardSrc(key)}" alt="${alt}" width="600" height="840" decoding="sync">`;
   const kickInner = () => `<span class="cv"><img src="../full-cards/cards/kick-field-goal.webp" alt="Kick Field Goal. ${KICK}." width="600" height="840" decoding="sync"></span>`;
   const NO_SNAP = '<div class="card empty"><span class="cv">No snap</span></div>';
   // `miss` names the outcome that didn't happen ('win' or 'lose'), faded on the stage after the reveal.
@@ -1472,14 +1340,15 @@
     const tuck = s ? `<span class="tuck" data-st="${c.status || ''}"><img src="../full-cards/cards/${ART[c.card.key]}.webp" alt="with ${s.name}" width="600" height="840" decoding="sync"></span>` : '';
     const tag = s && c.status ? `<span class="tag" data-st="${c.status}">${STATUS[c.status]}</span>` : '';
     // A defense card wins when the play was stopped; an offense card wins when it wasn't.
-    let miss = L ? ((PLAYS[key].side === 'def') === L.guessed ? 'lose' : 'win') : null;
+    let miss = L ? (L.once ? 'both' : (PLAYS[key].side === 'def') === L.guessed ? 'lose' : 'win') : null;
     if (L && spSaid(L)) miss = 'both';
     return `<div class="card ${PLAYS[key].side} ${owner}${flip ? ' flip' : ''}${c.status === 'worked' ? ' won' + (S.flip ? ' fresh' : '') : ''}">${faceInner(key, miss)}${tuck}${tag}</div>`;
   }
   const BACK = '<div class="card back"><span class="cv"><img src="../full-cards/cards/card-back.webp" alt="CPU card, face down" width="600" height="840" decoding="sync"></span></div>';
   // Center of field card k, in the 4-column row with 6px gaps.
-  const zoneX = (k) => `calc((100% - 18px) * ${(2 * k + 1) / 8} + ${6 * k}px)`;
-  const zoneSpan = (n) => `calc((100% - 18px) * ${n / 4} + ${6 * n}px)`;
+  // Center of field card k, and the width of n cards, in the row of ZONES + 1 cards with 6px gaps.
+  const zoneX = (k) => `calc((100% - ${6 * ZONES}px) * ${(2 * k + 1) / (2 * (ZONES + 1))} + ${6 * k}px)`;
+  const zoneSpan = (n) => `calc((100% - ${6 * ZONES}px) * ${n / (ZONES + 1)} + ${6 * n}px)`;
 
   // Show the newest 5 plays; older ones scroll. On wide screens a short window shows down to 3 so the game never needs page scrolling.
   function fitLog() {
@@ -1504,9 +1373,16 @@
     $('#targetNum').textContent = S.target;
     $('#cpuPips').innerHTML = S.hands.cpu.map(() => '<i></i>').join('');
 
-    // Status: the CPU's field goal; the scoreboard and the ball on the field show who has the ball and where.
-    const kick = S.phase === 'busy';
-    showStatus(kick ? 'CPU lines up a field goal' : '', kick ? 'From the Red Zone, 3 points.' : '', false);
+    // Status: the CPU's field goal, and on Stopped twice "stopped once" while it's the last try in this zone (from your
+    // next pick on). The scoreboard and the ball on the field show who has the ball and where.
+    const last = TWICE && S.down === DOWNS;   // already stopped once in this zone
+    let head = '', line = '';
+    if (S.phase === 'busy') { head = 'CPU lines up a field goal'; line = 'From the Red Zone, 3 points.'; }
+    else if (S.phase === 'pick' && last && !S.showLast) {
+      head = S.poss === 'you' ? 'Your ball: stopped once' : 'CPU ball: stopped once';
+      line = S.poss === 'you' ? 'Stopped again here and the CPU gets the ball.' : 'Stop them again to get the ball.';
+    }
+    showStatus(head, line, TWICE && S.phase !== 'over');
 
     // Field
     const field = $('#field');
@@ -1523,6 +1399,7 @@
       stageArt = art;
       stage.style.setProperty('--art', `url("${art}")`);
     }
+    $('#ball').classList.toggle('last', last && S.phase !== 'over');
     const m = S.move;
     if (m && S.showLast) {
       const a = Math.min(m.from, m.to), b = Math.max(m.from, m.to), d = m.to - m.from;
@@ -1544,7 +1421,7 @@
       $('#slotCpu').innerHTML = faceBlock(L.cpu, 'cpu', S.flip, L);
       medal.className = 'medal hit' + (S.flip ? ' pop' : '');
       medal.style.setProperty('--tone', `var(--${L.guessed ? other(L.off) : L.off})`);
-      medal.innerHTML = L.guessed ? 'Stopped' : 'Not<br>stopped';
+      medal.innerHTML = !L.guessed ? 'Not<br>stopped' : L.once ? 'Stopped<br>once' : L.twice ? 'Stopped<br>twice' : 'Stopped';
       const said = spSaid(L);
       if (said) { medal.className += ' gold'; medal.style.setProperty('--tone', 'var(--flag)'); medal.innerHTML = said; if (said === '+7') medal.classList.add('big'); }
     } else {
@@ -1577,7 +1454,7 @@
     shownResult = R.n;
 
     // Hand
-    const keys = S.poss === 'you' ? (S.pos === 2 ? [...OFF, 'fg'] : OFF) : DEF;
+    const keys = S.poss === 'you' ? (S.pos === RED ? [...OFF, 'fg'] : OFF) : DEF;
     $('#hand').classList.toggle('four', keys.length === 4);
     $('#handLabel').textContent = S.poss === 'you' ? 'Offense' : 'Defense';
     setCards($('#hand'), keys.map((k) => {
@@ -1743,18 +1620,17 @@
   }
   $('#newGame').addEventListener('click', askLevel);
   $('#again').addEventListener('click', askLevel);
-  // The rules choice in New game opens the other rule set's page, with New game showing and the same length picked.
-  // The choice shows at once, since that page can take a moment to load.
-  const ruleBtns = [...document.querySelectorAll('.rule-set button')], ruleHere = ruleBtns.find((b) => b.getAttribute('aria-checked') === 'true');
-  const showRules = (on) => { for (const o of ruleBtns) o.setAttribute('aria-checked', String(o === on)); };
+  // The rules choice in New game deals a fresh game on the other rule set (its saved length and your level), and New game
+  // stays open with the length you had picked.
+  const ruleBtns = [...document.querySelectorAll('.rule-set button')];
   for (const b of ruleBtns) b.addEventListener('click', () => {
-    if (b === ruleHere) return;
-    showRules(b);
-    $('#level').classList.add('leaving');
-    location.href = `downs/?new=${lenPick}${homeUp() ? '&home' : ''}`;
+    if (b.dataset.rules === RULES) return;
+    useRules(b.dataset.rules);
+    newGame(savedLevel());
+    homeChips();
+    // A reload keeps this rule set (the app remembers it by itself).
+    if (location.protocol !== 'snapcall:') history.replaceState(null, '', location.pathname + (TWICE ? '?rules=twice' : ''));
   });
-  // Back from the other page: New game as it was.
-  addEventListener('pageshow', (e) => { if (e.persisted) { showRules(ruleHere); $('#level').classList.remove('leaving'); } });
   // Focus rings are for the keyboard (see the styles): taps and clicks turn them off, Tab and the arrows turn them on.
   const root = document.documentElement;
   root.dataset.input = 'pointer';
@@ -1769,7 +1645,31 @@
   $('#rules').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   window.addEventListener('resize', fitLog);
   // Fetch every card up front so the first reveal never waits on an image.
-  for (const f of [...Object.values(ART), 'card-back', 'touchdown', 'field-goal', 'kick-field-goal']) new Image().src = `../full-cards/cards/${f}.webp`;
+  // Which rule set: ?rules=twice (look/downs/ forwards here with it), or in the app the one you played last.
+  function useRules(set) {
+    RULES = set;
+    rules = SnapRules.create(set, { NAME, verb, nextId: () => ++uid });
+    ({ TWICE, ZONES, RED, MID, DOWNS, PLAYS } = rules);
+    ({ version: RULES_VERSION, targetKey: TARGET_KEY, hardKey: HARD_KEY } = SAVED[set]);
+    root.dataset.rules = set;
+    for (const b of ruleBtns) b.setAttribute('aria-checked', String(b.dataset.rules === set));
+    $('.zones').innerHTML = (TWICE ? ZONE_CARDS.twice : ZONE_CARDS.once).map(([src, name], k, all) => (k < all.length - 1
+      ? `<div class="zone" data-z="${k}"><img src="${src}" alt="${name}" width="600" height="840"><span class="zn">${name}</span></div>`
+      : `<div class="zone ez"><img src="${src}" alt="${name}" width="600" height="840"><span class="zn">${name}</span><span class="who-ez" id="ezTeam"></span></div>`)).join('\n        ');
+    $('.home-setup .home-chip').textContent = rules.name;
+    try { localStorage.setItem('snap-call-look-rules', set); } catch (e) { /* the app opens on Stopped once */ }
+  }
+  const ZONE_CARDS = {
+    once: [['../full-cards/cards/own-25.webp', 'Own 25'], ['../full-cards/cards/midfield.webp', 'Midfield'], ['../full-cards/cards/red-zone.webp', 'Red Zone'], ['../full-cards/cards/end-zone.webp', 'End zone']],
+    twice: [['../downs/cards/own-20.webp', 'Own 20'], ['../downs/cards/own-35.webp', 'Own 35'], ['../full-cards/cards/midfield.webp', 'Midfield'], ['../downs/cards/their-35.webp', 'Their 35'], ['../full-cards/cards/red-zone.webp', 'Red Zone'], ['../full-cards/cards/end-zone.webp', 'End zone']],
+  };
+  const askedRules = new URLSearchParams(location.search).get('rules');
+  let lastRules = null;
+  try { lastRules = localStorage.getItem('snap-call-look-rules'); } catch (e) { /* Stopped once */ }
+  useRules(askedRules === 'twice' || (!askedRules && location.protocol === 'snapcall:' && lastRules === 'twice') ? 'twice' : 'once');
+  // Fetch every card up front so the first reveal never waits on an image.
+  for (const k of Object.keys(ART)) new Image().src = cardSrc(k);
+  for (const f of ['card-back', 'touchdown', 'field-goal', 'kick-field-goal']) new Image().src = `../full-cards/cards/${f}.webp`;
 
   // Keep the game going across live updates of this page.
   if (window.claude && window.claude.hot && window.claude.hot.snapshot) window.claude.hot.snapshot(() => ({ S, uid }));
@@ -1784,7 +1684,7 @@
   // Arriving from the other rule set: ask Normal or Hard right away.
   const arrived = new URLSearchParams(location.search).get('new');
   if (arrived !== null) {
-    history.replaceState(null, '', location.pathname);
+    history.replaceState(null, '', location.pathname + (TWICE ? '?rules=twice' : ''));
     if (S) { askLevel(); if ([21, 28, 35].includes(+arrived)) setLen(+arrived); }
   }
   // ---------- Home screen ----------
@@ -1828,7 +1728,5 @@
     Promise.all([...fan.querySelectorAll('img')].map((i) => i.decode().catch(() => {}))),
     new Promise((r) => setTimeout(r, 700)),
   ]).then(() => fan.classList.add('go'));
-  // The app opens on the rule set you played last (see APP_OPEN).
-  try { localStorage.setItem('snap-call-look-rules', 'once'); } catch (e) { /* the app opens on Stopped once */ }
 })();
 </script>

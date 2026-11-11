@@ -57,7 +57,7 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
 
 ## One screen per snap on phones
 
-**Status:** B is built into the look preview on phones, with the stage drawn on the current zone's field card (https://noam99moyal.github.io/snap-call/look/ and /look/downs/). The three mockups are still at https://noam99moyal.github.io/snap-call/mockups/phone/.
+**Status:** B is built into the look preview on phones, with the stage drawn on the current zone's field card (https://noam99moyal.github.io/snap-call/look/, Stopped twice at /look/?rules=twice). The three mockups are still at https://noam99moyal.github.io/snap-call/mockups/phone/.
 
 **The problem.** A tester said he has to scroll down to pick his cards and back up to see what happened, every snap. On a phone that shows 390 × 664, the look preview is about 1,490px tall:
 
@@ -93,7 +93,7 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
 
 `ios/` plays the look preview as an iPhone and iPad app (see the README). Planned, in this order:
 
-1. **Setup step** (1 to 2 days, nothing visible changes): the look pages become real source files instead of being built by `tools/look/make.py`. Stopped once and Stopped twice become a setting in one game, and the snap rules move into their own part so a server can later run the same code. After this, new work happens only in the look version. `full-cards/` and `downs/` stay online as they are.
+1. **Setup step**: done on 2026-11-11, with nothing visible changed. `look/game.html` is now the source (`tools/look/make.py` is gone), Stopped once and Stopped twice are a setting in one page (`look/downs/` forwards to `look/?rules=twice`), and the snap rules are in `look/rules.js` so a server can run the same code. Checked by replaying the same seeded games on the old and new pages (every screen after every snap matched) and by comparing screenshots. New work happens only in `look/`; `full-cards/` and `downs/` stay online as they are.
 2. **Home screen**: built on 2026-11-11, in the look preview (website) and the app, from the mockup in `mockups/home/`:
    - The stadium from the Midfield card, darkening toward the bottom.
    - The card back in the middle, with Deep Pass and Hail Mary fanning out behind it when the page opens.
