@@ -94,13 +94,14 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
 `ios/` plays the look preview as an iPhone and iPad app (see the README). Planned, in this order:
 
 1. **Setup step** (1 to 2 days, nothing visible changes): the look pages become real source files instead of being built by `tools/look/make.py`. Stopped once and Stopped twice become a setting in one game, and the snap rules move into their own part so a server can later run the same code. After this, new work happens only in the look version. `full-cards/` and `downs/` stay online as they are.
-2. **Home screen** (about half a day). The mockup is in `mockups/home/`:
+2. **Home screen**: built on 2026-11-11, in the look preview (website) and the app, from the mockup in `mockups/home/`:
    - The stadium from the Midfield card, darkening toward the bottom.
-   - The card back in the middle, with Deep Pass and Hail Mary fanned behind it. In the app the cards fan out when it opens.
-   - A raised orange "Start game" button (wording agreed), with a light tap vibration in the app.
-   - Under it, your current rules, length and level. Tapping them opens the New game panel.
-   - "?" for How to play and a gear for settings in the top corners.
-   - On the website too, unless we make it app-only.
+   - The card back in the middle, with Deep Pass and Hail Mary fanning out behind it when the page opens.
+   - A raised orange "Start game" button, with a light tap vibration in the app.
+   - Under it, the rules, length and level of the game that's dealt. Tapping them opens the New game panel.
+   - "?" opens How to play. The gear opens the New game panel for now, until there are other settings (sound, vibration).
+   - Choosing the other rule set from the home screen comes back to the home screen. New game during a game skips it.
+   - The app opens on the rule set you played last.
 3. **Play a friend online** (about 1 to 2 weeks): a link or room code, no accounts. A small server holds both secret picks and deals the specials. Its button goes under Start game.
 4. **Play strangers** (later): matchmaking, accounts, maybe rankings. Needs a server account in your name (for example Cloudflare) and the App Store's rules for accounts (account deletion in the app, Sign in with Apple).
 

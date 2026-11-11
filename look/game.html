@@ -1,6 +1,11 @@
 <title>Snap Call</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<script>
+  if (location.protocol === 'snapcall:' && !location.search) {
+    try { if (localStorage.getItem('snap-call-look-rules') === 'twice') location.replace('downs/'); } catch (e) { /* stay on Stopped once */ }
+  }
+</script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Graduate&display=swap">
 <style>
@@ -688,6 +693,76 @@
       .status { margin-top: 7px; }
     }
   }
+
+  /* ---------- Home screen ---------- */
+  html.home-on, html.home-on body { overflow: hidden; }
+  .home {
+    position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; overflow: hidden; isolation: isolate;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 20px calc(env(safe-area-inset-bottom, 0px) + 22px);
+    background: var(--turf-deep); color: var(--chalk);
+  }
+  .home.leaving { opacity: 0; scale: 1.03; pointer-events: none; transition: opacity 0.24s ease-out, scale 0.24s ease-out; }
+  /* The stadium: the top of the Midfield card (stands and lights), wide enough that the card's frame stays off screen. */
+  .home-stadium { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
+  .home-stadium img {
+    --w: max(1060px, 135vw); position: absolute; left: 50%; top: calc(var(--w) * -0.25); width: var(--w); max-width: none; height: auto;
+    translate: -50% 0;
+  }
+  .home-stadium::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(10, 44, 29, 0.15) 0%, rgba(10, 44, 29, 0.3) 38%, rgba(10, 44, 29, 0.85) 66%, var(--turf-deep) 82%);
+  }
+  .home-corner { width: 100%; max-width: 560px; display: flex; justify-content: space-between; flex: none; }
+  .home-icon {
+    width: 44px; height: 44px; padding: 0; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
+    border: 1px solid var(--chalk-faint); background: rgba(10, 44, 29, 0.55); color: var(--chalk); font: 700 21px/1 var(--ui);
+  }
+  .home-icon svg { width: 21px; height: 21px; }
+  .home-grow { flex: 1; }
+  .home-grow.top { flex: 0.55; }
+  /* The card back with a play and a special behind it. They fan out once the art is ready. */
+  .home-fan { position: relative; width: 320px; height: 330px; flex: none; }
+  .home-fan img {
+    position: absolute; left: 50%; top: 16px; width: 160px; height: auto; border-radius: 12px; translate: -50% 0;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55); transform-origin: 50% 110%;
+    animation: 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both paused;
+  }
+  .home-fan .l { rotate: -13deg; translate: -86% 20px; filter: brightness(0.85); animation-name: home-fan; }
+  .home-fan .r { rotate: 13deg; translate: -14% 20px; filter: brightness(0.85); animation-name: home-fan; }
+  .home-fan .c { width: 204px; top: 0; animation-name: home-rise; animation-duration: 0.45s; animation-delay: 0s; }
+  .home-fan.go img { animation-play-state: running; }
+  @keyframes home-fan { from { rotate: 0deg; translate: -50% 6px; } }
+  @keyframes home-rise { from { translate: -50% 12px; scale: 0.97; } }
+  /* Start game: the game's raised orange button. It sinks onto its edge while pressed. */
+  .home-start {
+    width: 100%; max-width: 330px; height: 64px; flex: none; cursor: pointer; border: 3px solid var(--chalk); border-radius: 18px;
+    background: var(--you); color: var(--ink); font: 700 27px/1 var(--ui); letter-spacing: 0.01em;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 6px 0 color-mix(in srgb, var(--you) 55%, #000), 0 14px 24px rgba(0, 0, 0, 0.55);
+    transition: translate 0.08s ease-out, box-shadow 0.08s ease-out;
+  }
+  .home-start:active {
+    translate: 0 4px;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 2px 0 color-mix(in srgb, var(--you) 55%, #000), 0 8px 16px rgba(0, 0, 0, 0.5);
+  }
+  @media (hover: hover) { .home-start:hover { filter: brightness(1.05); } }
+  /* The game that's dealt: rules, length, level. Opens New game. */
+  .home-setup {
+    margin-top: 18px; flex: none; display: flex; gap: 6px; align-items: center; padding: 7px 8px 7px 10px; cursor: pointer;
+    border-radius: 999px; background: rgba(236, 243, 232, 0.08); border: 1px solid var(--chalk-faint); color: var(--chalk);
+  }
+  .home-chip {
+    font: 600 15px/1 var(--ui); padding: 6px 10px; border-radius: 999px; white-space: nowrap;
+    background: rgba(10, 44, 29, 0.7); border: 1px solid rgba(236, 243, 232, 0.18);
+  }
+  .home-chip.hard { color: var(--flag); }
+  .home-setup svg { width: 16px; height: 16px; color: var(--chalk-dim); margin-left: 2px; }
+  .home :focus-visible { outline: 3px solid var(--chalk); outline-offset: 3px; }
+  /* Short screens (iPhone SE in a browser): smaller cards so everything fits. */
+  @media (max-height: 640px) { .home-fan { scale: 0.8; margin: -33px 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .home .home-fan img { animation: none; }
+    .home.leaving { transition: none; }
+  }
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -699,6 +774,32 @@
   </defs>
 </svg>
 
+<div class="home" id="home">
+  <div class="home-stadium"><img src="../full-cards/cards/midfield.webp" alt="" width="600" height="840"></div>
+  <div class="home-corner">
+    <button class="home-icon" id="homeHow" type="button" aria-label="How to play">?</button>
+    <button class="home-icon" id="homeGear" type="button" aria-label="Game settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 4.3c.4-1.8 3-1.8 3.4 0a1.7 1.7 0 0 0 2.6 1.1c1.5-.9 3.3.8 2.4 2.4a1.7 1.7 0 0 0 1 2.5c1.8.5 1.8 3 0 3.5a1.7 1.7 0 0 0-1 2.5c.9 1.5-.9 3.3-2.4 2.4a1.7 1.7 0 0 0-2.6 1c-.4 1.9-3 1.9-3.4 0a1.7 1.7 0 0 0-2.6-1c-1.5.9-3.3-.9-2.4-2.4a1.7 1.7 0 0 0-1-2.5c-1.8-.5-1.8-3 0-3.5a1.7 1.7 0 0 0 1-2.5c-.9-1.6.9-3.3 2.4-2.4 1 .6 2.3.1 2.6-1.1z"/><circle cx="12" cy="12" r="3"/></svg></button>
+  </div>
+  <div class="home-grow top"></div>
+  <div class="home-fan">
+    <img class="l" src="../full-cards/cards/deep-pass.webp" alt="" width="600" height="840">
+    <img class="r" src="../full-cards/cards/hail-mary.webp" alt="" width="600" height="840">
+    <img class="c" src="../full-cards/cards/card-back.webp" alt="Snap Call" width="600" height="840">
+  </div>
+  <div class="home-grow"></div>
+  <button class="home-start" id="homeStart" type="button">Start game</button>
+  <button class="home-setup" id="homeSetup" type="button" aria-label="Game settings">
+    <span class="home-chip">Stopped once</span><span class="home-chip" id="homeLen">First to 21</span><span class="home-chip" id="homeLvl">Normal</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+  </button>
+</div>
+<script>
+  // Before the first paint: arriving from New game during a game (?new= without &home) goes straight to the game.
+  (() => {
+    const q = new URLSearchParams(location.search);
+    if (q.has('new') && !q.has('home')) document.getElementById('home').hidden = true;
+    else document.documentElement.classList.add('home-on');
+  })();
+</script>
 <main class="wrap">
     <header class="top">
       <div class="brand"><h1>Snap Call</h1></div>
@@ -1643,7 +1744,7 @@
     if (b === ruleHere) return;
     showRules(b);
     $('#level').classList.add('leaving');
-    location.href = `downs/?new=${lenPick}`;
+    location.href = `downs/?new=${lenPick}${homeUp() ? '&home' : ''}`;
   });
   // Back from the other page: New game as it was.
   addEventListener('pageshow', (e) => { if (e.persisted) { showRules(ruleHere); $('#level').classList.remove('leaving'); } });
@@ -1679,5 +1780,35 @@
     history.replaceState(null, '', location.pathname);
     if (S) { askLevel(); if ([21, 28, 35].includes(+arrived)) setLen(+arrived); }
   }
+  // ---------- Home screen ----------
+  // Start game goes into the game that's already dealt. The chips show its rules, length and level; they and the gear
+  // open New game, and picking Normal or Hard there starts that game. In the app, Start game also gives a light tap.
+  const home = $('#home'), fan = $('.home-fan');
+  function homeUp() { return !home.hidden && !home.classList.contains('leaving'); }
+  function leaveHome() {
+    if (!homeUp()) return;
+    root.classList.remove('home-on');
+    home.classList.add('leaving');
+    const gone = () => { home.hidden = true; home.classList.remove('leaving'); };
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) gone(); else setTimeout(gone, 250);
+  }
+  $('#homeLen').textContent = `First to ${S.target}`;
+  $('#homeLvl').textContent = S.level === 'hard' ? 'Hard' : 'Normal';
+  $('#homeLvl').classList.toggle('hard', S.level === 'hard');
+  $('#homeStart').addEventListener('click', () => {
+    try { window.webkit?.messageHandlers?.haptic?.postMessage('light'); } catch (e) { /* not in the app */ }
+    leaveHome();
+  });
+  $('#homeSetup').addEventListener('click', askLevel);
+  $('#homeGear').addEventListener('click', askLevel);
+  $('#homeHow').addEventListener('click', () => $('#rules').showModal());
+  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', leaveHome);
+  // The cards fan out once their art is ready (or after a moment, whichever comes first).
+  if (homeUp()) Promise.race([
+    Promise.all([...fan.querySelectorAll('img')].map((i) => i.decode().catch(() => {}))),
+    new Promise((r) => setTimeout(r, 700)),
+  ]).then(() => fan.classList.add('go'));
+  // The app opens on the rule set you played last (see APP_OPEN).
+  try { localStorage.setItem('snap-call-look-rules', 'once'); } catch (e) { /* the app opens on Stopped once */ }
 })();
 </script>

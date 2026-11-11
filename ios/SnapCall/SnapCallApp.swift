@@ -23,6 +23,8 @@ struct GameView: UIViewRepresentable {
         config.setURLSchemeHandler(GameFiles(), forURLScheme: GameFiles.scheme)
         // Browser storage (Hard memory, level, game length) stays on the device between launches.
         config.websiteDataStore = .default()
+        // The home screen asks for a light tap when you press Start game (window.webkit.messageHandlers.haptic).
+        config.userContentController.add(context.coordinator, name: "haptic")
 
         let web = WKWebView(frame: .zero, configuration: config)
         web.navigationDelegate = context.coordinator
@@ -54,7 +56,13 @@ struct GameView: UIViewRepresentable {
 
     func updateUIView(_ web: WKWebView, context: Context) {}
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+        private let tap = UIImpactFeedbackGenerator(style: .light)
+
+        func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+            if message.name == "haptic" { tap.impactOccurred() }
+        }
+
         // Game pages open in the app; anything on the web opens in Safari.
         func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
