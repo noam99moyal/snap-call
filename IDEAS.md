@@ -99,8 +99,9 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
    - The card back in the middle, with Deep Pass and Hail Mary fanning out behind it when the page opens.
    - A raised orange "Start game" button, with a light tap vibration in the app.
    - Under it, the rules, length and level of the game that's dealt. Tapping them opens the New game panel.
-   - "?" opens How to play. The gear opens the New game panel for now, until there are other settings (sound, vibration).
+   - "?" opens How to play. The mockup's gear was left out: it only repeated the settings under Start game.
    - Choosing the other rule set from the home screen comes back to the home screen. New game during a game skips it.
+   - Main menu in the ⋯ menu (or the header on wide screens) ends the game and goes back to the home screen.
    - The app opens on the rule set you played last.
 3. **Play a friend online** (about 1 to 2 weeks): a link or room code, no accounts. A small server holds both secret picks and deals the specials. Its button goes under Start game.
 4. **Play strangers** (later): matchmaking, accounts, maybe rankings. Needs a server account in your name (for example Cloudflare) and the App Store's rules for accounts (account deletion in the app, Sign in with Apple).

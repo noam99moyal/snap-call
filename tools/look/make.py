@@ -624,10 +624,16 @@ def first_ball(p, home, twice=False):
 
 # ---------- Home screen (mockups/home/) ----------
 # The first screen when a page opens: the stadium from the Midfield card, the card back with Deep Pass and Hail Mary
-# fanned behind it, Start game, and the rules, length and level of the game that's already dealt. Tapping those (or
-# the gear) opens New game; "?" opens How to play. Arriving from New game during a game skips it.
+# fanned behind it, Start game, and the rules, length and level of the game that's already dealt. Tapping those
+# opens New game; "?" opens How to play. Arriving from New game during a game skips it.
 
 HOME_CSS = """
+  /* Panels (How to play, New game, Play by play) stay between the status bar and the home bar: the app and phone
+     browsers in full screen draw the page under both. */
+  .rules:modal {
+    inset-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px);
+    max-height: calc(100dvh - 48px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  }
   /* ---------- Home screen ---------- */
   html.home-on, html.home-on body { overflow: hidden; }
   .home {
@@ -653,13 +659,14 @@ HOME_CSS = """
   }
   .home-icon svg { width: 21px; height: 21px; }
   .home-grow { flex: 1; }
-  .home-grow.top { flex: 0.55; }
+  .home-grow.upper { flex: 0.55; }
   /* The card back with a play and a special behind it. They fan out once the art is ready. */
   .home-fan { position: relative; width: 320px; height: 330px; flex: none; }
   .home-fan img {
     position: absolute; left: 50%; top: 16px; width: 160px; height: auto; border-radius: 12px; translate: -50% 0;
     box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55); transform-origin: 50% 110%;
     animation: 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both paused;
+    -webkit-touch-callout: none; -webkit-user-drag: none; user-select: none;
   }
   .home-fan .l { rotate: -13deg; translate: -86% 20px; filter: brightness(0.85); animation-name: home-fan; }
   .home-fan .r { rotate: 13deg; translate: -14% 20px; filter: brightness(0.85); animation-name: home-fan; }
@@ -699,10 +706,6 @@ HOME_CSS = """
   }
 </style>"""
 
-GEAR = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
-        'aria-hidden="true"><path d="M10.3 4.3c.4-1.8 3-1.8 3.4 0a1.7 1.7 0 0 0 2.6 1.1c1.5-.9 3.3.8 2.4 2.4a1.7 1.7 0 0 0 1 2.5c1.8.5 '
-        '1.8 3 0 3.5a1.7 1.7 0 0 0-1 2.5c.9 1.5-.9 3.3-2.4 2.4a1.7 1.7 0 0 0-2.6 1c-.4 1.9-3 1.9-3.4 0a1.7 1.7 0 0 0-2.6-1c-1.5.9-3.3-.9-2.4-2.4a1.7 '
-        '1.7 0 0 0-1-2.5c-1.8-.5-1.8-3 0-3.5a1.7 1.7 0 0 0 1-2.5c-.9-1.6.9-3.3 2.4-2.4 1 .6 2.3.1 2.6-1.1z"/><circle cx="12" cy="12" r="3"/></svg>')
 CHEVRON = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" '
            'aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>')
 
@@ -712,9 +715,8 @@ def home_html(rules):
   <div class="home-stadium"><img src="../full-cards/cards/midfield.webp" alt="" width="600" height="840"></div>
   <div class="home-corner">
     <button class="home-icon" id="homeHow" type="button" aria-label="How to play">?</button>
-    <button class="home-icon" id="homeGear" type="button" aria-label="Game settings">{GEAR}</button>
   </div>
-  <div class="home-grow top"></div>
+  <div class="home-grow upper"></div>
   <div class="home-fan">
     <img class="l" src="../full-cards/cards/deep-pass.webp" alt="" width="600" height="840">
     <img class="r" src="../full-cards/cards/hail-mary.webp" alt="" width="600" height="840">
@@ -739,8 +741,8 @@ def home_html(rules):
 
 def home_js(rules):
     return f"""  // ---------- Home screen ----------
-  // Start game goes into the game that's already dealt. The chips show its rules, length and level; they and the gear
-  // open New game, and picking Normal or Hard there starts that game. In the app, Start game also gives a light tap.
+  // Start game goes into the game that's already dealt. The chips show its rules, length and level; they open New
+  // game, and picking Normal or Hard there starts that game. In the app, Start game also gives a light tap.
   const home = $('#home'), fan = $('.home-fan');
   function homeUp() {{ return !home.hidden && !home.classList.contains('leaving'); }}
   function leaveHome() {{
@@ -750,15 +752,28 @@ def home_js(rules):
     const gone = () => {{ home.hidden = true; home.classList.remove('leaving'); }};
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) gone(); else setTimeout(gone, 250);
   }}
-  $('#homeLen').textContent = `First to ${{S.target}}`;
-  $('#homeLvl').textContent = S.level === 'hard' ? 'Hard' : 'Normal';
-  $('#homeLvl').classList.toggle('hard', S.level === 'hard');
+  function homeChips() {{
+    $('#homeLen').textContent = `First to ${{S.target}}`;
+    $('#homeLvl').textContent = S.level === 'hard' ? 'Hard' : 'Normal';
+    $('#homeLvl').classList.toggle('hard', S.level === 'hard');
+  }}
+  homeChips();
+  // Main menu in the ⋯ menu: the game you were playing ends, and a fresh one with the same rules, length and level
+  // is dealt behind the home screen. The cards fan out again.
+  function showHome() {{
+    newGame(S.level, S.target);
+    homeChips();
+    scrollTo(0, 0);
+    root.classList.add('home-on');
+    home.hidden = false;
+    fan.classList.add('go');
+  }}
+  $('#toHome').addEventListener('click', showHome);
   $('#homeStart').addEventListener('click', () => {{
     try {{ window.webkit?.messageHandlers?.haptic?.postMessage('light'); }} catch (e) {{ /* not in the app */ }}
     leaveHome();
   }});
   $('#homeSetup').addEventListener('click', askLevel);
-  $('#homeGear').addEventListener('click', askLevel);
   $('#homeHow').addEventListener('click', () => $('#rules').showModal());
   for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', leaveHome);
   // The cards fan out once their art is ready (or after a moment, whichever comes first).
@@ -783,6 +798,12 @@ APP_OPEN = """
 
 def home(p, rules, name):
     p.rep("</style>", HOME_CSS)
+    p.rep('        <button class="ghost" id="showLog" type="button">Play by play</button>\n      </div>\n',
+          '        <button class="ghost" id="showLog" type="button">Play by play</button>\n'
+          '        <button class="ghost" id="toHome" type="button">Main menu</button>\n      </div>\n')
+    # Cards open big by where you hold, so a hold on the home screen would open a game card hidden under it.
+    p.rep("if (e.button !== 0 || e.target.closest('dialog, .cele, .over')) return;",
+          "if (e.button !== 0 || e.target.closest('dialog, .cele, .over, .home')) return;")
     p.rep('<main class="wrap">', home_html(name) + '<main class="wrap">')
     p.rep("    if (S) { askLevel(); if ([21, 28, 35].includes(+arrived)) setLen(+arrived); }\n  }\n",
           "    if (S) { askLevel(); if ([21, 28, 35].includes(+arrived)) setLen(+arrived); }\n  }\n" + home_js(rules))
