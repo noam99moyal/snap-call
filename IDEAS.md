@@ -115,6 +115,8 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
 
 Idea (not built), **Season mode**: a schedule of games against the CPU, with standings, saved progress and maybe playoffs. Not needed for launch. It only matters once people already like a single game, and it's at least a week of work (saving, a schedule screen, standings, quitting halfway, balance so it isn't a grind) that would push online play back. Better as the first update after launch. Cheaper in-between option (an afternoon): a win/loss record against the CPU, per level, on the home screen.
 
+Idea (not built), **Tutorial game**: a short guided first game as the intro, so new players learn by playing instead of reading How to play. Details to decide (suggestions): offered the first time the app opens, and again from How to play; a few snaps against the CPU with set cards, covering a snap on offense, one on defense, a special, and a field goal; skippable at any point.
+
 Also open for the app:
 - Bundle the fonts so it works fully offline (needs an OK to download them from Google Fonts).
 - A sharper 1024px icon from your art tool.
