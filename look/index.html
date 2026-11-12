@@ -204,7 +204,7 @@
   @keyframes stamp { from { transform: scale(1.8) rotate(-12deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
 
   /* A special played with a card is tucked behind it, its name banner showing above,
-     like laying it under your play card at the table. After the snap, a stamp on the play card says what it did. */
+     like laying it under your play card at the table. After the snap, a special that worked comes to the front; one that didn't stays behind, greyed out. */
   .slot .card { position: relative; }
   .tuck {
     position: absolute; z-index: -1; left: 0; right: 0; top: 0;
@@ -222,8 +222,6 @@
     background: var(--flag); color: var(--ink); font: 700 13px/1 var(--ui); letter-spacing: 0.02em; white-space: nowrap;
     border-radius: 5px; padding: 5px 8px;
   }
-  .tag[data-st="worked"] { box-shadow: 0 0 0 2px var(--chalk), 0 0 18px rgba(255, 212, 71, 0.55); }
-  .tag[data-st="wasted"] { background: rgba(8, 21, 15, 0.9); color: var(--chalk-dim); box-shadow: inset 0 0 0 1px var(--chalk-faint); }
   .tag[data-st="back"] { background: rgba(8, 21, 15, 0.9); color: var(--flag); box-shadow: inset 0 0 0 1px var(--flag); }
 
   .result { display: grid; gap: 4px; text-align: center; min-height: 54px; align-content: center; }
@@ -1227,7 +1225,6 @@
   const KICK = 'From the Red Zone → Score 3';
 
   const SIDE_LABEL = { off: 'Offense', def: 'Defense', any: 'Either side' };
-  const STATUS = { worked: 'Worked', wasted: 'No effect', back: 'Back to hand' };
   // Card images in ../full-cards/cards/: "<name>.webp" is the finished card, made from the PNGs in ../artwork/cards/.
   const ART = {
     run: 'run', short: 'short-pass', deep: 'deep-pass', runD: 'stop-run', shortD: 'stop-short', deepD: 'stop-deep',
@@ -1583,7 +1580,8 @@
     const key = c.play || 'deep';
     const s = c.card && SPECIALS[c.card.key];
     const tuck = s ? `<span class="tuck" data-st="${c.status || ''}"><img src="../full-cards/cards/${ART[c.card.key]}.webp" alt="with ${s.name}" width="600" height="840" decoding="sync"></span>` : '';
-    const tag = s && c.status ? `<span class="tag" data-st="${c.status}">${STATUS[c.status]}</span>` : '';
+    // A special that did nothing stays tucked behind, greyed out. Only one handed back by a Challenge Flag is labelled.
+    const tag = s && c.status === 'back' ? '<span class="tag" data-st="back">Back to hand</span>' : '';
     // A defense card wins when the play was stopped; an offense card wins when it wasn't.
     let miss = L ? (L.once ? 'both' : (PLAYS[key].side === 'def') === L.guessed ? 'lose' : 'win') : null;
     if (L && spSaid(L)) miss = 'both';
