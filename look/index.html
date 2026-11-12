@@ -12,7 +12,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%230f3d29'/%3E%3Cellipse cx='20' cy='20' rx='15' ry='9' fill='%238b4a29'/%3E%3Cpath d='M13 20h14M16 17.5v5M19 17.5v5M22 17.5v5M25 17.5v5' stroke='%23ecf3e8' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Graduate&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Lilita+One&display=swap">
 <style>
   /* Snap Call with the finished cards: the same game, played with the printed cards, rules and all.
      Layout: one narrow column on phones (scoreboard → field → snap stage → hand → specials → play-by-play).
@@ -39,12 +39,12 @@
     --chalk-dim: rgba(236, 243, 232, 0.7);
     --chalk-faint: rgba(236, 243, 232, 0.34);
     --you: #ff8a3d;
-    --cpu: #3fdcc4;
+    --cpu: #5aa8ff;
     --flag: #ffd447;
     --ink: #15201a;
     --leather: #8b4a29;
 
-    --display: 'Graduate', 'Rockwell', 'Courier New', serif;
+    --display: 'Lilita One', 'Arial Rounded MT Bold', 'Arial Black', sans-serif;
     --ui: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', sans-serif;
     --body: 'Barlow', system-ui, -apple-system, sans-serif;
     color-scheme: dark;
@@ -253,7 +253,7 @@
   button.card:hover:not(:disabled) .cv { transform: translateY(-3px); }
   .card.on .cv { transform: translateY(-8px); box-shadow: 0 0 0 3px var(--chalk), 0 12px 24px rgba(0, 0, 0, 0.5); }
   .card:disabled { cursor: default; }
-  .card:disabled .cv { opacity: 0.45; filter: saturate(0.4); }
+  .card:disabled .cv { opacity: 0.5; filter: grayscale(1); }
   .card:focus-visible { outline: none; }
   .card:focus-visible .cv { outline: 3px solid var(--flag); outline-offset: 3px; }
   .card.flip .cv { animation: flip 0.38s ease-out; }
@@ -368,6 +368,8 @@
     position: fixed; inset: 0; z-index: 15; display: grid; place-items: center; padding: 16px;
     background: rgba(5, 14, 10, 0.62); cursor: pointer;
   }
+  /* While a score card is up, the line under the stage would only repeat it. */
+  body:has(#cele:not([hidden])) :is(.status, .result) { visibility: hidden; }
   .cele-in { display: grid; justify-items: center; gap: 14px; }
   .cele-cards { display: flex; align-items: center; justify-content: center; gap: 16px; }
   .cele-cards > *, .cele p { animation: deal 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
@@ -406,13 +408,30 @@
     background: rgba(5, 14, 10, 0.78);
     padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
+  /* The result is dealt like a card: the winner's colour as the frame, the title lettered like the card titles. */
   .over .panel {
-    background: var(--board); border: 2px solid var(--tone, var(--chalk)); border-radius: 14px;
-    padding: 26px 24px; display: grid; gap: 12px; text-align: center; width: min(340px, 100%); box-sizing: border-box;
+    --tone-c: var(--tone, var(--chalk));
+    display: grid; gap: 12px; text-align: center; width: min(320px, 100%); box-sizing: border-box; padding: 26px 20px 20px;
+    background: radial-gradient(130% 70% at 50% 0%, color-mix(in srgb, var(--tone-c) 38%, var(--board)) 0%, var(--board) 72%);
+    border: 6px solid var(--tone-c); border-radius: 20px;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.55), 0 0 44px color-mix(in srgb, var(--tone-c) 40%, transparent), 0 24px 48px rgba(0, 0, 0, 0.6);
+    animation: deal 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both;
   }
-  .over h2 { margin: 0; font: 400 32px/1 var(--display); color: var(--tone, var(--chalk)); }
-  .over p { margin: 0; font: 400 22px/1 var(--display); font-variant-numeric: tabular-nums; }
-  .over .ghost { height: 48px; font-size: 17px; border-radius: 10px; }
+  .over h2 {
+    margin: 0; font: 400 44px/1 var(--display); color: #fff; text-transform: uppercase; letter-spacing: 0.01em;
+    text-shadow: 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 2px 0 var(--ink), 0 -2px 0 var(--ink),
+      2px 2px 0 var(--ink), -2px 2px 0 var(--ink), 2px -2px 0 var(--ink), -2px -2px 0 var(--ink), 0 5px 0 var(--ink);
+  }
+  .over p { margin: 0 0 6px; font: 400 30px/1 var(--display); color: var(--chalk); font-variant-numeric: tabular-nums; }
+  /* Play again is the game's raised orange button, like Start game; it sinks onto its edge while pressed. */
+  .over .snap {
+    flex: none; height: 58px; border: 3px solid var(--chalk); border-radius: 16px; font: 700 24px/1 var(--ui); letter-spacing: 0.01em;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 5px 0 color-mix(in srgb, var(--you) 55%, #000), 0 12px 20px rgba(0, 0, 0, 0.5);
+    transition: translate 0.08s ease-out, box-shadow 0.08s ease-out;
+  }
+  .over .snap:active { translate: 0 3px; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 2px 0 color-mix(in srgb, var(--you) 55%, #000), 0 6px 12px rgba(0, 0, 0, 0.5); }
+  .over .ghost { height: 48px; margin-top: 4px; font-size: 17px; border-radius: 12px; }
+  @media (prefers-reduced-motion: reduce) { .over .panel { animation: none; } }
 
   /* Wide screens: one screen, no scrolling. Comes last so it overrides the phone layout above. */
   @media (min-width: 900px) {
@@ -700,7 +719,7 @@
     /* The card you picked last comes to the front, so all of it can be read (z-index is set in render). */
     .play .card { position: relative; }
     .play .card.on .cv { transform: translateY(-9px); box-shadow: 0 0 0 3px var(--chalk), 0 12px 24px rgba(0, 0, 0, 0.5); }
-    .play .card:disabled .cv { opacity: 1; filter: brightness(0.5) saturate(0.45); }
+    .play .card:disabled .cv { opacity: 1; filter: grayscale(1) brightness(0.55); }
     /* Short phones (iPhone SE): a slightly smaller hand and field strip, so the cards on the stage stay the biggest. */
     @media (max-height: 620px) {
       .play { --w: min(20dvh * 0.7143, 128px, (100cqw - 12px) / 3); }
@@ -744,7 +763,7 @@
   }
   .home-icon svg { width: 21px; height: 21px; }
   .home-grow { flex: 1; }
-  .home-grow.upper { flex: 0.55; }
+  .home-grow.upper { flex: 0.8; }
   /* The card back with a play and a special behind it. They fan out once the art is ready. */
   .home-fan { position: relative; width: 320px; height: 330px; flex: none; }
   .home-fan img {
@@ -786,6 +805,9 @@
   /* Short screens (iPhone SE in a browser): smaller cards so everything fits. */
   /* 375pt-wide phones (iPhone SE, 13 mini): the side cards would reach 3pt past the screen edges. */
   @media (max-width: 384px) { .home-fan { scale: 0.95; } }
+  /* Tall phones: bigger cards, so the space above Start game isn't one big empty gap. */
+  @media (min-width: 390px) and (min-height: 800px) { .home-fan { zoom: 1.15; } }
+  @media (min-width: 420px) and (min-height: 900px) { .home-fan { zoom: 1.25; } }
   @media (max-height: 640px) { .home-fan { scale: 0.8; margin: -33px 0; } }
   @media (prefers-reduced-motion: reduce) {
     .home .home-fan img { animation: none; }
