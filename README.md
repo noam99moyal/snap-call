@@ -38,6 +38,14 @@ In `full-cards/`, New game asks Normal or Hard. Normal is the original computer.
 
 `look/` is also the game as it will ship, and new work happens there: `look/game.html` is its source (both rule sets) and `look/rules.js` holds the snap rules on their own (dealing, resolving a snap, moving the ball, scoring), with no screen code, so a server can run the very same rules for online play. It started from `full-cards/game.html` and `downs/game.html`, which stay as they are. On portrait phones the look preview uses layout B from the mockups, so a whole snap fits on one screen with no scrolling: a thin score bar with a ⋯ menu (How to play, New game, Play by play), the field as a strip seen from above, the stage drawn on the field card of the zone the ball is in, and your hand along the bottom (plays, then specials, overlapping). Tap a card and it goes on the stage; the circle between the cards becomes the Snap button. Wide screens and landscape phones keep the old layout.
 
+## Play a friend (testing on this Mac)
+
+`online/server.mjs` is a small room server for playing a friend: it keeps both picks secret until the flip, deals the specials and runs the same `look/rules.js`. It needs only Node (no installs):
+
+    node online/server.mjs
+
+Then open http://localhost:8796/look/ on the Mac, or the Wi-Fi address it prints on a phone on the same network. "Play a friend" shows on the home screen only when this server answers, so the GitHub Pages site and the app don't show it yet. Next step: move the server to Cloudflare so anyone with the room code can play.
+
 ## iPhone app
 
 `ios/` is the look preview (both rule sets) as an iPhone and iPad app. It plays the same pages from files inside the app, so it works without a connection, except the fonts, which still load from Google Fonts as on the website. Open `ios/SnapCall.xcodeproj` in Xcode and press Run: before every build Xcode runs `python3 build.py --app-web ios/SnapCall/web`, so the app always has the current look pages. The app icon is the card back's Snap Call badge (`ios/SnapCall/Assets.xcassets`). After changing `ios/project.yml`, run `xcodegen` in `ios/`.

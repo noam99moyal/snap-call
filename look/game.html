@@ -344,6 +344,23 @@
   .lvl-pick b { font: 400 22px/1 var(--display); letter-spacing: 0.03em; }
   .lvl-pick[data-level="hard"] b { color: var(--flag); }
   .lvl-pick span { font: 400 14px/1.35 var(--ui); color: var(--chalk-dim); }
+  /* Play a friend: make a room (its code to share) or join one with a code. */
+  .friend .join { display: grid; gap: 8px; margin-top: 6px; }
+  .friend .join label { font: 600 15px/1 var(--ui); color: var(--chalk-dim); }
+  .friend .join-row { display: flex; gap: 8px; }
+  .friend .join-row input {
+    flex: 1; min-width: 0; height: 48px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--chalk-faint);
+    background: rgba(236, 243, 232, 0.06); color: var(--chalk); font: 700 22px/1 var(--ui); letter-spacing: 0.3em; text-transform: uppercase;
+  }
+  .friend .join-row input:focus { outline: 2px solid var(--chalk); outline-offset: 1px; }
+  .friend .join-row .ghost { height: 48px; padding: 0 20px; font-size: 17px; border-radius: 10px; }
+  .friend .friend-err { margin: 0; min-height: 1.4em; color: var(--flag); font: 500 15px/1.35 var(--ui); }
+  .friend .room-label { margin: 4px 0 0; text-align: center; font: 600 15px/1 var(--ui); color: var(--chalk-dim); }
+  .friend .room-code { margin: 0; text-align: center; font: 700 56px/1.1 var(--ui); letter-spacing: 0.18em; color: var(--chalk); padding-left: 0.18em; }
+  .friend #shareRoom { height: 48px; font-size: 17px; border-radius: 10px; }
+  .friend .room-wait { margin: 4px 0 6px; text-align: center; color: var(--chalk-dim); }
+  /* Online there is no New game: Main menu leaves the room. */
+  :root.online #newGame { display: none; }
   .len { display: flex; align-items: center; gap: 8px; }
   .len > span { font: 600 15px/1 var(--ui); color: var(--chalk-dim); margin-right: 4px; }
   .len button {
@@ -412,6 +429,7 @@
     text-shadow: 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 2px 0 var(--ink), 0 -2px 0 var(--ink),
       2px 2px 0 var(--ink), -2px 2px 0 var(--ink), 2px -2px 0 var(--ink), -2px -2px 0 var(--ink), 0 5px 0 var(--ink);
   }
+  .over h2.long { font-size: 35px; }
   .over p { margin: 0 0 6px; font: 400 30px/1 var(--display); color: var(--chalk); font-variant-numeric: tabular-nums; }
   /* Play again is the game's raised orange button, like Start game; it sinks onto its edge while pressed. */
   .over .snap {
@@ -421,6 +439,9 @@
   }
   .over .snap:active { translate: 0 3px; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 2px 0 color-mix(in srgb, var(--you) 55%, #000), 0 6px 12px rgba(0, 0, 0, 0.5); }
   .over .ghost { height: 48px; margin-top: 4px; font-size: 17px; border-radius: 12px; }
+  .over .over-note { margin: -4px 0 2px; font: 500 15px/1.35 var(--ui); color: var(--chalk-dim); text-wrap: balance; }
+  .over .over-note:empty { display: none; }
+  .over .snap:disabled { opacity: 1; filter: saturate(0.5) brightness(0.8); font-size: 19px; }
   @media (prefers-reduced-motion: reduce) { .over .panel { animation: none; } }
 
   /* Wide screens: one screen, no scrolling. Comes last so it overrides the phone layout above. */
@@ -792,6 +813,14 @@
   .home-chip.hard { color: var(--flag); }
   .home-setup svg { width: 16px; height: 16px; color: var(--chalk-dim); margin-left: 2px; }
   .home :focus-visible { outline: 3px solid var(--chalk); outline-offset: 3px; }
+  /* Play a friend: shown only when a room server answers (online/server.mjs). Quieter than Start game. */
+  .home-friend {
+    width: 100%; max-width: 330px; height: 50px; flex: none; margin-top: 14px; cursor: pointer; border-radius: 16px;
+    background: rgba(10, 44, 29, 0.72); color: var(--chalk); border: 2px solid rgba(236, 243, 232, 0.55);
+    font: 700 20px/1 var(--ui); letter-spacing: 0.01em;
+  }
+  .home-friend:active { translate: 0 2px; }
+  .home-friend + .home-setup { margin-top: 14px; }
   /* Short screens (iPhone SE in a browser): smaller cards so everything fits. */
   /* 375pt-wide phones (iPhone SE, 13 mini): the side cards would reach 3pt past the screen edges. */
   @media (max-width: 384px) { .home-fan { scale: 0.95; } }
@@ -827,6 +856,7 @@
   </div>
   <div class="home-grow"></div>
   <button class="home-start" id="homeStart" type="button">Start game</button>
+  <button class="home-friend" id="homeFriend" type="button" hidden>Play a friend</button>
   <button class="home-setup" id="homeSetup" type="button" aria-label="Game settings">
     <span class="home-chip">Stopped once</span><span class="home-chip" id="homeLen">First to 21</span><span class="home-chip" id="homeLvl">Normal</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
   </button>
@@ -969,6 +999,26 @@
         <button class="lvl-pick" type="button" data-level="hard"><b>Hard</b><span>Reads you closely and remembers your last few games.</span></button>
       </div>
     </dialog>
+    <dialog class="rules level friend" id="friend" aria-labelledby="friendHead">
+      <div class="head"><h2 id="friendHead">Play a friend</h2><button class="ghost" id="closeFriend" type="button">Close</button></div>
+      <div class="body" id="friendChoose">
+        <button class="lvl-pick" id="makeRoom" type="button"><b>Make a room</b><span id="makeRoomRules"></span></button>
+        <form class="join" id="joinForm" novalidate>
+          <label for="joinCode">Join with a code</label>
+          <div class="join-row">
+            <input id="joinCode" maxlength="4" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-describedby="friendErr">
+            <button class="ghost" type="submit">Join</button>
+          </div>
+        </form>
+        <p class="friend-err" id="friendErr" role="alert"></p>
+      </div>
+      <div class="body" id="friendCode" hidden>
+        <p class="room-label">Your room code</p>
+        <p class="room-code" id="roomCode"></p>
+        <button class="ghost" id="shareRoom" type="button">Share link</button>
+        <p class="room-wait">Waiting for your friend to join…</p>
+      </div>
+    </dialog>
 </main>
 
 <div class="cele" id="cele" hidden>
@@ -981,6 +1031,7 @@
   <div class="panel">
     <h2 id="overHead"></h2>
     <p id="overScore"></p>
+    <p class="over-note" id="overNote"></p>
     <button class="snap" id="again" type="button">Play again</button>
     <button class="ghost" id="overHome" type="button">Main menu</button>
   </div>
@@ -991,7 +1042,12 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const { OFF, DEF, SPECIALS, other, say, fits } = SnapRules;   // look/rules.js
-  const NAME = { you: 'You', cpu: 'CPU' };
+  // NAME starts announcer sentences; LABEL is the short name on the scoreboard, the stage and the end zone.
+  // Playing a friend online, the CPU becomes "Your friend" / "Friend" (see setOpponent).
+  const NAME = { you: 'You', cpu: 'CPU', theirs: 'the CPU’s' };
+  const LABEL = { you: 'You', cpu: 'CPU' };
+  let online = null;   // the room you're playing in online, or null against the CPU
+  const them = () => (online ? 'your friend' : 'the CPU');
   const verb = (who, base) => (who === 'you' ? base : base + 's');
   // The rules (look/rules.js) for the rule set being played, and what this device saves for each rule set.
   const SAVED = {
@@ -1081,7 +1137,7 @@
     render();
   }
 
-  function firstBall() { return S.poss === 'you' ? 'You get the ball first, so the CPU starts with 3 specials.' : 'CPU gets the ball first, so you start with 3 specials.'; }
+  function firstBall() { return S.poss === 'you' ? `You get the ball first, so ${them()} starts with 3 specials.` : `${NAME.cpu} gets the ball first, so you start with 3 specials.`; }
   const side = () => (S.poss === 'you' ? 'off' : 'def');
   const ready = () => S.phase === 'pick' && !!S.sel.play;
 
@@ -1248,6 +1304,7 @@
 
   function snap() {
     if (!ready()) return;
+    if (online) { sendPick(); return; }
     if (S.sel.play === 'fg') { kickFG('you'); render(); return; }
     const you = { play: S.sel.play, card: S.sel.special };
     const cpu = cpuPick();
@@ -1258,7 +1315,13 @@
       delete cpu.seen;
       saveHard();
     }
+    playOut(you, cpu);
+    afterChange();
+  }
 
+  // Both picks are in (the CPU's, or your friend's from the room server): flip them and play the snap out.
+  function playOut(you, cpu) {
+    const off = S.poss;
     const pos0 = S.pos;
     const before = { ...S.score };
     const { o, d, r, firedBy } = rules.playSnap(S, { you, cpu });
@@ -1276,7 +1339,6 @@
     S.sel = { play: null, special: null };
     S.showLast = true; S.flip = true;
     render();
-    afterChange();
   }
 
   function kickFG(who) {
@@ -1327,7 +1389,7 @@
   const shortName = (key) => SHORT[key] || SPECIALS[key].name;
   function noEffect(L) {
     if (!L || L.fg) return null;
-    const owner = (w) => (w === 'you' ? 'Your' : 'CPU’s');
+    const owner = (w) => (w === 'you' ? 'Your' : `${LABEL.cpu}’s`);
     const stop = L.guessed ? 'the play was stopped' : 'the play wasn’t stopped';
     const missed = ['you', 'cpu'].filter((w) => L[w] && L[w].status === 'wasted');
     if (!missed.length) return null;
@@ -1336,7 +1398,7 @@
     const lost = (w === L.off) === L.guessed;
     const theirs = L[other(w)].card;
     if ((save ? lost : !lost) && theirs) return { head: `${owner(other(w))} ${shortName(theirs.key)} wins: Saves beat Bonuses.`, line: '' };
-    const why = !save ? `${stop}.` : k === 'flag' ? `${w === 'you' ? 'you' : 'the CPU'} won the snap anyway.` : `${stop} anyway.`;
+    const why = !save ? `${stop}.` : k === 'flag' ? `${w === 'you' ? 'you' : them()} won the snap anyway.` : `${stop} anyway.`;
     return { head: `${owner(w)} ${shortName(k)} was wasted: ${why}`, line: '' };
   }
   // Picking a card redraws only what changed: a card whose insides are the same keeps its element and image,
@@ -1387,7 +1449,7 @@
     if (L && spSaid(L)) miss = 'both';
     return `<div class="card ${PLAYS[key].side} ${owner}${flip ? ' flip' : ''}${c.status === 'worked' ? ' won' + (S.flip ? ' fresh' : '') : ''}">${faceInner(key, miss)}${tuck}${tag}</div>`;
   }
-  const BACK = '<div class="card back"><span class="cv"><img src="../full-cards/cards/card-back.webp" alt="CPU card, face down" width="600" height="840" decoding="sync"></span></div>';
+  const BACK = () => `<div class="card back"><span class="cv"><img src="../full-cards/cards/card-back.webp" alt="${online ? 'Your friend’s' : 'CPU'} card, face down" width="600" height="840" decoding="sync"></span></div>`;
   // Center of field card k, in the 4-column row with 6px gaps.
   // Center of field card k, and the width of n cards, in the row of ZONES + 1 cards with 6px gaps.
   const zoneX = (k) => `calc((100% - ${6 * ZONES}px) * ${(2 * k + 1) / (2 * (ZONES + 1))} + ${6 * k}px)`;
@@ -1416,6 +1478,7 @@
     $('#lvlTag').hidden = S.level !== 'hard';
     $('#targetNum').textContent = S.target;
     $('#cpuPips').innerHTML = S.hands.cpu.map(() => '<i></i>').join('');
+    $('#cpuPips').title = online ? 'Your friend’s special cards' : 'CPU special cards';
 
     // Status: the CPU’s field goal; on Stopped twice "stopped once" while it’s the last try in this zone (from your
     // next pick on); after a snap, a special that had no effect (see noEffect). The scoreboard and the ball on the field
@@ -1425,16 +1488,23 @@
     const ne = S.phase === 'pick' && S.showLast ? noEffect(S.last) : null;
     if (S.phase === 'busy') { head = 'CPU lines up a field goal'; line = 'From the Red Zone, 3 points.'; }
     else if (S.phase === 'pick' && last && !S.showLast) {
-      head = S.poss === 'you' ? 'Your ball: stopped once' : 'CPU ball: stopped once';
-      line = S.poss === 'you' ? 'Stopped again here and the CPU gets the ball.' : 'Stop them again to get the ball.';
+      head = S.poss === 'you' ? 'Your ball: stopped once' : `${online ? 'Your friend’s' : 'CPU'} ball: stopped once`;
+      line = S.poss === 'you' ? `Stopped again here and ${them()} gets the ball.` : 'Stop them again to get the ball.';
     } else if (ne) ({ head, line } = ne);
+    // Online: waiting for your friend, a pick the server turned down, or a dropped connection come first.
+    if (online) {
+      if (online.down) { head = 'Reconnecting…'; line = ''; }
+      else if (online.error) { head = online.error; line = ''; }
+      else if (S.phase === 'wait') { head = 'Waiting for your friend’s pick…'; line = ''; }
+      else if (S.phase === 'pick' && online.themPicked && !head) head = 'Your friend has picked.';
+    }
     showStatus(head, line, S.phase !== 'over');
 
     // Field
     const field = $('#field');
     field.dataset.off = S.poss;
     field.querySelectorAll('.zone[data-z]').forEach((z) => z.classList.toggle('here', +z.dataset.z === S.pos));
-    $('#ezTeam').textContent = NAME[other(S.poss)];
+    $('#ezTeam').textContent = LABEL[other(S.poss)];
     $('#ball').style.left = zoneX(S.pos);
     // Phones: the stage is drawn on the field card of the zone the ball is in, and fades in when the zone changes.
     // It stays on the zone where the last play happened until the next pick (or the CPU's kick).
@@ -1476,7 +1546,7 @@
         : S.sel.play
         ? faceBlock({ play: S.sel.play, card: S.sel.special }, 'you', false)
         : `<div class="card empty"><span class="cv">${S.snaps ? '' : 'Pick a card below. Hold one to see it big.'}</span></div>`;
-      $('#slotCpu').innerHTML = BACK;
+      $('#slotCpu').innerHTML = BACK();
       medal.className = 'medal'; medal.style.removeProperty('--tone'); medal.textContent = 'vs';
     }
     // A kick has no matchup, so only the kicker's card shows.
@@ -1486,7 +1556,7 @@
 
     // Result
     const res = $('#result');
-    const R = L || { head: 'Kickoff', detail: firstBall() + (S.poss === 'you' ? ' Pick a play, then snap.' : ' Pick a Stop card, then defend.'), tone: S.poss, n: 0 };
+    const R = L || (S.resumed ? { head: 'Back in the game', detail: rules.ballAt(S.pos, S.poss), tone: S.poss, n: 0 } : null) || { head: 'Kickoff', detail: firstBall() + (S.poss === 'you' ? ' Pick a play, then snap.' : ' Pick a Stop card, then defend.'), tone: S.poss, n: 0 };
     res.style.setProperty('--tone', `var(--${R.tone})`);
     // Blue when the offense won the snap (or kicked), red when the defense did, like the cards.
     // Kickoff: blue when you get the ball first, red when the CPU does, like your hand.
@@ -1552,12 +1622,24 @@
 
     // Game over
     const over = $('#over');
-    over.hidden = S.phase !== 'over' || !!cele;
-    if (S.phase === 'over') {
+    // Online it can also end because your friend left or the room closed; then only Main menu is offered.
+    const gone = online && (online.left || online.ended);
+    over.hidden = !(S.phase === 'over' || gone) || !!cele;
+    if (S.phase === 'over' || gone) {
       const w = S.score.you > S.score.cpu ? 'you' : 'cpu';
-      over.querySelector('.panel').style.setProperty('--tone', `var(--${w})`);
-      $('#overHead').textContent = w === 'you' ? 'You win' : 'CPU wins';
+      over.querySelector('.panel').style.setProperty('--tone', `var(--${gone ? 'chalk' : w})`);
+      const head = gone ? (online.left ? 'Friend left' : 'Game closed') : w === 'you' ? 'You win' : `${LABEL.cpu} wins`;
+      $('#overHead').textContent = head;
+      $('#overHead').classList.toggle('long', head.length > 9);   // "Friend wins" stays on one line
       $('#overScore').textContent = `${S.score.you} – ${S.score.cpu}`;
+      const again = $('#again');
+      again.hidden = !!gone;
+      again.disabled = !!(online && online.rematch.you);
+      again.textContent = !online ? 'Play again' : online.rematch.you ? 'Waiting for your friend…' : 'Rematch';
+      $('#overNote').textContent = !online ? ''
+        : online.ended ? 'Nobody played for a while, so the room closed.'
+        : online.left ? 'Your friend went back to the main menu.'
+        : online.rematch.cpu && !online.rematch.you ? 'Your friend wants a rematch.' : '';
     }
   }
 
@@ -1673,7 +1755,7 @@
     $(`.lvl-pick[data-level="${S.level || 'normal'}"]`).focus();
   }
   $('#newGame').addEventListener('click', askLevel);
-  $('#again').addEventListener('click', askLevel);
+  $('#again').addEventListener('click', () => (online ? askRematch() : askLevel()));
   // The rules choice in New game deals a fresh game on the other rule set (its saved length and your level), and New game
   // stays open with the length you had picked.
   const ruleBtns = [...document.querySelectorAll('.rule-set button')];
@@ -1690,7 +1772,7 @@
   root.dataset.input = 'pointer';
   addEventListener('pointerdown', () => { root.dataset.input = 'pointer'; }, true);
   addEventListener('keydown', (e) => { if (e.key === 'Tab' || e.key.startsWith('Arrow')) root.dataset.input = 'key'; }, true);
-  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', () => { $('#level').close(); newGame(b.dataset.level, lenPick); });
+  for (const b of document.querySelectorAll('#level .lvl-pick')) b.addEventListener('click', () => { $('#level').close(); newGame(b.dataset.level, lenPick); });
   $('#closeLevel').addEventListener('click', () => $('#level').close());
   $('#level').addEventListener('click', (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
   $('#cele').addEventListener('click', endCelebrate);
@@ -1762,6 +1844,7 @@
   // Main menu (in the ⋯ menu and on the game-over screen): the game you were playing ends, and a fresh one with the same rules, length and level
   // is dealt behind the home screen. The cards fan out again.
   function showHome() {
+    leaveOnline();
     newGame(S.level, S.target);
     homeChips();
     scrollTo(0, 0);
@@ -1777,11 +1860,215 @@
   });
   $('#homeSetup').addEventListener('click', askLevel);
   $('#homeHow').addEventListener('click', () => $('#rules').showModal());
-  for (const b of document.querySelectorAll('.lvl-pick')) b.addEventListener('click', leaveHome);
+  for (const b of document.querySelectorAll('#level .lvl-pick')) b.addEventListener('click', leaveHome);
   // The cards fan out once their art is ready (or after a moment, whichever comes first).
   if (homeUp()) Promise.race([
     Promise.all([...fan.querySelectorAll('img')].map((i) => i.decode().catch(() => {}))),
     new Promise((r) => setTimeout(r, 700)),
   ]).then(() => fan.classList.add('go'));
+
+  // ---------- Play a friend online ----------
+  // A room on the server (online/server.mjs, later a Cloudflare Worker) holds both secret picks, deals the specials and
+  // runs the same rules.js. This page plays each snap out from the two picks as usual, then takes the board and the hands
+  // from the server, so both phones always agree. The other side is "Friend" (where the CPU is), and the computer player
+  // is off. Play a friend shows only when a room server answers: not on GitHub Pages or in the app yet.
+  const API = /^https?:$/.test(location.protocol) ? '' : null;
+  const ROOM_KEY = 'snap-call-room';
+  let es = null, downTimer = null;
+  async function call(path, body) {
+    let res;
+    try {
+      res = await fetch(`${API}/api/${path}`, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : { cache: 'no-store' });
+    } catch (e) { throw Object.assign(new Error('Couldn’t reach the game server.'), { status: 0 }); }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data.error || 'Couldn’t reach the game server.'), { status: res.status });
+    return data;
+  }
+  const saveRoom = () => { try { localStorage.setItem(ROOM_KEY, JSON.stringify({ code: online.code, token: online.token })); } catch (e) { /* no resuming after a reload */ } };
+  const loadRoom = () => { try { return JSON.parse(localStorage.getItem(ROOM_KEY)) || null; } catch (e) { return null; } };
+  const clearRoom = () => { try { localStorage.removeItem(ROOM_KEY); } catch (e) { /* nothing saved */ } };
+
+  // The other side's names, and the menu without New game.
+  function setOpponent(on) {
+    NAME.cpu = on ? 'Your friend' : 'CPU';
+    NAME.theirs = on ? 'your friend’s' : 'the CPU’s';
+    LABEL.cpu = on ? 'Friend' : 'CPU';
+    document.querySelectorAll('.team.cpu .label, .slot-label.cpu').forEach((el) => { el.textContent = LABEL.cpu; });
+    root.classList.toggle('online', on);
+  }
+
+  // The Play a friend panel: make a room (with the rules, length and level of the game that's dealt), or join with a code.
+  const friend = $('#friend');
+  function friendErr(t) { $('#friendErr').textContent = t; }
+  function openFriend(code = '', err = '') {
+    $('#friendChoose').hidden = false; $('#friendCode').hidden = true;
+    $('#makeRoomRules').textContent = `${rules.name}, first to ${S.target}. Your friend joins with the code.`;
+    $('#joinCode').value = code; friendErr(err);
+    if (!friend.open) friend.showModal();
+  }
+  function showCode(code) {
+    $('#friendChoose').hidden = true; $('#friendCode').hidden = false;
+    $('#roomCode').textContent = code;
+    $('#shareRoom').textContent = 'Share link';
+    if (!friend.open) friend.showModal();
+  }
+  // Closing the panel while you wait for your friend closes the room.
+  function closeFriend() { if (online && online.waiting) leaveOnline(); if (friend.open) friend.close(); }
+  $('#homeFriend').addEventListener('click', () => openFriend());
+  $('#closeFriend').addEventListener('click', closeFriend);
+  friend.addEventListener('cancel', (e) => { e.preventDefault(); closeFriend(); });
+  friend.addEventListener('click', (e) => { if (e.target === friend) closeFriend(); });
+  $('#joinCode').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ''); friendErr(''); });
+  $('#joinForm').addEventListener('submit', (e) => { e.preventDefault(); joinRoom($('#joinCode').value); });
+  $('#makeRoom').addEventListener('click', makeRoom);
+  $('#shareRoom').addEventListener('click', async () => {
+    const url = `${location.origin}${location.pathname}?room=${online.code}`;
+    try {
+      if (navigator.share) await navigator.share({ title: 'Snap Call', text: `Play Snap Call with me. Room code: ${online.code}`, url });
+      else { await navigator.clipboard.writeText(url); $('#shareRoom').textContent = 'Link copied'; }
+    } catch (e) { /* share sheet closed */ }
+  });
+
+  async function makeRoom() {
+    friendErr('');
+    try {
+      const r = await call('rooms', { set: RULES, target: S.target });
+      leaveOnline();
+      online = { code: r.code, token: r.token, waiting: true, rematch: {} };
+      saveRoom(); showCode(r.code); connect();
+    } catch (e) { friendErr(e.message); }
+  }
+  async function joinRoom(code) {
+    code = String(code).trim().toUpperCase();
+    if (!/^[A-Z]{4}$/.test(code)) { openFriend(code, 'A room code is 4 letters.'); return; }
+    const saved = loadRoom();
+    try {
+      const r = await call(`rooms/${code}/join`, { token: saved && saved.code === code ? saved.token : undefined });
+      leaveOnline();
+      online = { code: r.code, token: r.token, rematch: {} };
+      saveRoom(); connect();
+    } catch (e) { openFriend(code, e.message); }
+  }
+  function leaveOnline() {
+    const o = online;
+    if (!o) return;
+    online = null;
+    if (es) { es.close(); es = null; }
+    clearTimeout(downTimer);
+    clearRoom();
+    if (!o.left && !o.ended) call(`rooms/${o.code}/leave`, { token: o.token }).catch(() => {});
+    setOpponent(false);
+  }
+
+  // Updates from the room. A phone that drops off (locked, in the background) reconnects by itself and gets what it missed.
+  function connect() {
+    if (es) es.close();
+    const o = online;
+    es = new EventSource(`${API}/api/rooms/${o.code}/events?token=${o.token}`);
+    const on = (type, fn) => es.addEventListener(type, (e) => { if (online === o) fn(JSON.parse(e.data)); });
+    on('sync', (d) => fromServer(d.view, true));
+    on('start', (d) => fromServer(d.view, true));
+    on('picked', (d) => fromServer(d.view));
+    on('over', (d) => fromServer(d.view));
+    on('rematch', (d) => fromServer(d.view));
+    on('snap', (d) => {
+      o.error = '';
+      if (d.fg) kickFG(d.fg);
+      else playOut(d.picks.you, d.picks.cpu);
+      reconcile(d.view); render();
+    });
+    on('left', () => { o.left = true; clearRoom(); if (es) { es.close(); es = null; } render(); });
+    es.onopen = () => { clearTimeout(downTimer); if (o.down) { o.down = false; render(); } };
+    es.onerror = () => {
+      clearTimeout(downTimer);
+      downTimer = setTimeout(() => { if (online === o && (!es || es.readyState !== 1)) { o.down = true; if (S && S.online) render(); } }, 2500);
+      if (es && es.readyState === 2) checkRoom(o);
+    };
+  }
+  // The stream closed for good: is the game still there? If not, say so; if the server is just down, keep trying.
+  async function checkRoom(o) {
+    try {
+      await call(`rooms/${o.code}?token=${o.token}`);
+      if (online === o) connect();
+    } catch (e) {
+      if (online !== o) return;
+      if (e.status === 404 || e.status === 403) { o.ended = true; clearRoom(); if (S.online) render(); else { leaveOnline(); openFriend('', 'That game has ended.'); } }
+      else setTimeout(() => checkRoom(o), 3000);
+    }
+  }
+
+  function fromServer(v, fresh) {
+    if (v.status === 'waiting') { online.waiting = true; showCode(v.code); return; }
+    online.waiting = false;
+    if (fresh || !S.online) startOnline(v); else reconcile(v);
+    render();
+  }
+  // A game from the room: its rules and length, the board, your hand. A game already under way says so instead of Kickoff.
+  function startOnline(v) {
+    if (friend.open) friend.close();
+    if (v.set !== RULES) useRules(v.set);
+    setOpponent(true);
+    if (cele) { clearTimeout(cele.timer); cele = null; $('#cele').hidden = true; }
+    S = {
+      v: RULES_VERSION, level: 'normal', target: v.target, online: true,
+      score: { you: 0, cpu: 0 }, poss: v.poss, pos: 0, down: 1, hands: { you: [], cpu: [] }, deck: [], discard: [],
+      sel: { play: null, special: null },
+      phase: 'pick', last: null, move: null, showLast: false, flip: false, log: [], snaps: 0,
+      offHist: { run: 2, short: 2, deep: 2 }, defHist: { run: 2, short: 2, deep: 2 },
+    };
+    reconcile(v);
+    S.resumed = v.snaps > 0;
+    S.log.unshift({ n: 0, head: 'Kickoff', text: firstBall(), tone: S.poss });
+    online.rematch = online.rematch || {};
+    homeChips();
+    leaveHome();
+  }
+  // The server's board wins: hands (yours, and how many your friend holds), score, ball, tries, and whose turn.
+  function reconcile(v) {
+    S.hands.you = v.hand.map((c) => ({ ...c }));
+    S.hands.cpu = Array.from({ length: v.theirCount }, (_, i) => ({ id: -1 - i, key: 'flag' }));
+    S.deck = Array(40).fill('flag'); S.discard = [];   // the real deck stays on the server
+    S.score = { ...v.score }; S.poss = v.poss; S.pos = v.pos; S.down = v.down; S.target = v.target; S.snaps = v.snaps;
+    S.phase = v.phase === 'pick' && v.picked.you ? 'wait' : v.phase;
+    online.themPicked = v.picked.cpu;
+    online.rematch = { ...v.rematch };
+  }
+
+  // Snap (or Defend, or Kick for 3) sends your pick; both cards flip when your friend's is in too.
+  async function sendPick() {
+    if (S.phase !== 'pick') return;
+    const o = online;
+    o.error = '';
+    S.phase = 'wait';
+    render();
+    try {
+      await call(`rooms/${o.code}/pick`, { token: o.token, play: S.sel.play, special: S.sel.special ? S.sel.special.id : null });
+    } catch (e) {
+      if (online === o && S.phase === 'wait') { S.phase = 'pick'; o.error = e.message; render(); }
+    }
+  }
+  async function askRematch() {
+    const o = online;
+    o.rematch.you = true; render();
+    try { await call(`rooms/${o.code}/rematch`, { token: o.token }); }
+    catch (e) { if (online === o) { o.rematch.you = false; render(); } }
+  }
+
+  // On opening: show Play a friend if a room server answers; come back to a game you were in; or join from a link.
+  if (API !== null) {
+    call('ping').then(() => {
+      $('#homeFriend').hidden = false;
+      const q = new URLSearchParams(location.search);
+      const linked = (q.get('room') || '').toUpperCase();
+      if (linked) history.replaceState(null, '', location.pathname + (TWICE ? '?rules=twice' : ''));
+      const saved = loadRoom();
+      if (saved && (!linked || saved.code === linked)) {
+        call(`rooms/${saved.code}?token=${saved.token}`).then(() => {
+          online = { code: saved.code, token: saved.token, rematch: {} };
+          connect();
+        }).catch(() => { clearRoom(); if (linked) joinRoom(linked); });
+      } else if (linked) joinRoom(linked);
+    }).catch(() => {});
+  }
 })();
 </script>

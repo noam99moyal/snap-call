@@ -103,7 +103,7 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
    - Choosing the other rule set from the home screen comes back to the home screen. New game during a game skips it.
    - Main menu in the ⋯ menu (or the header on wide screens) ends the game and goes back to the home screen.
    - The app opens on the rule set you played last.
-3. **Play a friend online** (about 1 to 2 weeks): a link or room code, no accounts. A small server holds both secret picks and deals the specials. Its button goes under Start game.
+3. **Play a friend online** (about 1 to 2 weeks): a link or room code, no accounts. **Built for testing on 2026-11-13**: `online/server.mjs` runs the rooms on this Mac (same Wi-Fi only), with the decisions below made: just "Friend", no time limit, the room maker's rules and length. Left: move the server to Cloudflare, then show the button in the app. A small server holds both secret picks and deals the specials. Its button goes under Start game.
    - **Why a server:** each pick stays secret until the flip, and the specials are dealt by something neither phone controls. If the phones swapped picks directly, either side could peek. The server runs the same `look/rules.js`.
    - **Where (suggested):** a Cloudflare Worker with one small "room" per game, on the free tier. You create the Cloudflare account; Claude builds and sets up the rest.
    - **Joining:** "Play a friend" under Start game gives a short code (like `KRTW`) and a Share button for a link. The friend types the code in the app or opens the link, which opens the website version. Web and app can play each other, since it's the same page. A link that opens the app directly needs the paid Apple Developer Program, so it can wait.

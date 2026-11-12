@@ -55,7 +55,8 @@
     return { score: { you: 0, cpu: 0 }, poss: Math.random() < 0.5 ? 'you' : 'cpu', pos: 0, down: 1, hands: { you: [], cpu: [] }, deck: shuffle(deck), discard: [] };
   }
 
-  // The rules for one rule set. names: { NAME, verb } for the announcer lines ("You score 7", "CPU scores 7");
+  // The rules for one rule set. names: { NAME, verb } for the announcer lines ("You score 7", "CPU scores 7"; NAME.theirs
+  // is "the CPU’s" or, online, "your friend’s". NAME is read each time, so the page can change it for online play);
   // nextId: numbers the special cards dealt.
   function create(set, { NAME, verb, nextId }) {
     const { name, ZONES, RED, MID, DOWNS } = RULESETS[set];
@@ -110,7 +111,7 @@
       who === 'you' ? 'your own 20' : 'their own 20',
       who === 'you' ? 'your own 35' : 'their own 35',
       'midfield',
-      who === 'you' ? 'the CPU’s 35' : 'your 35',
+      who === 'you' ? `${NAME.theirs || 'the CPU’s'} 35` : 'your 35',
       'the Red Zone',
     ] : [who === 'you' ? 'your own 25' : 'their own 25', 'midfield', 'the Red Zone'])[pos];
     const cap = (s) => s[0].toUpperCase() + s.slice(1);
