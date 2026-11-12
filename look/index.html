@@ -133,8 +133,8 @@
   /* Status */
   .scoreline { display: grid; gap: 12px; }
   .status { display: grid; gap: 2px; }
-  .status strong { font: 700 21px/1.1 var(--ui); letter-spacing: 0.02em; }
-  .status span { color: var(--chalk-dim); white-space: pre-line; }
+  .status strong { font: 700 21px/1.1 var(--ui); letter-spacing: 0.02em; text-wrap: balance; }
+  .status span { color: var(--chalk-dim); }
 
   /* Field: the four field cards (six on Stopped twice) in a row, always from the offense's side, attacking to the right.
      The ball sits on the card of the zone it's in, like the ball card placed on the field cards on a table. */
@@ -665,13 +665,14 @@
     /* The line under the field sits at the top of the stage. While it can come and go it keeps its room there;
        otherwise (the CPU's kick after your first game) it shows on a dark band over the stage for a moment. */
     .status {
-      grid-area: stage; align-self: start; z-index: 2; margin: 9px 14px 0; justify-items: center; text-align: center;
+      grid-area: stage; align-self: start; z-index: 2; margin: 8px 10px 0; justify-items: center; text-align: center;
       gap: 1px; pointer-events: none; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
     }
     .status.room { min-height: 0; }
-    .status strong { font-size: 15px; }
-    .status span { font: 500 13px/1.25 var(--ui); font-size: 13.5px; color: rgba(236, 243, 232, 0.88); }
-    .status:not(.room) { background: rgba(8, 21, 15, 0.92); border-radius: 8px; padding: 6px 10px; text-shadow: none; }
+    .status strong { font-size: 13.5px; }
+    @media (max-width: 384px) { .status { margin-inline: 8px; } .status strong { font-size: 12.5px; } }   /* the longest line on one row */
+    .status span { font: 500 12.5px/1.2 var(--ui); color: rgba(236, 243, 232, 0.88); }
+    .status:not(.room) { background: rgba(8, 21, 15, 0.92); border-radius: 8px; padding: 4px 10px; text-shadow: none; }
     .wrap:has(.status.room) .stage { padding-top: 48px; }
 
     /* Your hand: plays, then specials after a small gap, overlapping only as much as they must to fit.
@@ -920,7 +921,7 @@
         </ul>
 
         <h3>Specials</h3>
-        <p>Play one with your card, before the flip. A Save works only if you lose the snap, a Bonus only if you win it. Only one works per snap, and once played it’s gone, even if it doesn’t work, unless their Challenge Flag cancels the snap: then you get it back.</p>
+        <p>Play one with your card, before the flip. A Save works only if you lose the snap, a Bonus only if you win it. Only one works per snap: if both would, the Save wins. Once played, it’s gone, even if it doesn’t work, unless their Challenge Flag cancels the snap: then you get it back.</p>
         <p>You start with 2 (3 if you get the ball second), draw 1 when you’re scored on, and hold up to 3. The marks by CPU show how many it has.</p>
         <dl>
           <dt>Juke or Spectacular Catch <span>offense save</span></dt><dd>If your play is stopped, you still gain 1 zone, even on a Deep Pass.</dd>
@@ -1542,33 +1543,24 @@
     return '+7';
   }
   // A special that did nothing gets a line on top until the next pick: which one, and why. Either its condition
-  // didn't happen (a save works when its side loses the snap, a bonus when it wins), or it did and the other side's
-  // special came first. WHY is [yours, the CPU's] for the first case.
-  const WHY = {
-    juke: ['your play wasn’t stopped', 'its play wasn’t stopped'],
-    grab: ['your play wasn’t stopped', 'its play wasn’t stopped'],
-    sack: ['you stopped the play', 'it stopped your play'],
-    tfl: ['you stopped the play', 'it stopped your play'],
-    breakaway: ['your Run was stopped', 'its Run was stopped'],
-    hail: ['your Deep Pass was stopped', 'its Deep Pass was stopped'],
-    picksix: ['you didn’t stop the pass', 'it didn’t stop the pass'],
-    fumble: ['you didn’t stop the Run', 'it didn’t stop the Run'],
-    flag: ['you won the snap', 'it won the snap'],
-  };
-  const upFirst = (s) => s[0].toUpperCase() + s.slice(1);
+  // didn't happen (a save works when its side loses the snap, a bonus when it wins), which always comes down to
+  // whether the offense's play was stopped, or it did and the other side's Save won (Saves beat Bonuses).
+  // When both miss it's for the same reason, so one line names both cards, the offense's first.
   function noEffect(L) {
     if (!L || L.fg) return null;
-    const out = ['you', 'cpu'].filter((w) => L[w] && L[w].status === 'wasted').map((w) => {
-      const k = L[w].card.key, mine = w === 'you';
-      const lost = (w === L.off) === L.guessed;
-      const met = SPECIALS[k].kind === 'save' ? lost : !lost;
-      const theirs = L[other(w)].card;
-      const why = met && theirs ? `${mine ? 'CPU’s' : 'your'} ${SPECIALS[theirs.key].name} came first` : WHY[k][mine ? 0 : 1];
-      return { who: `${mine ? 'Your' : 'CPU’s'} ${SPECIALS[k].name}`, why };
-    });
-    if (!out.length) return null;
-    if (out.length === 1) return { head: `${out[0].who} had no effect`, line: `${upFirst(out[0].why)}.` };
-    return { head: 'Neither special had an effect', line: out.map((x) => `${x.who}: ${x.why}.`).join('\n') };   // one line each
+    const owner = (w, start) => (w === 'you' ? (start ? 'Your' : 'your') : 'CPU’s');
+    const stop = L.off === 'you' ? (L.guessed ? 'Your play was stopped.' : 'Your play wasn’t stopped.')
+      : (L.guessed ? 'You stopped the CPU’s play.' : 'You didn’t stop the CPU’s play.');
+    const missed = [L.off, other(L.off)].filter((w) => L[w] && L[w].status === 'wasted');
+    if (!missed.length) return null;
+    const name = (w, i) => `${owner(w, i === 0)} ${SPECIALS[L[w].card.key].name}`;
+    if (missed.length === 2) return { head: `${name(missed[0], 0)} and ${name(missed[1], 1)} had no effect`, line: stop };
+    const w = missed[0], k = L[w].card.key;
+    const lost = (w === L.off) === L.guessed;
+    const met = SPECIALS[k].kind === 'save' ? lost : !lost;
+    const theirs = L[other(w)].card;
+    const why = met && theirs ? `${owner(other(w), true)} ${SPECIALS[theirs.key].name} wins: Saves beat Bonuses.` : stop;
+    return { head: `${name(w, 0)} had no effect`, line: why };
   }
   // Picking a card redraws only what changed: a card whose insides are the same keeps its element and image,
   // and just takes the new class, pressed and disabled state. Redrawing every image made the screen flash on
