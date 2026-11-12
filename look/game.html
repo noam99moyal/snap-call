@@ -687,8 +687,9 @@
     .specials .card.empty { display: none; }
     .play:not(:has(.specials > .card:not(.empty))) { column-gap: 0; }
     .play .cv { box-shadow: -3px 0 8px rgba(0, 0, 0, 0.35), 0 6px 14px rgba(0, 0, 0, 0.45); }
-    /* The picked card rises 15% of its height (a % because each card is its own size container), so its name clears the cards beside it (33px of room on every phone). */
-    .play .card.on .cv { transform: translateY(-15%); box-shadow: 0 0 0 3px var(--chalk), 0 12px 24px rgba(0, 0, 0, 0.5); }
+    /* The card you picked last comes to the front, so all of it can be read (z-index is set in render). */
+    .play .card { position: relative; }
+    .play .card.on .cv { transform: translateY(-9px); box-shadow: 0 0 0 3px var(--chalk), 0 12px 24px rgba(0, 0, 0, 0.5); }
     .play .card:disabled .cv { opacity: 1; filter: brightness(0.5) saturate(0.45); }
     /* Short phones (iPhone SE): a slightly smaller hand and field strip, so the cards on the stage stay the biggest. */
     @media (max-height: 620px) {
@@ -1383,6 +1384,7 @@
     $('#more').hidden = li.length <= rows;
   }
 
+  let lastPick = null; // 'play' or 'sp': which of your picked cards comes to the front
   function render() {
     // Scoreboard
     $('#sYou').textContent = cele && cele.who === 'you' ? cele.before : S.score.you;
@@ -1500,6 +1502,13 @@
     while (sp.length < 3) sp.push('<div class="card empty"><span class="cv">Empty slot. You draw one when you get scored on.</span></div>');
     setCards($('#specials'), sp.join(''));
     $('.play').style.setProperty('--n', keys.length + S.hands.you.length);
+    // The card you picked last comes to the front. Cards to its left stay as they are; cards to its right tuck
+    // under it from the right, so on phones every card still shows a strip you can tap.
+    const row = [...$('#hand').children, ...$('#specials').querySelectorAll('.card:not(.empty)')];
+    const picked = row.filter((c) => c.classList.contains('on'));
+    const lead = picked.find((c) => c.matches('.sp') === (lastPick === 'sp')) || picked[0];
+    const p = row.indexOf(lead);
+    row.forEach((c, i) => { c.style.zIndex = p < 0 ? '' : String(row.length + p - Math.abs(i - p)); });
 
     // Actions
     $('#snap').disabled = !ready();
@@ -1532,11 +1541,12 @@
 
   // ---------- Input ----------
   // Phones: the hand's cards overlap, and a dimmed special lets taps through to the card under it,
-  // so a tap only counts for the card on top where it landed.
+  // so a tap only counts for the card on top where it landed. The card picked last sits in front (render sets its z-index).
+  const topCard = (hits) => hits.reduce((a, c) => (a && (+a.style.zIndex || 0) > (+c.style.zIndex || 0) ? a : c), null);
   function onTop(b, e) {
     if (!phoneB.matches || !e.detail) return true;
     const inside = (x) => { const r = x.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; };
-    return [...document.querySelectorAll('.hand .card, .specials .card:not(.empty)')].filter((c) => inside(c) || inside(c.firstElementChild)).pop() === b;
+    return topCard([...document.querySelectorAll('.hand .card, .specials .card:not(.empty)')].filter((c) => inside(c) || inside(c.firstElementChild))) === b;
   }
   $('#hand').addEventListener('click', (e) => {
     const b = e.target.closest('[data-play]');
@@ -1545,6 +1555,7 @@
     S.sel.play = S.sel.play === k ? null : k;
     const s = S.sel.special;
     if (s && S.sel.play && !fits(s.key, S.sel.play, side())) S.sel.special = null;
+    lastPick = S.sel.play ? 'play' : 'sp';
     S.showLast = false;
     render();
   });
@@ -1560,6 +1571,7 @@
       const needs = SPECIALS[card.key].needs;
       if (!S.sel.play && needs && needs.length === 1) S.sel.play = needs[0];
     }
+    lastPick = S.sel.special ? 'sp' : 'play';
     S.showLast = false;
     render();
   });
@@ -1573,8 +1585,8 @@
       return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
     });
     // A tucked special sits behind its play card, so the play card wins where they overlap. Where cards in the
-    // phone hand overlap, the one on top (later on the page) wins.
-    const el = hits.filter((h) => !h.classList.contains('tuck')).pop() || hits[0];
+    // phone hand overlap, the one on top wins (the picked card, else the later one on the page).
+    const el = topCard(hits.filter((h) => !h.classList.contains('tuck'))) || hits[0];
     return el ? el.querySelector('img') : null;
   }
   function showZoom(img) {
