@@ -408,10 +408,11 @@
   }
   .over .panel {
     background: var(--board); border: 2px solid var(--tone, var(--chalk)); border-radius: 14px;
-    padding: 26px 24px; display: grid; gap: 12px; text-align: center; width: min(340px, 100%);
+    padding: 26px 24px; display: grid; gap: 12px; text-align: center; width: min(340px, 100%); box-sizing: border-box;
   }
   .over h2 { margin: 0; font: 400 32px/1 var(--display); color: var(--tone, var(--chalk)); }
   .over p { margin: 0; font: 400 22px/1 var(--display); font-variant-numeric: tabular-nums; }
+  .over .ghost { height: 48px; font-size: 17px; border-radius: 10px; }
 
   /* Wide screens: one screen, no scrolling. Comes last so it overrides the phone layout above. */
   @media (min-width: 900px) {
@@ -968,6 +969,7 @@
     <h2 id="overHead"></h2>
     <p id="overScore"></p>
     <button class="snap" id="again" type="button">Play again</button>
+    <button class="ghost" id="overHome" type="button">Main menu</button>
   </div>
 </div>
 
@@ -1967,7 +1969,7 @@
     $('#homeLvl').classList.toggle('hard', S.level === 'hard');
   }
   homeChips();
-  // Main menu in the ⋯ menu: the game you were playing ends, and a fresh one with the same rules, length and level
+  // Main menu (in the ⋯ menu and on the game-over screen): the game you were playing ends, and a fresh one with the same rules, length and level
   // is dealt behind the home screen. The cards fan out again.
   function showHome() {
     newGame(S.level, S.target);
@@ -1978,6 +1980,7 @@
     fan.classList.add('go');
   }
   $('#toHome').addEventListener('click', showHome);
+  $('#overHome').addEventListener('click', showHome);
   $('#homeStart').addEventListener('click', () => {
     try { window.webkit?.messageHandlers?.haptic?.postMessage('light'); } catch (e) { /* not in the app */ }
     leaveHome();
