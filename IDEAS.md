@@ -104,7 +104,16 @@ Ideas we're trying or still deciding on. Nothing here is in the game until it's 
    - Main menu in the ⋯ menu (or the header on wide screens) ends the game and goes back to the home screen.
    - The app opens on the rule set you played last.
 3. **Play a friend online** (about 1 to 2 weeks): a link or room code, no accounts. A small server holds both secret picks and deals the specials. Its button goes under Start game.
+   - **Why a server:** each pick stays secret until the flip, and the specials are dealt by something neither phone controls. If the phones swapped picks directly, either side could peek. The server runs the same `look/rules.js`.
+   - **Where (suggested):** a Cloudflare Worker with one small "room" per game, on the free tier. You create the Cloudflare account; Claude builds and sets up the rest.
+   - **Joining:** "Play a friend" under Start game gives a short code (like `KRTW`) and a Share button for a link. The friend types the code in the app or opens the link, which opens the website version. Web and app can play each other, since it's the same page. A link that opens the app directly needs the paid Apple Developer Program, so it can wait.
+   - **Game screen:** "CPU" becomes "Friend" (or a nickname), with waiting states ("Waiting for your friend's pick…") until both cards flip together, and a Rematch button on the game-over card.
+   - **When things go wrong:** a locked phone or a backgrounded app reconnects to its room by itself. A game nobody comes back to expires, with a clear message. Optionally, a time limit per pick so nobody can stall.
+   - **App Store:** no accounts means no Sign in with Apple and no account deletion. Those only come with step 4.
+   - **To decide before building:** nicknames or just "Friend"; a time limit per pick or not; whether the person who makes the room picks the rule set and length (suggested) and the friend just joins.
 4. **Play strangers** (later): matchmaking, accounts, maybe rankings. Needs a server account in your name (for example Cloudflare) and the App Store's rules for accounts (account deletion in the app, Sign in with Apple).
+
+Idea (not built), **Season mode**: a schedule of games against the CPU, with standings, saved progress and maybe playoffs. Not needed for launch. It only matters once people already like a single game, and it's at least a week of work (saving, a schedule screen, standings, quitting halfway, balance so it isn't a grind) that would push online play back. Better as the first update after launch. Cheaper in-between option (an afternoon): a win/loss record against the CPU, per level, on the home screen.
 
 Also open for the app:
 - Bundle the fonts so it works fully offline (needs an OK to download them from Google Fonts).
