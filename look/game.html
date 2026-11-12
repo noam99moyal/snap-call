@@ -124,7 +124,7 @@
   .scoreline { display: grid; gap: 12px; }
   .status { display: grid; gap: 2px; }
   .status strong { font: 700 21px/1.1 var(--ui); letter-spacing: 0.02em; }
-  .status span { color: var(--chalk-dim); }
+  .status span { color: var(--chalk-dim); white-space: pre-line; }
 
   /* Field: the four field cards (six on Stopped twice) in a row, always from the offense's side, attacking to the right.
      The ball sits on the card of the zone it's in, like the ball card placed on the field cards on a table. */
@@ -1296,6 +1296,35 @@
     if ((k === 'juke' || k === 'grab') && L.head !== 'Touchdown!') return '+1 zone';
     return '+7';
   }
+  // A special that did nothing gets a line on top until the next pick: which one, and why. Either its condition
+  // didn't happen (a save works when its side loses the snap, a bonus when it wins), or it did and the other side's
+  // special came first. WHY is [yours, the CPU's] for the first case.
+  const WHY = {
+    juke: ['your play wasn’t stopped', 'its play wasn’t stopped'],
+    grab: ['your play wasn’t stopped', 'its play wasn’t stopped'],
+    sack: ['you stopped the play', 'it stopped your play'],
+    tfl: ['you stopped the play', 'it stopped your play'],
+    breakaway: ['your Run was stopped', 'its Run was stopped'],
+    hail: ['your Deep Pass was stopped', 'its Deep Pass was stopped'],
+    picksix: ['you didn’t stop the pass', 'it didn’t stop the pass'],
+    fumble: ['you didn’t stop the Run', 'it didn’t stop the Run'],
+    flag: ['you won the snap', 'it won the snap'],
+  };
+  const upFirst = (s) => s[0].toUpperCase() + s.slice(1);
+  function noEffect(L) {
+    if (!L || L.fg) return null;
+    const out = ['you', 'cpu'].filter((w) => L[w] && L[w].status === 'wasted').map((w) => {
+      const k = L[w].card.key, mine = w === 'you';
+      const lost = (w === L.off) === L.guessed;
+      const met = SPECIALS[k].kind === 'save' ? lost : !lost;
+      const theirs = L[other(w)].card;
+      const why = met && theirs ? `${mine ? 'CPU’s' : 'your'} ${SPECIALS[theirs.key].name} came first` : WHY[k][mine ? 0 : 1];
+      return { who: `${mine ? 'Your' : 'CPU’s'} ${SPECIALS[k].name}`, why };
+    });
+    if (!out.length) return null;
+    if (out.length === 1) return { head: `${out[0].who} had no effect`, line: `${upFirst(out[0].why)}.` };
+    return { head: 'Neither special had an effect', line: out.map((x) => `${x.who}: ${x.why}.`).join('\n') };   // one line each
+  }
   // Picking a card redraws only what changed: a card whose insides are the same keeps its element and image,
   // and just takes the new class, pressed and disabled state. Redrawing every image made the screen flash on
   // hosts that have the browser re-check each image before showing it again (Netlify).
@@ -1371,15 +1400,17 @@
     $('#targetNum').textContent = S.target;
     $('#cpuPips').innerHTML = S.hands.cpu.map(() => '<i></i>').join('');
 
-    // Status: the CPU's field goal, and on Stopped twice "stopped once" while it's the last try in this zone (from your
-    // next pick on). The scoreboard and the ball on the field show who has the ball and where.
+    // Status: the CPU’s field goal; on Stopped twice "stopped once" while it’s the last try in this zone (from your
+    // next pick on); after a snap, a special that had no effect (see noEffect). The scoreboard and the ball on the field
+    // show who has the ball and where.
     const last = TWICE && S.down === DOWNS;   // already stopped once in this zone
     let head = '', line = '';
+    const ne = S.phase === 'pick' && S.showLast ? noEffect(S.last) : null;
     if (S.phase === 'busy') { head = 'CPU lines up a field goal'; line = 'From the Red Zone, 3 points.'; }
     else if (S.phase === 'pick' && last && !S.showLast) {
       head = S.poss === 'you' ? 'Your ball: stopped once' : 'CPU ball: stopped once';
       line = S.poss === 'you' ? 'Stopped again here and the CPU gets the ball.' : 'Stop them again to get the ball.';
-    }
+    } else if (ne) ({ head, line } = ne);
     showStatus(head, line, TWICE && S.phase !== 'over');
 
     // Field

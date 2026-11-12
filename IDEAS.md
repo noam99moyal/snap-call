@@ -124,6 +124,7 @@ Also open for the app:
   - Stopped once: the side with the ball first wins 50.6% instead of 53.1%.
   - Stopped twice: 53.6% without the stop draw, 53.0% with it. The stop draw added about one special per game and a few less close games.
   - The full rules doc has the third special too (Setup, step 4) since 2026-11-10.
+  - Idea (not built): both sides start with 2 specials, whoever gets the ball second. Simpler to explain, but it drops the evening-out that the third special gives the side starting second.
 - **The circle after a special changes the snap:** built in the look preview, on phones and wide screens. The special comes in front of its play card with no "Worked" stamp. The circle turns gold and says what it did: +1 zone, Back 1 zone (No gain from your own 25 or 20), Replay, +7 or Turn-over. Both play cards fade both lines.
 - **Also in the look preview, on every screen:**
   - A kick shows only the kicker's card, then +3 in the circle.
