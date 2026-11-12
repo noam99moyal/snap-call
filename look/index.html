@@ -697,7 +697,8 @@
     .specials .card.empty { display: none; }
     .play:not(:has(.specials > .card:not(.empty))) { column-gap: 0; }
     .play .cv { box-shadow: -3px 0 8px rgba(0, 0, 0, 0.35), 0 6px 14px rgba(0, 0, 0, 0.45); }
-    .play .card.on .cv { transform: translateY(-9px); box-shadow: 0 0 0 3px var(--chalk), 0 12px 24px rgba(0, 0, 0, 0.5); }
+    /* The picked card rises 15% of its height (a % because each card is its own size container), so its name clears the cards beside it (33px of room on every phone). */
+    .play .card.on .cv { transform: translateY(-15%); box-shadow: 0 0 0 3px var(--chalk), 0 12px 24px rgba(0, 0, 0, 0.5); }
     .play .card:disabled .cv { opacity: 1; filter: brightness(0.5) saturate(0.45); }
     /* Short phones (iPhone SE): a slightly smaller hand and field strip, so the cards on the stage stay the biggest. */
     @media (max-height: 620px) {
