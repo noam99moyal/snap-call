@@ -493,16 +493,14 @@
 
   /* ---------- Phones: one screen per snap ----------
      A portrait phone shows the whole snap at once, with nothing to scroll:
-       the score bar, with How to play, New game and Play by play in the ⋯ menu
+       the score bar, with How to play, New game and Main menu in the ⋯ menu
        the field as a strip seen from above, the ball on the zone it's in
        the stage, drawn on that zone's field card: your card, the medal, the CPU's card, then the result
        your hand along the bottom, plays then specials, overlapping like cards held in a hand
      Tap a card and it goes on the stage; the medal between the two cards becomes the Snap button.
      Landscape phones and wide screens keep the layouts above. */
-  .menu-btn, #showLog, .zn { display: none; }
+  .menu-btn, .zn { display: none; }
   button.medal { appearance: none; box-sizing: content-box; padding: 0; background: none; cursor: default; }
-  .log-sheet { width: min(480px, calc(100% - 32px)); }
-  .log-sheet .log { max-height: none; }
 
   /* ---------- The stage, on every screen ---------- */
   /* A special decided the snap: the medal is gold and says what it did. */
@@ -575,7 +573,7 @@
     .top.open .top-actions { display: flex; }
     .top-actions .ghost { border: 0; border-radius: 6px; padding: 12px; text-align: left; font-size: 17px; }
     .top-actions .ghost:hover { background: var(--slate); }
-    .top-actions .long, #showLog { display: block; }
+    .top-actions .long { display: block; }
     .top-actions .short { display: none; }
 
     /* The field, seen from above and attacking right: mown stripes, hash marks along the sidelines, chalk lines
@@ -708,7 +706,7 @@
     }
   }
 
-  /* Panels (How to play, New game, Play by play) stay between the status bar and the home bar: the app and phone
+  /* Panels (How to play, New game) stay between the status bar and the home bar: the app and phone
      browsers in full screen draw the page under both. */
   .rules:modal {
     inset-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px);
@@ -829,7 +827,6 @@
       <div class="top-actions" id="menu">
         <button class="ghost" id="howTo" type="button"><span class="long">How to play</span><span class="short">Rules</span></button>
         <button class="ghost" id="newGame" type="button">New game</button>
-        <button class="ghost" id="showLog" type="button">Play by play</button>
         <button class="ghost" id="toHome" type="button">Main menu</button>
       </div>
       <button class="ghost menu-btn" id="menuBtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu"><svg viewBox="0 0 18 4" aria-hidden="true"><circle cx="2" cy="2" r="2"></circle><circle cx="9" cy="2" r="2"></circle><circle cx="16" cy="2" r="2"></circle></svg></button>
@@ -901,11 +898,6 @@
       <ol class="log" id="log"></ol>
       <p class="more" id="more" hidden>Scroll for older plays</p>
     </section>
-
-    <dialog class="rules log-sheet" id="logSheet" aria-labelledby="logHead">
-      <div class="head"><h2 id="logHead">Play by play</h2><button class="ghost" id="closeLog" type="button">Close</button></div>
-      <div class="body"><ol class="log" id="logAll"></ol></div>
-    </dialog>
 
     <dialog class="rules" id="rules" aria-labelledby="rulesHead">
       <div class="head"><h2 id="rulesHead">How to play</h2><button class="ghost" id="closeRules" type="button">Close</button></div>
@@ -1860,7 +1852,7 @@
   $('#snap').addEventListener('click', snap);
   $('#medal').addEventListener('click', snap);
   phoneB.addEventListener('change', render);
-  // Phones: How to play, New game and Play by play are in the ⋯ menu. Any tap outside it closes it.
+  // Phones: How to play, New game and Main menu are in the ⋯ menu. Any tap outside it closes it.
   const topBar = $('.top');
   function openMenu(open) {
     topBar.classList.toggle('open', open);
@@ -1870,8 +1862,6 @@
   $('#menu').addEventListener('click', (e) => { if (e.target.closest('button')) openMenu(false); });
   document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.top')) openMenu(false); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') openMenu(false); });
-  $('#showLog').addEventListener('click', () => { $('#logAll').innerHTML = $('#log').innerHTML; $('#logSheet').showModal(); });
-  $('#closeLog').addEventListener('click', () => $('#logSheet').close());
   // New game and Play again ask Normal or Hard; the level you're playing now is ready to pick again.
   let lenPick = 21;
   function setLen(t) {
