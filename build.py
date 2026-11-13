@@ -3,7 +3,7 @@
 game.html is the game as published on Claude (no <head>). This wraps it into a full
 index.html for GitHub Pages, and optionally zips that for itch.io:
 
-    python3 build.py                       # writes index.html, preview/index.html and full-cards/index.html
+    python3 build.py                       # writes classic/index.html, look/index.html, preview/, full-cards/ and downs/
     python3 build.py ~/Desktop/snap-call-itch.zip   # also writes the zip
     python3 build.py --netlify ~/Desktop/snap-call-netlify.zip   # also zips full-cards/ as a whole site
     python3 build.py --netlify-downs ~/Desktop/snap-call-netlify-downs.zip   # the downs test as a whole site
@@ -34,7 +34,7 @@ ICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0
         "stroke='%23ecf3e8' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E")
 
 
-def build(folder, title):
+def build(folder, title, out=None):
     src = (folder / "game.html").read_text(encoding="utf-8")
     start = src.index('<link rel="preconnect"')
     split = src.index('<svg width="0"')
@@ -64,15 +64,19 @@ def build(folder, title):
 </body>
 </html>
 """
-    (folder / "index.html").write_text(page, encoding="utf-8")
-    print(f"wrote {(folder / 'index.html').relative_to(HERE)}")
+    out = out or folder / "index.html"
+    out.parent.mkdir(exist_ok=True)
+    out.write_text(page, encoding="utf-8")
+    print(f"wrote {out.relative_to(HERE)}")
 
 
-build(HERE, "Snap Call")
+# The main address now opens the look version: index.html at the top only forwards to look/ (it is written by hand,
+# not built). The first version of the game, game.html, moved to classic/.
+build(HERE, "Snap Call: first version", HERE / "classic" / "index.html")
 build(HERE / "preview", "Snap Call: card art preview")
 build(HERE / "full-cards", "Snap Call")
 build(HERE / "downs", "Snap Call: downs test")
-build(HERE / "look", "Snap Call: look preview")
+build(HERE / "look", "Snap Call")
 
 # Netlify tells browsers to re-check every file before using it again. The game redraws cards as you pick them,
 # so on Netlify every card image was re-checked and the screen flashed. Card images may now be kept for a day.
@@ -162,5 +166,5 @@ if "--app-web" in args:
 if args:
     out = Path(args[0]).expanduser()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-        z.write(HERE / "index.html", "index.html")
+        z.write(HERE / "classic" / "index.html", "index.html")
     print(f"wrote {out}")
