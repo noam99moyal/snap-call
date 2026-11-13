@@ -4,7 +4,7 @@
 //
 // It serves the website too, so a phone on the same Wi-Fi can open the printed address and play a browser on the Mac.
 // The server keeps each pick secret until both are in, deals the specials, and runs the same look/rules.js as the page.
-// Later this moves to a Cloudflare Worker with one Durable Object per room; the messages stay the same.
+// The real one is on Cloudflare (online/worker/worker.mjs, one Durable Object per room), with the same messages.
 //
 // API (JSON over POST, updates over Server-Sent Events):
 //   POST /api/rooms                 { set, target }          -> { code, seat, token }     make a room (seat a)

@@ -2109,11 +2109,18 @@
   ]).then(() => fan.classList.add('go'));
 
   // ---------- Play a friend online ----------
-  // A room on the server (online/server.mjs, later a Cloudflare Worker) holds both secret picks, deals the specials and
+  // A room on the server (online/worker on Cloudflare; online/server.mjs on this Mac) holds both secret picks, deals the specials and
   // runs the same rules.js. This page plays each snap out from the two picks as usual, then takes the board and the hands
   // from the server, so both phones always agree. The other side is "Friend" (where the CPU is), and the computer player
-  // is off. Play a friend shows only when a room server answers: not on GitHub Pages or in the app yet.
-  const API = /^https?:$/.test(location.protocol) ? '' : null;
+  // is off. Play a friend shows only when the room server answers.
+  // Where the rooms are: the Mac's room server when the page comes from it (port 8796), otherwise Cloudflare. For testing,
+  // ?server=http://localhost:PORT points the page at a room server on this Mac.
+  const ROOMS_URL = 'https://snap-call-rooms.snapcall.workers.dev';
+  const LOCAL = location.port === '8796';
+  const testServer = new URLSearchParams(location.search).get('server') || '';
+  const API = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(testServer) ? testServer : LOCAL ? '' : ROOMS_URL;
+  // The link you share opens the game on the website (in the app the page's own address is no use to a friend).
+  const SITE = LOCAL ? location.origin + location.pathname : 'https://noam99moyal.github.io/snap-call/look/';
   const ROOM_KEY = 'snap-call-room';
   let es = null, downTimer = null;
   async function call(path, body) {
@@ -2163,7 +2170,7 @@
   $('#joinForm').addEventListener('submit', (e) => { e.preventDefault(); joinRoom($('#joinCode').value); });
   $('#makeRoom').addEventListener('click', makeRoom);
   $('#shareRoom').addEventListener('click', async () => {
-    const url = `${location.origin}${location.pathname}?room=${online.code}`;
+    const url = `${SITE}?room=${online.code}`;
     try {
       if (navigator.share) await navigator.share({ title: 'Snap Call', text: `Play Snap Call with me. Room code: ${online.code}`, url });
       else { await navigator.clipboard.writeText(url); $('#shareRoom').textContent = 'Link copied'; }
