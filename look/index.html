@@ -823,14 +823,21 @@
   .home-chip.hard { color: var(--flag); }
   .home-setup svg { width: 16px; height: 16px; color: var(--chalk-dim); margin-left: 2px; }
   .home :focus-visible { outline: 3px solid var(--chalk); outline-offset: 3px; }
-  /* Play a friend: shown only when a room server answers (online/server.mjs). Quieter than Start game. */
+  /* Play a friend: shown only when a room server answers (online/server.mjs). As big as Start game, in your
+     friend's blue (orange is you). */
   .home-friend {
-    width: 100%; max-width: 330px; height: 50px; flex: none; margin-top: 14px; cursor: pointer; border-radius: 16px;
-    background: rgba(10, 44, 29, 0.72); color: var(--chalk); border: 2px solid rgba(236, 243, 232, 0.55);
-    font: 700 20px/1 var(--ui); letter-spacing: 0.01em;
+    --c: var(--cpu);
+    width: 100%; max-width: 330px; height: 64px; flex: none; margin-top: 18px; cursor: pointer; border: 3px solid var(--chalk); border-radius: 18px;
+    background: var(--c); color: var(--ink); font: 700 27px/1 var(--ui); letter-spacing: 0.01em;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 6px 0 color-mix(in srgb, var(--c) 55%, #000), 0 14px 24px rgba(0, 0, 0, 0.55);
+    transition: translate 0.08s ease-out, box-shadow 0.08s ease-out;
   }
-  .home-friend:active { translate: 0 2px; }
-  .home-friend + .home-setup { margin-top: 14px; }
+  .home-friend:active {
+    translate: 0 4px;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 2px 0 color-mix(in srgb, var(--c) 55%, #000), 0 8px 16px rgba(0, 0, 0, 0.5);
+  }
+  @media (hover: hover) { .home-friend:hover { filter: brightness(1.05); } }
+  .home-friend + .home-setup { margin-top: 18px; }
   /* Short screens (iPhone SE in a browser): smaller cards so everything fits. */
   /* 375pt-wide phones (iPhone SE, 13 mini): the side cards would reach 3pt past the screen edges. */
   @media (max-width: 384px) { .home-fan { scale: 0.95; } }
@@ -1874,7 +1881,7 @@
     if (S.phase === 'over' || gone) {
       const w = S.score.you > S.score.cpu ? 'you' : 'cpu';
       over.querySelector('.panel').style.setProperty('--tone', `var(--${gone ? 'chalk' : w})`);
-      const head = gone ? (online.left ? 'Friend left' : 'Game closed') : w === 'you' ? 'You win' : `${LABEL.cpu} wins`;
+      const head = gone ? (online.left ? 'Friend left' : 'Game closed') : w === 'you' ? 'You win' : 'You lose';
       $('#overHead').textContent = head;
       $('#overHead').classList.toggle('long', head.length > 9);   // "Friend wins" stays on one line
       $('#overScore').textContent = `${S.score.you} – ${S.score.cpu}`;
