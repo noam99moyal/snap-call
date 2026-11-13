@@ -390,6 +390,14 @@
   .cele-sp .cv { box-shadow: 0 0 0 3px var(--flag), 0 0 30px rgba(255, 212, 71, 0.45), 0 18px 40px rgba(0, 0, 0, 0.5); }
   .cele p { margin: 0; font: 400 min(24px, (100vw - 40px) / 14.5)/1.1 var(--display); color: var(--tone); text-align: center; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6); }
   @keyframes deal { from { transform: translateY(50px) scale(0.55) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  /* Scored on: the same card, smaller and without the glow, sliding in instead of bouncing. */
+  .cele.against .cele-score { width: min(190px, 46vw, (100dvh - 190px) / 1.4); box-shadow: 0 0 0 3px var(--tone), 0 14px 30px rgba(0, 0, 0, 0.5); }
+  .cele.against.pair .cele-score, .cele.against .cele-sp { width: min(160px, 36vw, (100dvh - 190px) / 1.5); }
+  .cele.against .cele-sp .cv { box-shadow: 0 0 0 3px var(--flag), 0 14px 30px rgba(0, 0, 0, 0.5); }
+  .cele.against .cele-cards > *, .cele.against p { animation: settle 0.35s cubic-bezier(0.25, 1, 0.5, 1) both; }
+  .cele.against.pair .cele-score, .cele.against.pair p { animation-delay: 0.25s; }
+  @keyframes settle { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .cele .cele-draw { font: 600 18px/1.2 var(--ui); color: var(--chalk); letter-spacing: 0.01em; margin-top: -4px; }
   .score.bump { animation: bump 0.6s ease-out; }
   @keyframes bump { from { transform: scale(1.7); color: var(--flag); } to { transform: scale(1); } }
 
@@ -1029,7 +1037,7 @@
 </main>
 
 <div class="cele" id="cele" hidden>
-  <div class="cele-in"><div class="cele-cards" id="celeCards"></div><p id="celeText"></p></div>
+  <div class="cele-in"><div class="cele-cards" id="celeCards"></div><p id="celeText"></p><p class="cele-draw" id="celeDraw" hidden>You draw a special.</p></div>
 </div>
 
 <div class="zoom" id="zoom" hidden><img id="zoomImg" alt="" width="600" height="840"></div>
@@ -1088,12 +1096,15 @@
   let cele = null;
 
   // `sp` is the special that made the score, if any: it comes in first, then the score card.
-  function celebrate(who, card, line, before, sp) {
+  // When you're the one scored on, the card comes in quieter (smaller, no glow, no bounce), and says if you drew a special.
+  function celebrate(who, card, line, before, sp, drew) {
     if (cele) clearTimeout(cele.timer);
     cele = { who, before, timer: setTimeout(endCelebrate, sp ? 2600 : 2000) };
     const box = $('#cele');
     box.style.setProperty('--tone', `var(--${who})`);
     box.classList.toggle('pair', !!sp);
+    box.classList.toggle('against', who === 'cpu');
+    $('#celeDraw').hidden = !(who === 'cpu' && drew);
     $('#celeCards').innerHTML = (sp ? `<div class="card sp cele-sp">${spInner(sp, SPECIALS[sp].name)}</div>` : '')
       + `<img class="cele-score" src="../full-cards/cards/${card}.webp" alt="${card === 'touchdown' ? 'Touchdown card' : 'Field goal card'}" width="600" height="840">`;
     const text = $('#celeText');
@@ -1333,10 +1344,11 @@
     const before = { ...S.score };
     const { o, d, r, firedBy } = rules.playSnap(S, { you, cpu });
     const text = rules.callText(off, o, d);
+    const had = S.hands.you.length;
     const out = rules.apply(S, r, off);
     for (const w of ['you', 'cpu']) {
       const sp = firedBy === w ? (w === 'you' ? you : cpu).card.key : null;
-      if (S.score[w] > before[w]) celebrate(w, 'touchdown', `${out.head} ${NAME[w]} ${verb(w, 'score')} 7`, before[w], sp);
+      if (S.score[w] > before[w]) celebrate(w, 'touchdown', `${out.head} ${NAME[w]} ${verb(w, 'score')} 7`, before[w], sp, S.hands.you.length > had);
     }
     // Show the ball's path on the field when the same team keeps it.
     S.move = S.phase !== 'over' && S.poss === off && S.pos !== pos0 ? { from: pos0, to: S.pos } : null;
@@ -1356,9 +1368,9 @@
     S.sel = { play: null, special: null };
     // The stage keeps showing the kick until the next pick.
     S.showLast = true; S.move = null;
-    const before = S.score[who];
+    const before = S.score[who], had = S.hands.you.length;
     rules.fieldGoal(S, who);
-    celebrate(who, 'field-goal', `Field goal! ${NAME[who]} ${verb(who, 'score')} 3`, before);
+    celebrate(who, 'field-goal', `Field goal! ${NAME[who]} ${verb(who, 'score')} 3`, before, null, S.hands.you.length > had);
   }
 
   // In the Red Zone the CPU kicks 45% of the time, or when 3 points wins the game. On Stopped twice it goes for the
