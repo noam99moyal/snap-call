@@ -16,6 +16,8 @@ Downs test (2 downs per zone on a longer field, kept apart from the main game): 
 Look preview (today's design with proposed wording and first-game tips, a Stopped once / Stopped twice choice at New game, and the one-screen phone layout): https://noam99moyal.github.io/snap-call/look/
 One-screen phone layouts (the three mockups; B is now in the look preview): https://noam99moyal.github.io/snap-call/mockups/phone/
 
+Launch to-do (what is left before the App Store): [TODO.md](TODO.md)
+
 Ideas being tested or still open (Block Kick, the Challenge Flag, phone layouts): [IDEAS.md](IDEAS.md)
 
 The Kick Field Goal choice card shows the existing Red Zone option: score 3 instead of snapping. Its artwork is available alongside the purple Field Goal score card.
