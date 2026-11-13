@@ -380,7 +380,7 @@
   .len button[aria-checked="true"] { background: var(--chalk); color: var(--ink); border-color: var(--chalk); }
   .lvl-tag { display: block; margin-top: 4px; font: 700 11px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--flag); }
 
-  /* Scoring: the Touchdown or Field Goal card takes the screen for a moment, then the points go on the board. */
+  /* Scoring: the Touchdown or Field Goal card takes the screen until you tap, then the points go on the board. */
   .cele {
     position: fixed; inset: 0; z-index: 15; display: grid; place-items: center; padding: 16px;
     background: rgba(5, 14, 10, 0.62); cursor: pointer;
@@ -819,17 +819,6 @@
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 2px 0 color-mix(in srgb, var(--you) 55%, #000), 0 8px 16px rgba(0, 0, 0, 0.5);
   }
   @media (hover: hover) { .home-start:hover { filter: brightness(1.05); } }
-  /* The game that's dealt: rules, length, level. Opens New game. */
-  .home-setup {
-    margin-top: 18px; flex: none; display: flex; gap: 6px; align-items: center; padding: 7px 8px 7px 10px; cursor: pointer;
-    border-radius: 999px; background: rgba(236, 243, 232, 0.08); border: 1px solid var(--chalk-faint); color: var(--chalk);
-  }
-  .home-chip {
-    font: 600 15px/1 var(--ui); padding: 6px 10px; border-radius: 999px; white-space: nowrap;
-    background: rgba(10, 44, 29, 0.7); border: 1px solid rgba(236, 243, 232, 0.18);
-  }
-  .home-chip.hard { color: var(--flag); }
-  .home-setup svg { width: 16px; height: 16px; color: var(--chalk-dim); margin-left: 2px; }
   .home :focus-visible { outline: 3px solid var(--chalk); outline-offset: 3px; }
   /* Play a friend: shown only when a room server answers (online/server.mjs). As big as Start game, in your
      friend's blue (orange is you). */
@@ -845,7 +834,6 @@
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 2px 0 color-mix(in srgb, var(--c) 55%, #000), 0 8px 16px rgba(0, 0, 0, 0.5);
   }
   @media (hover: hover) { .home-friend:hover { filter: brightness(1.05); } }
-  .home-friend + .home-setup { margin-top: 18px; }
   /* Short screens (iPhone SE in a browser): smaller cards so everything fits. */
   /* 375pt-wide phones (iPhone SE, 13 mini): the side cards would reach 3pt past the screen edges. */
   @media (max-width: 384px) { .home-fan { scale: 0.95; } }
@@ -883,9 +871,6 @@
   <div class="home-grow"></div>
   <button class="home-start" id="homeStart" type="button">Start game</button>
   <button class="home-friend" id="homeFriend" type="button" hidden>Play a friend</button>
-  <button class="home-setup" id="homeSetup" type="button" aria-label="Game settings">
-    <span class="home-chip">Stopped once</span><span class="home-chip" id="homeLen">First to 21</span><span class="home-chip" id="homeLvl">Normal</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
-  </button>
 </div>
 <script>
   // Before the first paint: arriving from New game during a game (?new= without &home) goes straight to the game.
@@ -1344,8 +1329,8 @@
   // `sp` is the special that made the score, if any: it comes in first, then the score card.
   // When you're the one scored on, the card comes in quieter (smaller, no glow, no bounce), and says if you drew a special.
   function celebrate(who, card, line, before, sp, drew) {
-    if (cele) clearTimeout(cele.timer);
-    cele = { who, before, timer: setTimeout(endCelebrate, sp ? 2600 : 2000) };
+    // It stays up until you tap (see endCelebrate).
+    cele = { who, before };
     const box = $('#cele');
     box.style.setProperty('--tone', `var(--${who})`);
     box.classList.toggle('pair', !!sp);
@@ -2028,7 +2013,6 @@
     if (b.dataset.rules === RULES) return;
     useRules(b.dataset.rules);
     newGame(savedLevel());
-    homeChips();
     // A reload keeps this rule set (the app remembers it by itself).
     if (location.protocol !== 'snapcall:') history.replaceState(null, '', location.pathname + (TWICE ? '?rules=twice' : ''));
   });
@@ -2057,7 +2041,6 @@
     $('.zones').innerHTML = (TWICE ? ZONE_CARDS.twice : ZONE_CARDS.once).map(([src, name], k, all) => (k < all.length - 1
       ? `<div class="zone" data-z="${k}"><img src="${src}" alt="${name}" width="600" height="840"><span class="zn">${name}</span></div>`
       : `<div class="zone ez"><img src="${src}" alt="${name}" width="600" height="840"><span class="zn">${name}</span><span class="who-ez" id="ezTeam"></span></div>`)).join('\n        ');
-    $('.home-setup .home-chip').textContent = rules.name;
     try { localStorage.setItem('snap-call-look-rules', set); } catch (e) { /* the app opens on Stopped once */ }
   }
   const ZONE_CARDS = {
@@ -2089,8 +2072,8 @@
     if (S) { askLevel(); if ([21, 28, 35].includes(+arrived)) setLen(+arrived); }
   }
   // ---------- Home screen ----------
-  // Start game goes into the game that's already dealt. The chips show its rules, length and level; they open New
-  // game, and picking Normal or Hard there starts that game. In the app, Start game also gives a light tap.
+  // Start game opens New game (rules, length, level, set to what you picked last time); picking Normal or Hard there
+  // starts the game. In the app, that pick also gives a light tap.
   const home = $('#home'), fan = $('.home-fan');
   function homeUp() { return !home.hidden && !home.classList.contains('leaving'); }
   function leaveHome() {
@@ -2100,18 +2083,11 @@
     const gone = () => { home.hidden = true; home.classList.remove('leaving'); };
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) gone(); else setTimeout(gone, 250);
   }
-  function homeChips() {
-    $('#homeLen').textContent = `First to ${S.target}`;
-    $('#homeLvl').textContent = S.level === 'hard' ? 'Hard' : 'Normal';
-    $('#homeLvl').classList.toggle('hard', S.level === 'hard');
-  }
-  homeChips();
   // Main menu (in the ⋯ menu and on the game-over screen): the game you were playing ends, and a fresh one with the same rules, length and level
   // is dealt behind the home screen. The cards fan out again.
   function showHome() {
     leaveOnline();
     newGame(S.level, S.target);
-    homeChips();
     scrollTo(0, 0);
     root.classList.add('home-on');
     home.hidden = false;
@@ -2119,13 +2095,13 @@
   }
   $('#toHome').addEventListener('click', showHome);
   $('#overHome').addEventListener('click', showHome);
-  $('#homeStart').addEventListener('click', () => {
+  $('#homeStart').addEventListener('click', askLevel);
+  $('#homeHow').addEventListener('click', () => $('#rules').showModal());
+  for (const b of document.querySelectorAll('#level .lvl-pick')) b.addEventListener('click', () => {
+    if (!homeUp()) return;
     try { window.webkit?.messageHandlers?.haptic?.postMessage('light'); } catch (e) { /* not in the app */ }
     leaveHome();
   });
-  $('#homeSetup').addEventListener('click', askLevel);
-  $('#homeHow').addEventListener('click', () => $('#rules').showModal());
-  for (const b of document.querySelectorAll('#level .lvl-pick')) b.addEventListener('click', leaveHome);
   // The cards fan out once their art is ready (or after a moment, whichever comes first).
   if (homeUp()) Promise.race([
     Promise.all([...fan.querySelectorAll('img')].map((i) => i.decode().catch(() => {}))),
@@ -2285,7 +2261,6 @@
     S.resumed = v.snaps > 0;
     S.log.unshift({ n: 0, head: 'Kickoff', text: firstBall(), tone: S.poss });
     online.rematch = online.rematch || {};
-    homeChips();
     leaveHome();
   }
   // The server's board wins: hands (yours, and how many your friend holds), score, ball, tries, and whose turn.
