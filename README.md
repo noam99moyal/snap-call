@@ -40,11 +40,11 @@ In `full-cards/`, New game asks Normal or Hard. Normal is the original computer.
 
 ## Play a friend
 
-Rooms live on Cloudflare: `online/worker/` is a Worker with one Durable Object per room, at https://snap-call-rooms.snapcall.workers.dev (free plan). Each room keeps both picks secret until the flip, deals the specials and runs the same `look/rules.js`, and keeps its game in its own storage, so it survives both phones going to sleep. It closes after 30 minutes with nobody connected. The website and the app both use it; the link from Share link opens the game on the website, so a friend doesn't need the app. Players don't need accounts.
+Rooms live on Cloudflare: `online/worker/` is a Worker with one Durable Object per room, at https://snap-call-rooms.snapcall.workers.dev (free plan). Each room keeps both picks secret until the flip, deals the specials and runs the same `look/rules.js`, and keeps its game in its own storage, so it survives both phones going to sleep. It closes after 10 minutes with no card played. Once one player has picked, the other has 45 seconds (a countdown shows for the last 15), then a play is picked for them; their clock waits while their phone is away or showing a score card. If your friend's phone drops off, you see "Your friend is away…", and after 2 minutes a Main menu button. The website and the app both use it; the link from Share link opens the game on the website, so a friend doesn't need the app. Players don't need accounts.
 
 To change it: edit `online/worker/worker.mjs`, then `cd online/worker && npm install && npx wrangler deploy` (log in once with `npx wrangler login`). `npx wrangler dev --port 8797` runs it on this Mac, and `look/?server=http://localhost:8797` points the page at it.
 
-`online/server.mjs` is the same room server in plain Node (no installs), for testing on this Mac and Wi-Fi: `node online/server.mjs`, then open http://localhost:8796/look/ (pages from it use it instead of Cloudflare).
+`online/server.mjs` is the first version of the room server in plain Node (no installs; no pick clock or away status), for testing on this Mac and Wi-Fi: `node online/server.mjs`, then open http://localhost:8796/look/ (pages from it use it instead of Cloudflare).
 
 ## iPhone app
 

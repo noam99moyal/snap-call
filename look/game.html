@@ -358,6 +358,7 @@
   .friend .room-label { margin: 4px 0 0; text-align: center; font: 600 15px/1 var(--ui); color: var(--chalk-dim); }
   .friend .room-code { margin: 0; text-align: center; font: 700 56px/1.1 var(--ui); letter-spacing: 0.18em; color: var(--chalk); padding-left: 0.18em; }
   .friend #shareRoom { height: 48px; font-size: 17px; border-radius: 10px; }
+  .status .away-home { justify-self: center; margin-top: 6px; height: 40px; padding: 0 18px; font-size: 16px; border-radius: 10px; }
   .friend .room-wait { margin: 4px 0 6px; text-align: center; color: var(--chalk-dim); }
   /* Online there is no New game: Main menu leaves the room. */
   :root.online #newGame { display: none; }
@@ -912,7 +913,7 @@
     </div>
     </div>
 
-    <div class="status" aria-live="polite"><strong id="status"></strong><span id="hint"></span></div>
+    <div class="status" aria-live="polite"><strong id="status"></strong><span id="hint"></span><button class="ghost away-home" id="awayHome" type="button" hidden>Main menu</button></div>
 
     <section class="stage" aria-label="Snap">
       <div class="table">
@@ -1002,7 +1003,19 @@
     <dialog class="rules level friend" id="friend" aria-labelledby="friendHead">
       <div class="head"><h2 id="friendHead">Play a friend</h2><button class="ghost" id="closeFriend" type="button">Close</button></div>
       <div class="body" id="friendChoose">
-        <button class="lvl-pick" id="makeRoom" type="button"><b>Make a room</b><span id="makeRoomRules"></span></button>
+        <div class="rule-set">
+          <div class="opts" role="radiogroup" aria-label="Rules">
+            <button type="button" role="radio" data-frules="once" aria-checked="true">Stopped once</button>
+            <button type="button" role="radio" data-frules="twice" aria-checked="false">Stopped twice</button>
+          </div>
+        </div>
+        <div class="len" role="radiogroup" aria-label="Game length">
+          <span>First to</span>
+          <button type="button" role="radio" data-ftarget="21" aria-checked="true">21</button>
+          <button type="button" role="radio" data-ftarget="28" aria-checked="false">28</button>
+          <button type="button" role="radio" data-ftarget="35" aria-checked="false">35</button>
+        </div>
+        <button class="lvl-pick" id="makeRoom" type="button"><b>Make a room</b><span>Your friend joins with the code.</span></button>
         <form class="join" id="joinForm" novalidate>
           <label for="joinCode">Join with a code</label>
           <div class="join-row">
@@ -1083,8 +1096,9 @@
   // `sp` is the special that made the score, if any: it comes in first, then the score card.
   // When you're the one scored on, the card comes in quieter (smaller, no glow, no bounce), and says if you drew a special.
   function celebrate(who, card, line, before, sp, drew) {
-    // It stays up until you tap (see endCelebrate).
+    // It stays up until you tap (see endCelebrate). Online, your pick clock waits meanwhile.
     cele = { who, before };
+    if (online) tellBusy(true);
     const box = $('#cele');
     box.style.setProperty('--tone', `var(--${who})`);
     box.classList.toggle('pair', !!sp);
@@ -1102,6 +1116,7 @@
     clearTimeout(cele.timer);
     const who = cele.who;
     cele = null;
+    if (online) tellBusy(false);
     $('#cele').hidden = true;
     render();
     const el = who === 'you' ? $('#sYou') : $('#sCpu');
@@ -1495,13 +1510,22 @@
       head = S.poss === 'you' ? 'Your ball: stopped once' : `${online ? 'Your friend’s' : 'CPU'} ball: stopped once`;
       line = S.poss === 'you' ? `Stopped again here and ${them()} gets the ball.` : 'Stop them again to get the ball.';
     } else if (ne) ({ head, line } = ne);
-    // Online: waiting for your friend, a pick the server turned down, or a dropped connection come first.
-    if (online) {
+    // Online: waiting for your friend, a pick the server turned down, or a dropped connection come first (not once the
+    // game has ended: then the game-over panel says it).
+    if (online && !online.left && !online.ended && !online.stopped) {
       if (online.down) { head = 'Reconnecting…'; line = ''; }
       else if (online.error) { head = online.error; line = ''; }
-      else if (S.phase === 'wait') { head = 'Waiting for your friend’s pick…'; line = ''; }
-      else if (S.phase === 'pick' && online.themPicked && !head) head = 'Your friend has picked.';
+      else if (awayFor() >= AWAY_SHOW && S.phase !== 'over') { head = 'Your friend is away…'; line = ''; }
+      else if (S.phase === 'wait') {
+        const n = online.clock && !online.clock.mine ? secondsLeft() : 0;
+        head = `Waiting for your friend’s pick…${n ? ` ${n} ${n === 1 ? 'second' : 'seconds'} left.` : ''}`; line = '';
+      } else if (S.phase === 'pick' && online.themPicked && (!head || secondsLeft() || online.auto)) {
+        // Your friend has picked: in your last 15 seconds that comes first, with the countdown.
+        const n = online.clock && online.clock.mine ? secondsLeft() : 0;
+        head = `Your friend has picked.${n ? ` ${n} ${n === 1 ? 'second' : 'seconds'} left.` : ''}`; line = '';
+      } else if (S.phase === 'pick' && online.auto) { head = 'Time ran out, so a play was picked for you.'; line = ''; }
     }
+    $('#awayHome').hidden = !(online && !online.left && !online.ended && !online.stopped && awayFor() >= AWAY_LONG && S.phase !== 'over');
     showStatus(head, line, S.phase !== 'over');
 
     // Field
@@ -1627,12 +1651,12 @@
     // Game over
     const over = $('#over');
     // Online it can also end because your friend left or the room closed; then only Main menu is offered.
-    const gone = online && (online.left || online.ended);
+    const gone = online && (online.left || online.ended || online.stopped);
     over.hidden = !(S.phase === 'over' || gone) || !!cele;
     if (S.phase === 'over' || gone) {
       const w = S.score.you > S.score.cpu ? 'you' : 'cpu';
       over.querySelector('.panel').style.setProperty('--tone', `var(--${gone ? 'chalk' : w})`);
-      const head = gone ? (online.left ? 'Friend left' : 'Game closed') : w === 'you' ? 'You win' : 'You lose';
+      const head = gone ? (online.left && !online.stopped ? 'Friend left' : 'Game closed') : w === 'you' ? 'You win' : 'You lose';
       $('#overHead').textContent = head;
       $('#overHead').classList.toggle('long', head.length > 9);   // "Friend wins" stays on one line
       $('#overScore').textContent = `${S.score.you} – ${S.score.cpu}`;
@@ -1641,6 +1665,8 @@
       again.disabled = !!(online && online.rematch.you);
       again.textContent = !online ? 'Play again' : online.rematch.you ? 'Waiting for your friend…' : 'Rematch';
       $('#overNote').textContent = !online ? ''
+        : online.stopped === 'you' ? 'You didn’t pick for a while, so the game ended.'
+        : online.stopped === 'cpu' ? 'Your friend stopped playing.'
         : online.ended ? 'Nobody played for a while, so the room closed.'
         : online.left ? 'Your friend went back to the main menu.'
         : online.rematch.cpu && !online.rematch.you ? 'Your friend wants a rematch.' : '';
@@ -1750,9 +1776,9 @@
   let lenPick = 21;
   function setLen(t) {
     lenPick = t;
-    for (const b of document.querySelectorAll('.len button')) b.setAttribute('aria-checked', String(+b.dataset.target === t));
+    for (const b of document.querySelectorAll('#level .len button')) b.setAttribute('aria-checked', String(+b.dataset.target === t));
   }
-  for (const b of document.querySelectorAll('.len button')) b.addEventListener('click', () => setLen(+b.dataset.target));
+  for (const b of document.querySelectorAll('#level .len button')) b.addEventListener('click', () => setLen(+b.dataset.target));
   function askLevel() {
     setLen(S.target);
     $('#level').showModal();
@@ -1762,7 +1788,7 @@
   $('#again').addEventListener('click', () => (online ? askRematch() : askLevel()));
   // The rules choice in New game deals a fresh game on the other rule set (its saved length and your level), and New game
   // stays open with the length you had picked.
-  const ruleBtns = [...document.querySelectorAll('.rule-set button')];
+  const ruleBtns = [...document.querySelectorAll('#level .rule-set button')];
   for (const b of ruleBtns) b.addEventListener('click', () => {
     if (b.dataset.rules === RULES) return;
     useRules(b.dataset.rules);
@@ -1849,6 +1875,7 @@
   }
   $('#toHome').addEventListener('click', showHome);
   $('#overHome').addEventListener('click', showHome);
+  $('#awayHome').addEventListener('click', showHome);
   $('#homeStart').addEventListener('click', askLevel);
   $('#homeHow').addEventListener('click', () => $('#rules').showModal());
   for (const b of document.querySelectorAll('#level .lvl-pick')) b.addEventListener('click', () => {
@@ -1899,12 +1926,21 @@
     root.classList.toggle('online', on);
   }
 
-  // The Play a friend panel: make a room (with the rules, length and level of the game that's dealt), or join with a code.
+  // The Play a friend panel: make a room with the rules and length picked here (set to the game that's dealt), or join
+  // with a code (the room's rules then).
   const friend = $('#friend');
+  let fRules = 'once', fTarget = 21;
+  function friendPicks(set, target) {
+    fRules = set; fTarget = target;
+    for (const b of document.querySelectorAll('[data-frules]')) b.setAttribute('aria-checked', String(b.dataset.frules === set));
+    for (const b of document.querySelectorAll('[data-ftarget]')) b.setAttribute('aria-checked', String(+b.dataset.ftarget === target));
+  }
+  for (const b of document.querySelectorAll('[data-frules]')) b.addEventListener('click', () => friendPicks(b.dataset.frules, fTarget));
+  for (const b of document.querySelectorAll('[data-ftarget]')) b.addEventListener('click', () => friendPicks(fRules, +b.dataset.ftarget));
   function friendErr(t) { $('#friendErr').textContent = t; }
   function openFriend(code = '', err = '') {
     $('#friendChoose').hidden = false; $('#friendCode').hidden = true;
-    $('#makeRoomRules').textContent = `${rules.name}, first to ${S.target}. Your friend joins with the code.`;
+    if (!friend.open) friendPicks(RULES, S.target);
     $('#joinCode').value = code; friendErr(err);
     if (!friend.open) friend.showModal();
   }
@@ -1934,7 +1970,7 @@
   async function makeRoom() {
     friendErr('');
     try {
-      const r = await call('rooms', { set: RULES, target: S.target });
+      const r = await call('rooms', { set: fRules, target: fTarget });
       leaveOnline();
       online = { code: r.code, token: r.token, waiting: true, rematch: {} };
       saveRoom(); showCode(r.code); connect();
@@ -1958,7 +1994,7 @@
     if (es) { es.close(); es = null; }
     clearTimeout(downTimer);
     clearRoom();
-    if (!o.left && !o.ended) call(`rooms/${o.code}/leave`, { token: o.token }).catch(() => {});
+    if (!o.left && !o.ended && !o.stopped) call(`rooms/${o.code}/leave`, { token: o.token }).catch(() => {});
     setOpponent(false);
   }
 
@@ -1973,13 +2009,17 @@
     on('picked', (d) => fromServer(d.view));
     on('over', (d) => fromServer(d.view));
     on('rematch', (d) => fromServer(d.view));
+    on('meta', (d) => { if (S.online) { meta(d.view); render(); } });
     on('snap', (d) => {
       o.error = '';
+      o.auto = d.auto === 'you';
       if (d.fg) kickFG(d.fg);
       else playOut(d.picks.you, d.picks.cpu);
       reconcile(d.view); render();
     });
     on('left', () => { o.left = true; clearRoom(); if (es) { es.close(); es = null; } render(); });
+    // Two pick clocks in a row ran out: the game ends for both (`who` is 'you' if it was you who stopped).
+    on('stopped', (d) => stopped(o, d.who));
     es.onopen = () => { clearTimeout(downTimer); if (o.down) { o.down = false; render(); } };
     es.onerror = () => {
       clearTimeout(downTimer);
@@ -1999,8 +2039,10 @@
     }
   }
 
+  function stopped(o, who) { o.stopped = who; clearRoom(); if (es) { es.close(); es = null; } if (S.online) render(); }
   function fromServer(v, fresh) {
     if (v.status === 'waiting') { online.waiting = true; showCode(v.code); return; }
+    if (v.stopped && S.online) { stopped(online, v.stopped); return; }
     online.waiting = false;
     if (fresh || !S.online) startOnline(v); else reconcile(v);
     render();
@@ -2033,7 +2075,51 @@
     S.phase = v.phase === 'pick' && v.picked.you ? 'wait' : v.phase;
     online.themPicked = v.picked.cpu;
     online.rematch = { ...v.rematch };
+    meta(v);
   }
+  // Is your friend's phone connected, and who's on the pick clock (see online/worker): `clock.end` is when it runs out
+  // on this phone's own clock.
+  function meta(v) {
+    const o = online;
+    const here = !v.present || v.present.cpu;
+    if (here) o.awaySince = 0; else if (!o.awaySince) o.awaySince = Date.now();
+    o.clock = v.clock ? { mine: v.clock.you, running: v.clock.running, end: Date.now() + v.clock.left } : null;
+  }
+  // The status line changes by the second while a clock is in its last 15 seconds, and when your friend has been away
+  // 5 seconds (then 2 minutes, for Main menu).
+  const AWAY_SHOW = 5000, AWAY_LONG = 120000, PICK_SHOW = 15000;
+  function awayFor() { return online && online.awaySince ? Date.now() - online.awaySince : 0; }
+  function secondsLeft() {
+    const c = online && online.clock;
+    if (!c || !c.running) return 0;
+    const left = c.end - Date.now();
+    return left <= PICK_SHOW ? Math.max(1, Math.ceil(left / 1000)) : 0;
+  }
+  let shown = '';
+  setInterval(() => {
+    if (!online || !S || !S.online) return;
+    const now = `${secondsLeft()}|${awayFor() >= AWAY_SHOW}|${awayFor() >= AWAY_LONG}`;
+    if (now !== shown) { shown = now; render(); }
+  }, 250);
+  // A score card up on this phone pauses your pick clock.
+  function tellBusy(on) {
+    const o = online;
+    if (o && S.online && !o.left && !o.ended) call(`rooms/${o.code}/busy`, { token: o.token, on }).catch(() => {});
+  }
+  // A phone in the background is away: close the stream (your friend sees it right away) and open it again on return.
+  function goneAway() {
+    const o = online;
+    if (!o || o.left || o.ended || o.stopped || !es) return;
+    es.close(); es = null;
+    try { navigator.sendBeacon(`${API}/api/rooms/${o.code}/away`, JSON.stringify({ token: o.token })); } catch (e) { /* the room notices soon anyway */ }
+  }
+  document.addEventListener('visibilitychange', () => {
+    const o = online;
+    if (!o || o.left || o.ended || o.stopped) return;
+    if (document.hidden) goneAway();
+    else if (!es) connect();
+  });
+  addEventListener('pagehide', goneAway);
 
   // Snap (or Defend, or Kick for 3) sends your pick; both cards flip when your friend's is in too.
   async function sendPick() {
@@ -2041,6 +2127,7 @@
     const o = online;
     o.error = '';
     S.phase = 'wait';
+    o.auto = false;
     render();
     try {
       await call(`rooms/${o.code}/pick`, { token: o.token, play: S.sel.play, special: S.sel.special ? S.sel.special.id : null });
